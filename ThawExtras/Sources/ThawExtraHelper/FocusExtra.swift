@@ -65,7 +65,7 @@ final class FocusExtra: NSObject {
             // The Focus service answers only entitled apps; say so rather than
             // guess "off".
             let title = switch snapshot {
-            case .unavailable: String(localized: "Focus status isn't available to Thaw")
+            case .unavailable: String(localized: "Focus status isn't available to Foldy")
             case .inactive: String(localized: "Focus is off")
             case let .active(mode, _): mode.map { String(localized: "\($0.name) is on") }
                 ?? String(localized: "Focus is on")

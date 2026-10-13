@@ -82,7 +82,7 @@ final class NativeVisibilityRecoveryModel {
         do {
             try requireExclusiveAccess()
             _ = try await environment.restore(selectedBundleIDs)
-            successMessage = String(localized: "Visibility settings were saved and verified. Quit recovery and check your menu bar before reopening Thaw. Native hiding remains off.")
+            successMessage = String(localized: "Visibility settings were saved and verified. Quit recovery and check your menu bar before reopening Foldy. Native hiding remains off.")
             hasLoaded = false
             selectedBundleIDs = []
             recordedBundleIDs = []
@@ -102,7 +102,7 @@ final class NativeVisibilityRecoveryModel {
         var errorDescription: String? {
             switch self {
             case .otherManagerRunning:
-                String(localized: "Quit other copies of Thaw and Bartender before continuing. Recovery records have been kept.")
+                String(localized: "Quit other copies of Foldy and Bartender before continuing. Recovery records have been kept.")
             case .accessNotGranted:
                 String(localized: "Read and write access was not granted. Try again or restore the app switches in System Settings → Menu Bar.")
             case .normalLaunch:

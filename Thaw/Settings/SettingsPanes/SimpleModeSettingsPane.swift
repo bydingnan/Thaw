@@ -16,7 +16,6 @@ import ThawUI
 struct SimpleModeSettingsPane: View {
     @Environment(AppState.self) private var appState
     let itemManager: MenuBarItemManager
-    let updatesManager: UpdatesManager
     @Bindable var settings: GeneralSettings
 
     /// Observe tag membership, not cache geometry, to avoid jitter (MenuBarLayoutGroupsSection).
@@ -197,19 +196,14 @@ struct SimpleModeSettingsPane: View {
 
     // MARK: - About
 
-    /// One caption line, no card: version and an updates check. Support links
-    /// and acknowledgements live in the full window's About pane.
+    /// One caption line, no card: the installed version. Support links and
+    /// acknowledgements live in the full window's About pane.
     private var aboutRow: some View {
         HStack(spacing: 12) {
             Text("\(Constants.displayName) \(Constants.versionString)")
                 .font(ThawType.caption)
                 .foregroundStyle(ThawInk.supporting)
             Spacer()
-            Button("Check for Updates") {
-                updatesManager.checkForUpdates()
-            }
-            .buttonStyle(.settingsGlass)
-            .font(ThawType.label)
         }
         .listRowBackground(Color.clear)
     }

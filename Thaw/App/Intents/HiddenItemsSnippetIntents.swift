@@ -186,7 +186,7 @@ struct HiddenMenuBarItemsSnippet: SnippetIntent {
 struct ShowHiddenItemsIntent: AppIntent {
     static nonisolated(unsafe) var title: LocalizedStringResource = "Show Hidden Menu Bar Items"
     static nonisolated(unsafe) var description: IntentDescription? = IntentDescription(
-        "List the menu bar items Thaw is currently hiding, and reveal any of them.",
+        "List the menu bar items Foldy is currently hiding, and reveal any of them.",
         categoryName: "Menu Bar"
     )
 

@@ -30,9 +30,9 @@ nonisolated enum MenuBarArrangementMode: Int, CaseIterable, Identifiable {
     var explanation: LocalizedStringKey {
         switch self {
         case .automatic:
-            "Thaw keeps items in the order you set in Layout. To move another app’s item it sometimes has to drag it for you, and your mouse is briefly unavailable while it does."
+            "Foldy keeps items in the order you set in Layout. To move another app’s item it sometimes has to drag it for you, and your mouse is briefly unavailable while it does."
         case .manual:
-            "You set the order yourself by ⌘-dragging items in the menu bar. Thaw still hides and shows items, but only moves an item when you arrange it in Layout."
+            "You set the order yourself by ⌘-dragging items in the menu bar. Foldy still hides and shows items, but only moves an item when you arrange it in Layout."
         }
     }
 

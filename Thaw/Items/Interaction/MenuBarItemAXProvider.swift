@@ -129,7 +129,7 @@ nonisolated enum MenuBarItemAXProvider {
             guard let bar = AXHelpers.extrasMenuBar(for: app) else {
                 // Without its own extras bar Thaw cannot find its control items.
                 if runningApp.bundleIdentifier == ourBundleID {
-                    diagLog.warning("menuBarItems: Thaw (\(appBundleID)) has no AXExtrasMenuBar, control items cannot be discovered")
+                    diagLog.warning("menuBarItems: Foldy (\(appBundleID)) has no AXExtrasMenuBar, control items cannot be discovered")
                 }
                 continue
             }
@@ -185,7 +185,7 @@ nonisolated enum MenuBarItemAXProvider {
                 }
 
                 if runningApp.bundleIdentifier == ourBundleID {
-                    diagLog.debug("menuBarItems: Thaw item, title='\(derived.identityTitle)' frame=\(frame) ownerPID=\(ownerPID)")
+                    diagLog.debug("menuBarItems: Foldy item, title='\(derived.identityTitle)' frame=\(frame) ownerPID=\(ownerPID)")
                 }
 
                 if Defaults.bool(forKey: .diagnosticRestrictionSceneProbes),
@@ -527,7 +527,7 @@ nonisolated enum MenuBarItemAXProvider {
         guard let bar = AXHelpers.extrasMenuBar(for: app) else {
             if runningApp.bundleIdentifier == ourBundleID {
                 diagLog.warning(
-                    "menuBarItems: Thaw (\(appBundleID)) has no AXExtrasMenuBar, control items cannot be discovered"
+                    "menuBarItems: Foldy (\(appBundleID)) has no AXExtrasMenuBar, control items cannot be discovered"
                 )
             }
             logEmptyExtrasBarReadOnce(for: runningApp, appBundleID: appBundleID, hasBar: false, formerHosts: formerHosts)
@@ -985,7 +985,7 @@ nonisolated enum MenuBarItemAXProvider {
         }
         let observation = nativeOverflowObservationUncached(on: display)
         overflowObservationMemo.withLock {
-            $0[display] = OverflowObservationMemo(observation: observation, readAt: now)
+            $0[display] = OverflowObservationMemo(observation: observation, readAt: .now)
         }
         return observation
     }

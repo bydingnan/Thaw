@@ -772,11 +772,11 @@ extension MenuBarItemManager {
         ) {
             if isInStartupSettling {
                 MenuBarItemManager.diagLog.debug(
-                    "cacheItemsRegardless: Thaw control items not yet in AX snapshot (startup settling); retaining last-good cache silently. Items remaining: \(items.count), windowIDs: \(itemWindowIDs.count)"
+                    "cacheItemsRegardless: Foldy control items not yet in AX snapshot (startup settling); retaining last-good cache silently. Items remaining: \(items.count), windowIDs: \(itemWindowIDs.count)"
                 )
             } else {
                 MenuBarItemManager.diagLog.warning(
-                    "cacheItemsRegardless: Thaw visible control item missing from AX snapshot; retaining last-good cache. Items remaining: \(items.count), windowIDs: \(itemWindowIDs.count)"
+                    "cacheItemsRegardless: Foldy visible control item missing from AX snapshot; retaining last-good cache. Items remaining: \(items.count), windowIDs: \(itemWindowIDs.count)"
                 )
                 await MainActor.run { self.areControlItemsMissing = true }
             }

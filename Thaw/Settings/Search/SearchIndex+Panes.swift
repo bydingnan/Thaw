@@ -24,7 +24,7 @@ nonisolated extension SearchIndex {
             title: "Privacy",
             descriptionText: nil,
             pane: .privacy,
-            keywords: ["privacy", "permissions", "accessibility", "screen recording", "network", "what thaw sees", "data", "tracking", "analytics"],
+            keywords: ["privacy", "permissions", "accessibility", "screen recording", "network", "what foldy sees", "data", "tracking", "analytics"],
             property: nil
         ),
         SearchEntry(
@@ -64,7 +64,7 @@ nonisolated extension SearchIndex {
             title: "Displays",
             descriptionText: nil,
             pane: .displays,
-            keywords: ["display", "monitor", "screen", "notch", "spacing", "ice bar", "thaw bar", "arrangement"],
+            keywords: ["display", "monitor", "screen", "notch", "spacing", "ice bar", "foldy bar", "arrangement"],
             property: nil
         ),
         SearchEntry(
@@ -75,7 +75,7 @@ nonisolated extension SearchIndex {
             pane: .thawBar,
             sectionKey: nil,
             sectionText: nil,
-            keywords: ["ice bar", "thaw bar", "hidden", "separate bar", "layout", "horizontal", "vertical", "grid", "placement", "location", "dedicated bar"],
+            keywords: ["ice bar", "foldy bar", "hidden", "separate bar", "layout", "horizontal", "vertical", "grid", "placement", "location", "dedicated bar"],
             property: nil
         ),
         SearchEntry(
@@ -139,7 +139,7 @@ nonisolated extension SearchIndex {
             title: "About",
             descriptionText: nil,
             pane: .about,
-            keywords: ["about", "version", "update", "credits", "license"],
+            keywords: ["about", "version"],
             property: nil
         ),
     ]

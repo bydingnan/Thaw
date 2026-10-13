@@ -42,7 +42,6 @@ final class ControlItemMenuController: NSObject {
         }
 
         menu.addItem(settingsItem())
-        menu.addItem(whatsNewItem())
         menu.addItem(.separator())
         menu.addItem(searchItem(appState: appState))
         menu.addItem(swapBarItem(appState: appState))
@@ -58,12 +57,6 @@ final class ControlItemMenuController: NSObject {
         }
 
         menu.addItem(.separator())
-        if Constants.supportsSparkleUpdates {
-            menu.addItem(checkForUpdatesItem())
-        }
-        menu.addItem(supportItem())
-
-        menu.addItem(.separator())
         // The restart item is an alternate of quit: it replaces it while option
         // is held, which is why both carry the same key equivalent.
         menu.addItem(quitItem())
@@ -75,15 +68,6 @@ final class ControlItemMenuController: NSObject {
     // MARK: Item construction
 
     /// Untargeted so the command reaches the app delegate via the responder chain.
-    private func whatsNewItem() -> NSMenuItem {
-        NSMenuItem(
-            title: String(localized: "What’s New…"),
-            action: #selector(AppDelegate.openWhatsNewWindow),
-            keyEquivalent: ""
-        )
-    }
-
-    /// Untargeted for the same reason as whatsNewItem().
     private func settingsItem() -> NSMenuItem {
         let item = NSMenuItem(
             title: String(localized: "Settings…"),
@@ -231,26 +215,6 @@ final class ControlItemMenuController: NSObject {
         return item
     }
 
-    private func checkForUpdatesItem() -> NSMenuItem {
-        let item = NSMenuItem(
-            title: String(localized: "Check for Updates…"),
-            action: #selector(checkForUpdates),
-            keyEquivalent: ""
-        )
-        item.target = self
-        return item
-    }
-
-    private func supportItem() -> NSMenuItem {
-        let item = NSMenuItem(
-            title: String(localized: "Support \(Constants.displayName)…"),
-            action: #selector(openDonateURL),
-            keyEquivalent: ""
-        )
-        item.target = self
-        return item
-    }
-
     private func quitItem() -> NSMenuItem {
         let item = NSMenuItem(
             title: String(localized: "Quit \(Constants.displayName)"),
@@ -325,14 +289,6 @@ final class ControlItemMenuController: NSObject {
                 NSAlert(error: error).runModal()
             }
         }
-    }
-
-    @objc private func checkForUpdates() {
-        appState?.updatesManager.checkForUpdates()
-    }
-
-    @objc private func openDonateURL() {
-        NSWorkspace.shared.open(Constants.donateURL)
     }
 
     /// Deferred to the default run loop mode: terminating inside menu tracking

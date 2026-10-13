@@ -17,7 +17,6 @@ enum ThawOnboardingWindowMetrics {
 /// The host applies all decisions at completion; the flow never writes settings, so quitting leaves no partial changes.
 nonisolated struct OnboardingOutcome: Equatable, Sendable {
     var simpleMode: Bool
-    var automaticUpdates: Bool
 }
 
 /// Ask for access after explaining its benefits; earlier screens need no grants and cannot fail for missing permissions.
@@ -65,7 +64,7 @@ struct ThawOnboardingView: View {
     /// What to hand the host if the access step somehow finishes without
     /// the bento having run: the same defaults the bento starts with.
     private var defaultOutcome: OnboardingOutcome {
-        OnboardingOutcome(simpleMode: true, automaticUpdates: true)
+        OnboardingOutcome(simpleMode: true)
     }
 
     var body: some View {

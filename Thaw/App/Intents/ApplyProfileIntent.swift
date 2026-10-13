@@ -22,7 +22,7 @@ enum ThawIntentError: Swift.Error, CustomLocalizedStringResourceConvertible {
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .appNotReady:
-            "Thaw isn't running yet. Open Thaw and try again."
+            "Foldy isn't running yet. Open Foldy and try again."
         case .profileNotFound:
             "That menu bar profile no longer exists."
         }
@@ -34,7 +34,7 @@ struct ApplyProfileIntent: AppIntent {
     // AppIntent reflects these mutable static properties off-actor; set them once and never reassign.
     static nonisolated(unsafe) var title: LocalizedStringResource = "Apply Menu Bar Profile"
     static nonisolated(unsafe) var description: IntentDescription? = IntentDescription(
-        "Apply a saved Thaw menu bar profile, restoring its layout and settings.",
+        "Apply a saved Foldy menu bar profile, restoring its layout and settings.",
         categoryName: "Profiles"
     )
 

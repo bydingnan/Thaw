@@ -649,10 +649,6 @@ extension Defaults {
         case reducedModeChosen
         case reducedModeHiddenBundleIDs
 
-        // MARK: Updates Consent
-
-        case hasSeenUpdateConsent
-
         // MARK: Onboarding
 
         case hasSeenOnboarding

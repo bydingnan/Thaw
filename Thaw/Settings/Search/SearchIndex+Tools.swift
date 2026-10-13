@@ -63,7 +63,7 @@ nonisolated extension SearchIndex {
         SearchEntry(
             id: "tools.resetMenuBarLayoutPositions",
             title: "Reset menu bar layout positions",
-            descriptionText: String(localized: "Deletes every saved item position and restarts the system's menu bar service, so the layout rebuilds from scratch. Thaw saves a backup first. Use this when items won't return to the menu bar after you rearrange."),
+            descriptionText: String(localized: "Deletes every saved item position and restarts the system's menu bar service, so the layout rebuilds from scratch. Foldy saves a backup first. Use this when items won't return to the menu bar after you rearrange."),
             pane: .tools,
             section: "Troubleshooting",
             keywords: ["layout", "positions", "reset", "backup", "restore", "rebuild", "menu bar host", "tools"],

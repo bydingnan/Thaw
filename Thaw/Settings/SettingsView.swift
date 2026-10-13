@@ -89,7 +89,6 @@ struct SettingsView: View {
         // comes first, app plumbing last.
         SimpleModeSettingsPane(
             itemManager: appState.itemManager,
-            updatesManager: appState.updatesManager,
             settings: generalSettings
         )
         .environment(\.settingsPaneTitle, nil)
@@ -309,7 +308,6 @@ struct SettingsView: View {
             )
         case .privacy:
             PrivacySettingsPane(
-                updatesManager: appState.updatesManager,
                 advancedSettings: appState.settings.advanced
             )
         case .theLab:
@@ -317,7 +315,7 @@ struct SettingsView: View {
         case .tools:
             ToolsSettingsPane(settings: appState.settings.advanced)
         case .about:
-            AboutSettingsPane(updatesManager: appState.updatesManager)
+            AboutSettingsPane()
         case .scripts:
             ScriptsSettingsPane()
         case .advanced:
@@ -420,12 +418,6 @@ private struct SettingsOverflowMenu: View {
             Divider()
             Button("About \(Constants.displayName)") {
                 appState.navigationState.settingsNavigationIdentifier = .about
-            }
-            Button("What’s New…") {
-                appState.openWindow(.whatsNew)
-            }
-            Button("Check for Updates…") {
-                appState.updatesManager.checkForUpdates()
             }
         } label: {
             Label("More", systemImage: "ellipsis.circle")

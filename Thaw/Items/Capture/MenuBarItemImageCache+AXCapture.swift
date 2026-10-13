@@ -164,13 +164,20 @@ extension MenuBarItemImageCache {
     ) async -> AXCropContext? {
         var refreshed = context
         if context.validateFreshBounds {
-            let items = await reader.menuBarItems(displayID: context.displayID)
+            // Both reads validate this source after its pixels arrived. Neither
+            // depends on the other; an overflow sweep must not wait for a full
+            // ownership walk (or vice versa) before it can start.
+            async let itemsRead = reader.menuBarItems(displayID: context.displayID)
+            async let overflowRead = reader.overflowBounds(displayID: context.displayID)
+            let (items, overflow) = await (itemsRead, overflowRead)
             guard !screenIsLocked() else { return nil }
             refreshed.postCaptureBounds = Dictionary(
                 items.map { ($0.uniqueIdentifier, $0.bounds) }, uniquingKeysWith: { first, _ in first }
             )
+            refreshed.overflowBounds += overflow
+        } else {
+            refreshed.overflowBounds += await reader.overflowBounds(displayID: context.displayID)
         }
-        refreshed.overflowBounds += await reader.overflowBounds(displayID: context.displayID)
         guard !screenIsLocked() else { return nil }
         return refreshed
     }
@@ -214,18 +221,23 @@ extension MenuBarItemImageCache {
             if result.noteMissingCapture(of: candidates.map(\.item), captureWasAllowed: captureIsAllowed()) {
                 Self.diagLog.warning("axBoundsCapture: captureMenuBarDisplayStripAsync failed for \(candidates.count) items")
             } else {
-                Self.diagLog.debug("axBoundsCapture: capture refused for \(candidates.count) items; no Thaw surface is open")
+                Self.diagLog.debug("axBoundsCapture: capture refused for \(candidates.count) items; no Foldy surface is open")
             }
             return
         }
         // A hosting enumeration cannot establish ownership of on-screen pixels.
-        let live = await reader.liveBounds(for: candidates)
+        // Ownership and overflow are independent post-screenshot evidence.
+        // Keep just these two reads in flight, and join both before accepting
+        // any crop; no geometry is shared with a later capture source.
+        let displayID = context.displayID
+        async let liveRead = reader.liveBounds(for: candidates)
+        async let overflowRead = reader.overflowBounds(displayID: displayID)
+        let (live, overflow) = await (liveRead, overflowRead)
         guard !screenIsLocked() else { return }
         context.hasStripGeometry = true
         context.postCaptureBounds = live.bounds
         context.ambiguousIdentifiers = live.ambiguous
-        context.overflowBounds += await reader.overflowBounds(displayID: context.displayID)
-        guard !screenIsLocked() else { return }
+        context.overflowBounds += overflow
         var stripOwners = [CGRect: MenuBarItemTag]()
         appendAXSourceCrops(
             candidates,

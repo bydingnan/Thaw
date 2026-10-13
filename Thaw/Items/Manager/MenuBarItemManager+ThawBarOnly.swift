@@ -50,7 +50,7 @@ extension MenuBarItemManager {
         guard identifiers.insert(Self.thawBarOnlyIdentifier(for: item)).inserted else { return }
         thawBarOnlyIdentifiers = identifiers
         persistThawBarOnlyIdentifiers()
-        MenuBarItemManager.diagLog.info("Moved \(item.logString) to Thaw Bar Only")
+        MenuBarItemManager.diagLog.info("Moved \(item.logString) to Foldy Bar Only")
         if appState.menuBarManager.sectionController.section(for: item) == .visible {
             MenuBarSearchItemActions.move(item, to: .hidden, appState: appState)
         }
@@ -61,7 +61,7 @@ extension MenuBarItemManager {
         guard identifiers.remove(Self.thawBarOnlyIdentifier(for: item)) != nil else { return }
         thawBarOnlyIdentifiers = identifiers
         persistThawBarOnlyIdentifiers()
-        MenuBarItemManager.diagLog.info("Returned \(item.logString) from Thaw Bar Only to \(section.logString)")
+        MenuBarItemManager.diagLog.info("Returned \(item.logString) from Foldy Bar Only to \(section.logString)")
         // A suggestion comes back only after the streak rebuilds.
         notShownStreaks[item.tag] = nil
         MenuBarSearchItemActions.move(item, to: section, appState: appState)
@@ -79,7 +79,7 @@ extension MenuBarItemManager {
         var identifiers = thawBarOnlyIdentifiers
         for rename in renames where identifiers.remove(rename.from) != nil {
             identifiers.insert(rename.to)
-            MenuBarItemManager.diagLog.info("Thaw Bar Only entry \(rename.from) now follows \(rename.to)")
+            MenuBarItemManager.diagLog.info("Foldy Bar Only entry \(rename.from) now follows \(rename.to)")
         }
         thawBarOnlyIdentifiers = identifiers
         persistThawBarOnlyIdentifiers()
@@ -96,7 +96,7 @@ extension MenuBarItemManager {
         {
             let identifier = Self.thawBarOnlyIdentifier(for: item)
             guard thawBarOnlyItemsReturnedToHidden.insert(identifier).inserted else { continue }
-            MenuBarItemManager.diagLog.info("Thaw Bar Only \(item.logString) was in Visible; moving it to Hidden")
+            MenuBarItemManager.diagLog.info("Foldy Bar Only \(item.logString) was in Visible; moving it to Hidden")
             Task { @MainActor in
                 MenuBarSearchItemActions.move(item, to: .hidden, appState: appState)
             }

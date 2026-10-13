@@ -50,7 +50,7 @@ struct CaptureInspectorSection: View {
     }
 
     var body: some View {
-        ThawSection("What Thaw sees") {
+        ThawSection("What Foldy sees") {
             scopeDescription
             if screens.count > 1 {
                 displayPicker
@@ -75,7 +75,7 @@ struct CaptureInspectorSection: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             Label {
-                Text("Thaw is capturing nothing. Screen Recording permission has not been granted.")
+                Text("Foldy is capturing nothing. Screen Recording permission has not been granted.")
             } icon: {
                 Image(systemName: "eye.slash")
             }
@@ -96,10 +96,10 @@ struct CaptureInspectorSection: View {
             )
         }
         guard let frame else {
-            return String(localized: "Thaw reads a band at the top of the display. Nothing else on screen is captured.")
+            return String(localized: "Foldy reads a band at the top of the display. Nothing else on screen is captured.")
         }
         return String(
-            localized: "Thaw reads a \(Int(frame.width)) × \(Int(frame.height)) pt band at the top of the display. Nothing else on screen is captured."
+            localized: "Foldy reads a \(Int(frame.width)) × \(Int(frame.height)) pt band at the top of the display. Nothing else on screen is captured."
         )
     }
 
@@ -142,7 +142,7 @@ struct CaptureInspectorSection: View {
         }
         .annotation {
             Text(
-                "Crop regions are the exact pixels Thaw reads for each menu bar item. "
+                "Crop regions are the exact pixels Foldy reads for each menu bar item. "
                     + "Frames are shown once and never saved to disk."
             )
         }
@@ -171,7 +171,7 @@ struct CaptureInspectorSection: View {
                     title: "Your menu bar",
                     // Naming the incidental contents is the honest half of the
                     // claim: this really is a slice of the user's screen.
-                    subtitle: "The band Thaw reads, exactly as captured. That includes the "
+                    subtitle: "The band Foldy reads, exactly as captured. That includes the "
                         + "frontmost app's menus and the wallpaper behind the bar."
                 )
             }
@@ -211,7 +211,7 @@ struct CaptureInspectorSection: View {
         // The conceal mechanism is a visibility restriction, so the system
         // does not render the item into any surface at all.
         return String(
-            localized: "While an item is hidden, macOS does not draw it anywhere, so Thaw cannot see it either. Thaw captures a hidden item's icon only during the brief moment it reveals the item to fetch one."
+            localized: "While an item is hidden, macOS does not draw it anywhere, so Foldy cannot see it either. Foldy captures a hidden item's icon only during the brief moment it reveals the item to fetch one."
         )
     }
 

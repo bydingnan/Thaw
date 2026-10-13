@@ -61,7 +61,7 @@ struct StatusIconPreviewState: Equatable {
     var isLive: Bool
 
     var title: String {
-        isLive ? String(localized: "Thaw widget · Live readings") : String(localized: "Thaw widget · Sample readings")
+        isLive ? String(localized: "Foldy widget · Live readings") : String(localized: "Foldy widget · Sample readings")
     }
 
     var sources: [StatusIconComposition.Source] {

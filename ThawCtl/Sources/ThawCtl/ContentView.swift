@@ -151,7 +151,7 @@ struct ContentView: View {
                 Button("Request Authorization") { engine.sendAuthorize() }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                Text("Asks Thaw to show its approval dialog for this app")
+                Text("Asks Foldy to show its approval dialog for this app")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }

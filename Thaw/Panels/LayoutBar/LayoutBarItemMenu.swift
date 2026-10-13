@@ -201,7 +201,7 @@ enum LayoutBarItemMenu {
             submenu.addItem(entry)
         }
         if itemManager.isThawBarOnlyEnabled {
-            let thawBarOnly = ClosureMenuItem(title: String(localized: "Thaw Bar Only")) {
+            let thawBarOnly = ClosureMenuItem(title: String(localized: "Foldy Bar Only")) {
                 itemManager.moveToThawBarOnly(item, appState: appState)
             }
             thawBarOnly.state = isThawBarOnly ? .on : .off

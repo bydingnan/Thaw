@@ -182,11 +182,11 @@ final class OverflowSpacer {
             // A contentless button composites as nothing on macOS 27.
             item.button?.image = spacerImage
             item.button?.imageScaling = .scaleNone
-            item.button?.toolTip = "Thaw overflow spacer (debug experiment)"
+            item.button?.toolTip = "Foldy overflow spacer (debug experiment)"
             item.button?.window?.title = Self.spacerAutosaveName
             statusItem = item
             diagLog.notice(
-                "spacer created, width=\(Int(width))pt, parked left of Thaw icon (position \(Int(thawIconPosition + 1)))"
+                "spacer created, width=\(Int(width))pt, parked left of Foldy icon (position \(Int(thawIconPosition + 1)))"
             )
         } else if statusItem?.length != width {
             statusItem?.length = width

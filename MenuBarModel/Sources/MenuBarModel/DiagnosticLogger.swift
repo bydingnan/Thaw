@@ -184,7 +184,7 @@ public final class DiagnosticLogger: Sendable {
         let sha = Bundle.main.infoDictionary?["GitCommitSHA"] as? String ?? "unknown"
         let header = """
         ========================================
-        Thaw Diagnostic Log
+        Foldy Diagnostic Log
         Started: \(Self.timestampStyle.format(Date()))
         Process: \(ProcessInfo.processInfo.processName)
         Version: \(version) (\(build)) commit \(sha)

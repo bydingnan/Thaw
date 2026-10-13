@@ -4,6 +4,14 @@
 # bare copy. Each bundle needs its own identifier, because macOS 27 conceals
 # status items per bundle.
 set -euo pipefail
+# Xcode does not remove embedded frameworks when an incremental build drops a dependency.
+updater="${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Frameworks/Sparkle.framework"
+if [[ -d "$updater" ]]; then
+    updater_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$updater/Resources/Info.plist" 2>/dev/null || true)
+    if [[ $updater_id == org.sparkle-project.Sparkle ]]; then
+        rm -rf "$updater"
+    fi
+fi
 extras="${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Library/Extras"
 exe="$extras/ThawExtraHelper"
 [[ -f $exe ]] || { echo "warning: wrap-extra-helpers: $exe not found"; exit 0; }

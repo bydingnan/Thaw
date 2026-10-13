@@ -274,7 +274,7 @@ final class MenuBarSection {
         // Use it when requested or when inline items would be unreachable behind native overflow.
         let overflowsInline = !useThawBar && (screenForThawBar.map { overflowsInline(on: $0) } ?? false)
         if overflowsInline {
-            diagLog.info("show(\(name.logString)): the items do not fit inline; using the Thaw Bar")
+            diagLog.info("show(\(name.logString)): the items do not fit inline; using the Foldy Bar")
         }
         if !forcingInline, useThawBar || overflowsInline, let screen = screenForThawBar {
             for section in menuBarManager.sections {

@@ -13,7 +13,7 @@ struct ThawCtlApp: App {
     @State private var engine = ThawCtlEngine()
 
     var body: some Scene {
-        Window("ThawCtl", id: "thawctl-main") {
+        Window("FoldyCtl", id: "thawctl-main") {
             ContentView(engine: engine)
                 .frame(minWidth: 600, minHeight: 500)
                 .onOpenURL { url in

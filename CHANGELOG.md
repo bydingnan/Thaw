@@ -7,6 +7,18 @@ The `release.yml` workflow reads the section matching the release tag
 (`## [tag]`) and uses it as the release notes for both the GitHub Release
 and the Sparkle appcast, unless overridden with the `release_notes` input.
 
+## [Unreleased] — Foldy local build
+
+- Rename the application product, display name, About heading, and control extension display name to Foldy. Welcome screens and app menus use the bundle display name.
+- Replace remaining in-app branding with Foldy across settings, alerts, App Intents, controls, helper display names, and all localized strings. Keep helper lookup paths aligned with their renamed app bundles.
+- Keep the existing bundle identifiers, URL scheme, settings storage, and upstream copyright and attribution.
+- Remove the in-app updater entirely: Sparkle dependency and feed metadata, automatic/manual update controls, update notifications, onboarding consent, and obsolete update search/localization entries. Manual release-note browsing remains available.
+- Build the existing Thaw scheme; its app product and test host are now `Foldy.app`.
+- Closing Settings removes Foldy from the Dock and app switcher without quitting the menu bar process. Reopening Settings restores the Dock icon; a delayed window-opening activation no longer restores it after the window has closed.
+- Incremental packaging removes obsolete `Thaw …` helper bundles only when their bundle identifiers match the current role, and removes the retired Sparkle framework. Installed helper bundles now have one Foldy product per identifier.
+- Simplify About to the installed version only, removing project branding, links, credits, and feedback actions from that pane. Remove What's New and sponsor menu entries and the unused donation URL metadata; About search no longer advertises credits or licensing content.
+- Reduce layout capture latency by reusing completed overflow observations and overlapping independent post-capture geometry checks. Apply the same near-uniform color tolerance when selecting an inset background, so wide clock text on a lightly graded bar is extracted directly instead of repeatedly falling back to window captures.
+
 ## [3.0.0-alpha.8] - 2026-10-11
 
 **macOS 27 only · Build 113**

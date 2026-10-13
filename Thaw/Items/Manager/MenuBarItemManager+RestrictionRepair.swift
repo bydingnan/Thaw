@@ -178,7 +178,7 @@ extension MenuBarItemManager {
         if let last = lastBoundaryRepairDisplayID, last != displayID {
             if let until = selfInflictedDisplayChangeUntil, ContinuousClock.now < until {
                 MenuBarItemManager.diagLog.debug(
-                    "post-restriction repair: display change came from Thaw's own press; not re-arming strands"
+                    "post-restriction repair: display change came from Foldy's own press; not re-arming strands"
                 )
                 selfInflictedDisplayChangeUntil = nil
             } else {

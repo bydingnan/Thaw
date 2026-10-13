@@ -6,6 +6,5 @@
 //  Licensed under the GNU GPLv3
 
 enum UserNotificationIdentifier: String {
-    case updateCheck = "UpdateCheck"
     case hotkeyToggleFeedback = "HotkeyToggleFeedback"
 }

@@ -49,19 +49,6 @@ struct SettingsWindow: Scene {
                 navigationState: appState.navigationState,
                 generalSettings: appState.settings.general
             )
-            .sheet(isPresented: $appState.isUpdateConsentPresented) {
-                UpdateConsentSheet { autoDownload in
-                    appState.isUpdateConsentPresented = false
-                    Defaults.set(true, forKey: .hasSeenUpdateConsent)
-                    appState.updatesManager.automaticallyChecksForUpdates = true
-                    appState.updatesManager.automaticallyDownloadsUpdates = autoDownload
-                    appState.startUpdaterIfNeeded()
-                } onDisable: {
-                    appState.isUpdateConsentPresented = false
-                    Defaults.set(true, forKey: .hasSeenUpdateConsent)
-                    appState.updatesManager.automaticallyChecksForUpdates = false
-                }
-            }
         }
         .windowResizability(.contentSize)
         .defaultSize(

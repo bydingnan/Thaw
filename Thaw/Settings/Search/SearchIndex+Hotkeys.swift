@@ -57,7 +57,7 @@ nonisolated extension SearchIndex {
             pane: .hotkeys,
             sectionKey: "Other",
             sectionText: "Other",
-            keywords: ["enable", "toggle", "turn on", "turn off", "ice bar", "thaw bar", "hotkey", "shortcut", "keyboard shortcut"],
+            keywords: ["enable", "toggle", "turn on", "turn off", "ice bar", "foldy bar", "hotkey", "shortcut", "keyboard shortcut"],
             property: nil
         ),
         SearchEntry(

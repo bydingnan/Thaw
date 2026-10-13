@@ -181,14 +181,14 @@ struct FoldedMenuBar: View {
             section: { _ in .hidden }
         )
         return HStack(spacing: 0) {
-            Text("Thaw Bar Only")
+            Text("Foldy Bar Only")
                 .font(.caption.weight(.semibold))
                 .fixedSize()
                 .frame(minWidth: gutterWidth, alignment: .leading)
                 .padding(.leading, 12)
                 .accessibilityAddTraits(.isHeader)
             if items.isEmpty {
-                Text("Right-click an item and choose Move to › Thaw Bar Only to keep it out of the menu bar.")
+                Text("Right-click an item and choose Move to › Foldy Bar Only to keep it out of the menu bar.")
                     .font(.caption)
                     .foregroundStyle(ThawInk.supporting)
                     .lineLimit(2)
@@ -254,7 +254,7 @@ struct FoldedMenuBar: View {
                 .font(.callout)
                 .lineLimit(2)
             Spacer(minLength: 0)
-            Button("Move to Thaw Bar Only") {
+            Button("Move to Foldy Bar Only") {
                 itemManager.moveToThawBarOnly(item, appState: appState)
             }
             .buttonStyle(.settingsGlass)

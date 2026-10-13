@@ -41,35 +41,35 @@ nonisolated extension SearchIndex {
         // Thaw Bar Only is unplugged for now; restore this with the gate in MenuBarItemManager+ThawBarOnly.swift.
         // SearchEntry(
         //     id: "general.enableThawBarOnly",
-        //     titleKey: "Thaw Bar Only",
-        //     titleText: "Thaw Bar Only",
+        //     titleKey: "Foldy Bar Only",
+        //     titleText: "Foldy Bar Only",
         //     descriptionText: String(localized: "Items macOS won't show in the menu bar stay in the \(Constants.displayName) Bar. Turn this off to treat them as ordinary hidden items. Your list comes back when you turn it on again."),
         //     pane: .thawBar,
         //     sectionKey: "Options for all displays",
         //     sectionText: "Options for all displays",
-        //     keywords: ["thaw bar only", "turn off", "disable", "not shown", "hidden"],
+        //     keywords: ["foldy bar only", "turn off", "disable", "not shown", "hidden"],
         //     property: .general("enableThawBarOnly")
         // ),
         // SearchEntry(
         //     id: "general.showThawBarOnlyWithInlineReveal",
-        //     titleKey: "Show Thaw Bar Only items when showing hidden items",
-        //     titleText: "Show Thaw Bar Only items when showing hidden items",
+        //     titleKey: "Show Foldy Bar Only items when showing hidden items",
+        //     titleText: "Show Foldy Bar Only items when showing hidden items",
         //     descriptionText: String(localized: "When you show hidden items, the items kept in the \(Constants.displayName) Bar appear in a small \(Constants.displayName) Bar below the menu bar."),
         //     pane: .thawBar,
         //     sectionKey: "Options for all displays",
         //     sectionText: "Options for all displays",
-        //     keywords: ["thaw bar only", "reveal", "inline", "hidden", "small bar", "companion", "not shown"],
+        //     keywords: ["foldy bar only", "reveal", "inline", "hidden", "small bar", "companion", "not shown"],
         //     property: .general("showThawBarOnlyWithInlineReveal")
         // ),
         // SearchEntry(
         //     id: "general.showThawBarOnlyLauncher",
-        //     titleKey: "Menu bar icon for Thaw Bar Only items",
-        //     titleText: "Menu bar icon for Thaw Bar Only items",
+        //     titleKey: "Menu bar icon for Foldy Bar Only items",
+        //     titleText: "Menu bar icon for Foldy Bar Only items",
         //     descriptionText: String(localized: "A menu bar icon that opens a small \(Constants.displayName) Bar with just the items macOS won't show in the menu bar."),
         //     pane: .thawBar,
         //     sectionKey: "Options for all displays",
         //     sectionText: "Options for all displays",
-        //     keywords: ["thaw bar only", "launcher", "icon", "small bar", "not shown", "menu bar"],
+        //     keywords: ["foldy bar only", "launcher", "icon", "small bar", "not shown", "menu bar"],
         //     property: .general("showThawBarOnlyLauncher")
         // ),
         SearchEntry(
@@ -116,7 +116,7 @@ nonisolated extension SearchIndex {
             descriptionText: String(localized: "Always show the \(Constants.displayName) Bar at the mouse pointer when a keyboard shortcut opens it."),
             pane: .thawBar,
             section: "Options for all displays",
-            keywords: ["ice bar", "thaw bar", "mouse", "pointer", "hotkey", "location"],
+            keywords: ["ice bar", "foldy bar", "mouse", "pointer", "hotkey", "location"],
             property: .general("thawBarLocationOnHotkey")
         ),
         SearchEntry(
@@ -125,7 +125,7 @@ nonisolated extension SearchIndex {
             descriptionText: String(localized: "Clicking a hidden item shows it in the menu bar and opens its menu under the icon. Turn off to open the menu without showing the icon."),
             pane: .thawBar,
             section: "Options for all displays",
-            keywords: ["ice bar", "thaw bar", "click", "open", "menu", "reveal", "show", "hidden"],
+            keywords: ["ice bar", "foldy bar", "click", "open", "menu", "reveal", "show", "hidden"],
             property: .general("openHiddenItemsInMenuBar")
         ),
     ]

@@ -54,7 +54,7 @@ final class FocusDatabaseAccess {
         panel.directoryURL = Self.folder.deletingLastPathComponent()
         panel.title = String(localized: "Allow Access to Focus")
         panel.message = String(
-            localized: "Select the “DB” folder so Thaw's Focus icon can show which Focus is on. Thaw is granted access to this folder only."
+            localized: "Select the “DB” folder so Foldy's Focus icon can show which Focus is on. Foldy is granted access to this folder only."
         )
         panel.prompt = String(localized: "Allow Access")
         NSApp.activate()

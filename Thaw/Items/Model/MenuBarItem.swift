@@ -28,7 +28,7 @@ extension MenuBarItem {
             return folder
         }
         if ThawBarOnlyProxies.isProxyTag(tag) {
-            return String(localized: "Thaw Bar Only items")
+            return String(localized: "Foldy Bar Only items")
         }
         if let label = ItemStandInSlot.label(for: tag) {
             return label

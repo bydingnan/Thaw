@@ -68,7 +68,7 @@ struct ThawFocusFilter: SetFocusFilterIntent {
     // description. Both are never reassigned, so there is nothing to race on.
     static nonisolated(unsafe) var title: LocalizedStringResource = "Set Menu Bar Profile"
     static nonisolated(unsafe) var description: IntentDescription? = IntentDescription(
-        "Apply a Thaw menu bar profile when this Focus activates.",
+        "Apply a Foldy menu bar profile when this Focus activates.",
         categoryName: "Profiles"
     )
 

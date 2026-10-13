@@ -87,7 +87,7 @@ nonisolated extension SearchEntry {
 nonisolated enum SearchIndex {
     /// Entries indexed on every supported macOS release.
     private static let sharedEntries: [SearchEntry] = paneEntries + generalEntries + revealEntries + advancedEntries
-        + toolsEntries + displayEntries + hotkeyEntries + layoutEntries + appearanceEntries + aboutEntries + privacyEntries
+        + toolsEntries + displayEntries + hotkeyEntries + layoutEntries + appearanceEntries + privacyEntries
 
     /// macOS 27-only settings rows, appended when the sidebar search UI is available.
     private static let platformEntries: [SearchEntry] = [
@@ -102,7 +102,7 @@ nonisolated enum SearchIndex {
         SearchEntry(
             id: "advanced.menuBarArrangementMode",
             title: "Item arrangement",
-            descriptionText: String(localized: "Let Thaw keep items in your Layout order, or arrange them yourself by ⌘-dragging in the menu bar."),
+            descriptionText: String(localized: "Let Foldy keep items in your Layout order, or arrange them yourself by ⌘-dragging in the menu bar."),
             pane: .menuBarLayout,
             section: "Sections",
             keywords: ["arrangement", "arrange", "manual", "automatic", "who", "order", "layout"],
@@ -111,7 +111,7 @@ nonisolated enum SearchIndex {
         SearchEntry(
             id: "advanced.alwaysUseAppIconForMenuBarItems",
             title: "Use app icons instead of live previews",
-            descriptionText: String(localized: "Show each item's app icon in the Thaw Bar and Layout instead of a live screenshot."),
+            descriptionText: String(localized: "Show each item's app icon in the Foldy Bar and Layout instead of a live screenshot."),
             pane: .menuBarLayout,
             section: "More layout options",
             keywords: ["app icon", "live preview", "screenshot", "capture", "overflow", "notch", "advanced layout controls"],
@@ -120,7 +120,7 @@ nonisolated enum SearchIndex {
         SearchEntry(
             id: "advanced.menuBarOrderFulfillmentTimeout",
             title: "Reorder timeout",
-            descriptionText: String(localized: "How long Thaw waits for macOS to apply a menu bar reorder before continuing with remaining layout work."),
+            descriptionText: String(localized: "How long Foldy waits for macOS to apply a menu bar reorder before continuing with remaining layout work."),
             pane: .menuBarLayout,
             section: "More layout options",
             keywords: ["reorder", "timeout", "wait", "layout", "seconds"],

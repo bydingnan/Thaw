@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "716683292A767E6A006ABF84"
-               BuildableName = "Thaw.app"
+               BuildableName = "Foldy.app"
                BlueprintName = "Thaw"
                ReferencedContainer = "container:Thaw.xcodeproj">
             </BuildableReference>
@@ -57,7 +57,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "716683292A767E6A006ABF84"
-            BuildableName = "Thaw.app"
+            BuildableName = "Foldy.app"
             BlueprintName = "Thaw"
             ReferencedContainer = "container:Thaw.xcodeproj">
          </BuildableReference>
@@ -81,7 +81,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "716683292A767E6A006ABF84"
-            BuildableName = "Thaw.app"
+            BuildableName = "Foldy.app"
             BlueprintName = "Thaw"
             ReferencedContainer = "container:Thaw.xcodeproj">
          </BuildableReference>

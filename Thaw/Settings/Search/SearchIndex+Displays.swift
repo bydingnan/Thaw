@@ -23,7 +23,7 @@ nonisolated extension SearchIndex {
             pane: .thawBar,
             sectionKey: nil,
             sectionText: nil,
-            keywords: ["ice bar", "thaw bar", "hidden", "separate bar"],
+            keywords: ["ice bar", "foldy bar", "hidden", "separate bar"],
             property: nil
         ),
         SearchEntry(
@@ -42,7 +42,7 @@ nonisolated extension SearchIndex {
             pane: .thawBar,
             sectionKey: nil,
             sectionText: nil,
-            keywords: ["ice bar", "thaw bar", "location", "mouse", "aligned"],
+            keywords: ["ice bar", "foldy bar", "location", "mouse", "aligned"],
             property: nil
         ),
         SearchEntry(
@@ -53,7 +53,7 @@ nonisolated extension SearchIndex {
             pane: .thawBar,
             sectionKey: nil,
             sectionText: nil,
-            keywords: ["ice bar", "thaw bar", "layout", "arrangement", "horizontal", "vertical", "grid", "columns"],
+            keywords: ["ice bar", "foldy bar", "layout", "arrangement", "horizontal", "vertical", "grid", "columns"],
             property: nil
         ),
         SearchEntry(

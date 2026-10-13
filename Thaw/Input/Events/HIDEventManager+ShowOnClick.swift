@@ -144,7 +144,7 @@ extension HIDEventManager {
         {
             cancelPendingMenuBarClick()
             disarmShowOnClickGuard()
-            Self.diagLog.debug("click: closing always-hidden in the Thaw Bar")
+            Self.diagLog.debug("click: closing always-hidden in the Foldy Bar")
             Task { alwaysHiddenSection.hide() }
             return
         }

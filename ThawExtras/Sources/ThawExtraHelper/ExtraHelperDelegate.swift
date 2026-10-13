@@ -29,7 +29,7 @@ final class ExtraHelperDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         guard let bundleID = Bundle.main.bundleIdentifier,
               let role = ExtraRole(bundleIdentifier: bundleID)
         else {
-            logger.error("Refusing to publish outside a Thaw extra bundle")
+            logger.error("Refusing to publish outside a Foldy extra bundle")
             NSApp.terminate(nil)
             return
         }

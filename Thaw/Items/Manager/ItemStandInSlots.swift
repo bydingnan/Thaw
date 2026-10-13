@@ -33,7 +33,7 @@ nonisolated struct ItemStandInSlot: Hashable, Comparable {
     }
 
     var bundleURL: URL {
-        Bundle.main.bundleURL.appending(path: "Contents/Library/Extras/Thaw Stand-In \(number).app")
+        Bundle.main.bundleURL.appending(path: "Contents/Library/Extras/Foldy Stand-In \(number).app")
     }
 
     static var folder: URL {

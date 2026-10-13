@@ -126,14 +126,14 @@ final class ThawBarOnlyProxies {
         let image = NSImage(systemSymbolName: "rectangle.stack", accessibilityDescription: nil)
         image?.isTemplate = true
         statusItem.button?.image = image
-        statusItem.button?.toolTip = String(localized: "Thaw Bar Only items")
-        statusItem.button?.setAccessibilityLabel(String(localized: "Thaw Bar Only items"))
+        statusItem.button?.toolTip = String(localized: "Foldy Bar Only items")
+        statusItem.button?.setAccessibilityLabel(String(localized: "Foldy Bar Only items"))
         statusItem.button?.setAccessibilityIdentifier(name)
         statusItem.button?.target = self
         statusItem.button?.action = #selector(launcherClicked(_:))
         launcher = statusItem
         assertLauncherTitle(attempt: 0)
-        diagLog.info("Created the Thaw Bar Only launcher")
+        diagLog.info("Created the Foldy Bar Only launcher")
     }
 
     private func assertLauncherTitle(attempt: Int) {

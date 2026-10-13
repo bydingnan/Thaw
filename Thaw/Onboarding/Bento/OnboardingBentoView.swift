@@ -22,7 +22,6 @@ struct OnboardingBentoView: View {
     private let onFinish: (OnboardingOutcome, SettingsNavigationIdentifier?) -> Void
 
     @State private var simpleMode = true
-    @State private var automaticUpdates = true
     /// Flipped one tick after appearance so the entrance has a frame to
     /// animate from.
     @State private var appeared = false
@@ -117,11 +116,6 @@ struct OnboardingBentoView: View {
             .fixedSize()
             .accessibilityLabel(Text("Simple Mode"))
 
-            if Constants.supportsSparkleUpdates {
-                Toggle("Check for updates automatically", isOn: $automaticUpdates)
-                    .toggleStyle(.checkbox)
-            }
-
             Spacer()
 
             Button {
@@ -140,7 +134,7 @@ struct OnboardingBentoView: View {
 
     private func finish(simpleMode: Bool, pane: SettingsNavigationIdentifier?) {
         onFinish(
-            OnboardingOutcome(simpleMode: simpleMode, automaticUpdates: automaticUpdates),
+            OnboardingOutcome(simpleMode: simpleMode),
             pane
         )
     }

@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		170423D92B56DE78004A2549 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 170423D82B56DE78004A2549 /* Sparkle */; };
 		1787C4272B16890B002F50DF /* AXSwift6 in Frameworks */ = {isa = PBXBuildFile; productRef = 1787C4262B16890B002F50DF /* AXSwift6 */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
 		7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */ = {isa = PBXBuildFile; productRef = 7127A9FE2C4886D100D99DEF /* IfritStatic */; };
@@ -117,7 +116,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		7166832A2A767E6A006ABF84 /* Thaw.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Thaw.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7166832A2A767E6A006ABF84 /* Foldy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Foldy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7188A6842E27F9ED008F131D /* MenuBarCaptureService.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = MenuBarCaptureService.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2TESTS0012F2C000000001 /* ThawTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ThawTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC01A0002F80000000000003 /* ThawControls.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ThawControls.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -190,7 +189,6 @@
 		716683272A767E6A006ABF84 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				170423D92B56DE78004A2549 /* Sparkle in Frameworks */,
 				7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */,
 				9570E4A96CDEC0BEBAA5573F /* AsyncAlgorithms in Frameworks */,
 				C9858DF951474BBA89EEC700 /* Subprocess in Frameworks */,
@@ -285,7 +283,6 @@
 			name = Thaw;
 			packageProductDependencies = (
 				1787C4262B16890B002F50DF /* AXSwift6 */,
-				170423D82B56DE78004A2549 /* Sparkle */,
 				17F71BB42B880B4500905CBA /* CompactSlider */,
 				7127A9FE2C4886D100D99DEF /* IfritStatic */,
 				43C5F05D006747974015EBD9 /* AsyncAlgorithms */,
@@ -432,7 +429,6 @@
 			mainGroup = 716683212A767E6A006ABF84;
 			packageReferences = (
 				1787C4252B16890B002F50DF /* XCRemoteSwiftPackageReference "AXSwift6" */,
-				170423D72B56DE78004A2549 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				17F71BB32B880B4500905CBA /* XCRemoteSwiftPackageReference "CompactSlider" */,
 				7127A9FB2C4881BC00D99DEF /* XCRemoteSwiftPackageReference "Ifrit" */,
 				1ADDA61D49BE1BA7CA5EA059 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
@@ -780,9 +776,9 @@
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = "3.0.0-alpha.8";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.stonerl.Thaw$(THAW_BUNDLE_ID_SUFFIX)";
-				INFOPLIST_KEY_CFBundleDisplayName = "Thaw$(THAW_PRODUCT_NAME_SUFFIX)";
+				INFOPLIST_KEY_CFBundleDisplayName = "Foldy$(THAW_PRODUCT_NAME_SUFFIX)";
 				PRODUCT_MODULE_NAME = Thaw;
-				PRODUCT_NAME = "Thaw$(THAW_PRODUCT_NAME_SUFFIX)";
+				PRODUCT_NAME = "Foldy$(THAW_PRODUCT_NAME_SUFFIX)";
 				THAW_BUNDLE_ID_SUFFIX = "";
 				THAW_PRODUCT_NAME_SUFFIX = "";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -826,9 +822,9 @@
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = "3.0.0-alpha.8";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.stonerl.Thaw$(THAW_BUNDLE_ID_SUFFIX)";
-				INFOPLIST_KEY_CFBundleDisplayName = "Thaw$(THAW_PRODUCT_NAME_SUFFIX)";
+				INFOPLIST_KEY_CFBundleDisplayName = "Foldy$(THAW_PRODUCT_NAME_SUFFIX)";
 				PRODUCT_MODULE_NAME = Thaw;
-				PRODUCT_NAME = "Thaw$(THAW_PRODUCT_NAME_SUFFIX)";
+				PRODUCT_NAME = "Foldy$(THAW_PRODUCT_NAME_SUFFIX)";
 				THAW_BUNDLE_ID_SUFFIX = "";
 				THAW_PRODUCT_NAME_SUFFIX = "";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -913,7 +909,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Thaw$(THAW_PRODUCT_NAME_SUFFIX).app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Thaw$(THAW_PRODUCT_NAME_SUFFIX)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Foldy$(THAW_PRODUCT_NAME_SUFFIX).app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Foldy$(THAW_PRODUCT_NAME_SUFFIX)";
 			};
 			name = Debug;
 		};
@@ -934,7 +930,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Thaw$(THAW_PRODUCT_NAME_SUFFIX).app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Thaw$(THAW_PRODUCT_NAME_SUFFIX)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Foldy$(THAW_PRODUCT_NAME_SUFFIX).app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Foldy$(THAW_PRODUCT_NAME_SUFFIX)";
 			};
 			name = Release;
 		};
@@ -951,7 +947,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ThawControls/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Thaw Controls";
+				INFOPLIST_KEY_CFBundleDisplayName = "Foldy Controls";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Toni Förster et al.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -983,7 +979,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ThawControls/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Thaw Controls";
+				INFOPLIST_KEY_CFBundleDisplayName = "Foldy Controls";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Toni Förster et al.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1075,14 +1071,6 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		170423D72B56DE78004A2549 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sparkle-project/Sparkle";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.10.0;
-			};
-		};
 		1787C4252B16890B002F50DF /* XCRemoteSwiftPackageReference "AXSwift6" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/thaw-app/AXSwift6";
@@ -1134,11 +1122,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		170423D82B56DE78004A2549 /* Sparkle */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 170423D72B56DE78004A2549 /* XCRemoteSwiftPackageReference "Sparkle" */;
-			productName = Sparkle;
-		};
 		1787C4262B16890B002F50DF /* AXSwift6 */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 1787C4252B16890B002F50DF /* XCRemoteSwiftPackageReference "AXSwift6" */;

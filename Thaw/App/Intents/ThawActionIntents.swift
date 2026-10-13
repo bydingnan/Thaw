@@ -102,9 +102,9 @@ struct ToggleApplicationMenusIntent: AppIntent {
 }
 
 struct OpenThawSettingsIntent: AppIntent {
-    static nonisolated(unsafe) var title: LocalizedStringResource = "Open Thaw Settings"
+    static nonisolated(unsafe) var title: LocalizedStringResource = "Open Foldy Settings"
     static nonisolated(unsafe) var description: IntentDescription? = IntentDescription(
-        "Open the Thaw settings window.",
+        "Open the Foldy settings window.",
         categoryName: "Menu Bar"
     )
 

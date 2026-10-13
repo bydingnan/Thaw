@@ -66,7 +66,7 @@ struct LayoutBarsLoading: ViewModifier {
                     title: "The section dividers are not on the menu bar yet",
                     caption: LocalizedStringKey(String(
                         localized: "\(Constants.displayName) is trying to place them. If this stays for more than a few seconds, check System Settings \(Constants.menuArrow) Menu Bar for a divider that macOS has hidden.",
-                        comment: "Layout pane caption while Thaw's own dividers are off the bar. Placement usually completes on its own; System Settings only matters if macOS hid a divider."
+                        comment: "Layout pane caption while Foldy's own dividers are off the bar. Placement usually completes on its own; System Settings only matters if macOS hid a divider."
                     ))
                 )
                 .transition(layoutTransition)

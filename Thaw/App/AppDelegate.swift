@@ -331,6 +331,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func replyToTerminationRequest(
+        _ sender: NSApplication,
+        timedOut: Bool
+    ) {
+        guard !hasRepliedToTerminationRequest else {
+            return
+        }
+
+        hasRepliedToTerminationRequest = true
+        isPreparingForTermination = false
+        terminationTimeoutTask?.cancel()
+        terminationTimeoutTask = nil
+
+        if timedOut {
+            appState.diagLog.warning("Blocked item restore operation timed out during app termination")
+        } else {
+            appState.diagLog.info("Blocked item restore operation completed during app termination")
+        }
+
+        sender.reply(toApplicationShouldTerminate: true)
+    }
+
+    @objc func openSettingsWindow() {
+        appState.prepareSettingsPresentation()
+        appState.diagLog.debug("Opening settings window from app icon/dock/menu click")
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(100))
+            appState.activate(withPolicy: .regular)
+            appState.openWindow(.settings)
+        }
+    }
+}
+
+extension AppDelegate {
     /// Handles thaw://proxy-press?bundle=X, AXPresses a hosted menu bar item
     /// by owner bundle, materializing it even when the host has parked it.
     private func handleProxyPressURL(_ url: URL) {
@@ -432,28 +467,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
 
         return nil
-    }
-
-    private func replyToTerminationRequest(
-        _ sender: NSApplication,
-        timedOut: Bool
-    ) {
-        guard !hasRepliedToTerminationRequest else {
-            return
-        }
-
-        hasRepliedToTerminationRequest = true
-        isPreparingForTermination = false
-        terminationTimeoutTask?.cancel()
-        terminationTimeoutTask = nil
-
-        if timedOut {
-            appState.diagLog.warning("Blocked item restore operation timed out during app termination")
-        } else {
-            appState.diagLog.info("Blocked item restore operation completed during app termination")
-        }
-
-        sender.reply(toApplicationShouldTerminate: true)
     }
 
     #if DEBUG
@@ -573,24 +586,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if !success {
             appState.diagLog.warning("Settings URI get: failed to get \(key ?? "unknown")")
-        }
-    }
-
-    @objc func openWhatsNewWindow() {
-        Task { @MainActor in
-            appState.activate(withPolicy: .regular)
-            appState.openWindow(.whatsNew)
-        }
-    }
-
-    @objc func openSettingsWindow() {
-        appState.prepareSettingsPresentation()
-        appState.diagLog.debug("Opening settings window from app icon/dock/menu click")
-
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(100))
-            appState.activate(withPolicy: .regular)
-            appState.openWindow(.settings)
         }
     }
 }

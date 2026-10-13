@@ -62,7 +62,7 @@ nonisolated extension SearchIndex {
         SearchEntry(
             id: "general.tempShowInterval",
             title: "Hide again after",
-            descriptionText: String(localized: "How long a hidden menu bar item you open from search or the Thaw Bar stays in the menu bar."),
+            descriptionText: String(localized: "How long a hidden menu bar item you open from search or the Foldy Bar stays in the menu bar."),
             pane: .visibility,
             section: "After revealing",
             keywords: ["temp", "temporary", "temporarily shown", "show", "delay", "seconds", "hide again"],

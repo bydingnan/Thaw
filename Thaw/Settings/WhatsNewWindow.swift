@@ -17,9 +17,6 @@ struct WhatsNewWindow: Scene {
         ThawWindow(id: .whatsNew, appState: appState) {
             WhatsNewView()
                 .environment(appState)
-                // The update's notes are shown once; opened again later, the
-                // window starts on the newest release like any other time.
-                .onDisappear { appState.pendingUpdateVersion = nil }
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 860, height: 780)

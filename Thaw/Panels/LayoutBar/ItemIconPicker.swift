@@ -63,7 +63,7 @@ private struct ItemIconPickerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: ThawSpacing.inset) {
-            Text("Shown when \(Constants.displayName) has no picture of the item, which is always the case for a Thaw Bar Only item.")
+            Text("Shown when \(Constants.displayName) has no picture of the item, which is always the case for a Foldy Bar Only item.")
                 .font(ThawType.detail)
                 .foregroundStyle(ThawInk.supporting)
                 .fixedSize(horizontal: false, vertical: true)
@@ -99,7 +99,7 @@ private struct ItemIconPickerView: View {
                 }
                 .buttonStyle(.settingsGlass)
                 .disabled(!MenuBarItemIconChoices.shared.hasChoice(for: item))
-                .help("Use the app's own menu bar icon when Thaw finds one, and the app icon otherwise")
+                .help("Use the app's own menu bar icon when Foldy finds one, and the app icon otherwise")
                 Button("Choose Image…") {
                     isImporting = true
                 }

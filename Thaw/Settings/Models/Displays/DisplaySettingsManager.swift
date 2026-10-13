@@ -850,7 +850,7 @@ final class DisplaySettingsManager {
     /// Toggles the Thaw Bar for the display with the active menu bar.
     func toggleThawBarForActiveDisplay() {
         guard let uuid = Bridging.getActiveMenuBarDisplayUUID() else {
-            diagLog.warning("Cannot toggle Thaw Bar, no active menu bar display UUID")
+            diagLog.warning("Cannot toggle Foldy Bar, no active menu bar display UUID")
             return
         }
         updateConfiguration(forDisplayUUID: uuid) { config in

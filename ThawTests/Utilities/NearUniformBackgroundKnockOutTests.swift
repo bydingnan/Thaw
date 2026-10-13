@@ -618,3 +618,35 @@ struct NearUniformBackgroundKnockOutTests {
         #expect(Self.hasTransparentPixel(knocked))
     }
 }
+
+extension NearUniformBackgroundKnockOutTests {
+    @Test("A graded bar with an outlying border preserves wide multi-part ink")
+    func gradedInsetPreservesWideInk() throws {
+        let width = 160
+        let height = 40
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        for y in 0 ..< height {
+            for x in 0 ..< width {
+                let offset = (y * width + x) * 4
+                let ink = x >= 8 && x < 152 && x % 12 < 3 && y >= 8 && y < 30
+                let rgb: (UInt8, UInt8, UInt8) = if y >= height - 2 {
+                    (0, 0, 0)
+                } else if ink {
+                    (255, 255, 255)
+                } else {
+                    (UInt8(52 + x / 10), UInt8(78 + x / 13), UInt8(120 + x / 13))
+                }
+                pixels[offset] = rgb.0
+                pixels[offset + 1] = rgb.1
+                pixels[offset + 2] = rgb.2
+                pixels[offset + 3] = 255
+            }
+        }
+        let image = Self.makeImage(pixels: pixels, width: width, height: height)
+        let glyph = try #require(image.knockingOutNearUniformBackground())
+        #expect(Self.retainsBackground(glyph, background: (1, 1, 1)), "Keep the separated ink")
+        #expect(!Self.retainsBackground(glyph, background: (52 / 255, 78 / 255, 120 / 255), tolerance: 24))
+        #expect(!Self.retainsBackground(glyph, background: (0, 0, 0)), "Do not retain the outlying border")
+        #expect(!glyph.hasOpaquePerimeter(), "The extracted glyph must not retain a solid backdrop")
+    }
+}

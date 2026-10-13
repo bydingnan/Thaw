@@ -555,7 +555,7 @@ final class ThawBarPanel: NSPanel {
             resetSectionStateAfterClose(closingSection)
         }
         appState?.restoreAccessoryPolicyIfUnused()
-        MemoryReclaimer.scheduleRelief(reason: "Thaw Bar closed")
+        MemoryReclaimer.scheduleRelief(reason: "Foldy Bar closed")
     }
 
     private func resetSectionStateAfterClose(_ closingSection: MenuBarSection.Name?) {

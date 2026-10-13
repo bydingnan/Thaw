@@ -74,7 +74,7 @@ extension MenuBarItemManager {
             case let .itemNotMovable(item, refusal):
                 let sentence = switch refusal {
                 case .hiddenControlItem:
-                    String(localized: "“\(item.displayName)” is one of Thaw’s own control items and cannot be moved")
+                    String(localized: "“\(item.displayName)” is one of Foldy’s own control items and cannot be moved")
                 case .systemAnchored:
                     String(localized: "“\(item.displayName)” is anchored by macOS and cannot be moved")
                 case .requiresExperimentalHiding:

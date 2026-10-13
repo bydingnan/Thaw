@@ -50,7 +50,7 @@ enum BentoDemo: CaseIterable {
         case .find: "Find anything"
         case .style: "Style the bar"
         case .reveal: "Reveal"
-        case .thawBar: "Thaw Bar"
+        case .thawBar: "Foldy Bar"
         case .triggers: "Rules"
         case .profiles: "Profiles"
         case .zen: "Zen Mode"

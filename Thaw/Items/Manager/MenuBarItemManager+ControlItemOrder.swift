@@ -102,7 +102,7 @@ extension MenuBarItemManager {
 
         switch decision {
         case let .thawIcon(thawIcon):
-            MenuBarItemManager.diagLog.info("Relocating Thaw icon \(thawIcon.logString) to visible section")
+            MenuBarItemManager.diagLog.info("Relocating Foldy icon \(thawIcon.logString) to visible section")
             do {
                 try await move(
                     item: thawIcon,
@@ -110,7 +110,7 @@ extension MenuBarItemManager {
                     skipInputPause: true
                 )
             } catch {
-                MenuBarItemManager.diagLog.error("Failed to relocate Thaw icon \(thawIcon.logString): \(error)")
+                MenuBarItemManager.diagLog.error("Failed to relocate Foldy icon \(thawIcon.logString): \(error)")
                 return false
             }
             return true
@@ -144,7 +144,7 @@ extension MenuBarItemManager {
                 || appState?.groupFolders.ownsWindowID(candidate.windowID) == true
             {
                 MenuBarItemManager.diagLog.info(
-                    "Skipping new-item relocation for Thaw spacer or proxy \(candidate.logString)"
+                    "Skipping new-item relocation for Foldy spacer or proxy \(candidate.logString)"
                 )
                 return true
             }

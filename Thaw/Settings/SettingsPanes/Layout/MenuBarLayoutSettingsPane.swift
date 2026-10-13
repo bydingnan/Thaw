@@ -228,7 +228,7 @@ private struct LayoutMoreOptionsSection: View {
                 isOn: $settings.alwaysUseAppIconForMenuBarItems
             )
             .annotation(
-                "Show each item's app icon in the Thaw Bar and Layout instead of a live screenshot.",
+                "Show each item's app icon in the Foldy Bar and Layout instead of a live screenshot.",
                 more: "Turn this on if macOS's overflow arrow shows up in item previews. The real menu bar is unaffected."
             )
 
@@ -238,7 +238,7 @@ private struct LayoutMoreOptionsSection: View {
 //                    SecondsLabel(value: $settings.menuBarOrderFulfillmentTimeout)
 //                }
 //            }
-//            .annotation("How long Thaw waits for macOS to apply a menu bar reorder before continuing with any remaining layout work.")
+//            .annotation("How long Foldy waits for macOS to apply a menu bar reorder before continuing with any remaining layout work.")
         }
         // Expand Spacers for search deep-links so the target is reachable.
         .onChange(of: navigationState.requestedSettingsDisclosure, initial: true) { _, _ in
@@ -443,7 +443,7 @@ private struct LayoutUnshowableItemControls: View {
             Text("Items macOS won’t show")
         } content: {
             // Thaw Bar Only is unplugged for now; restore this with the gate in MenuBarItemManager+ThawBarOnly.swift.
-            // Toggle("Thaw Bar Only", isOn: $general.enableThawBarOnly)
+            // Toggle("Foldy Bar Only", isOn: $general.enableThawBarOnly)
             //     .annotation(
             //         "Keeps an item macOS won’t draw reachable in the \(Constants.displayName) Bar.",
             //         more: "Use it for an item that’s missing from the menu bar and can’t be placed there. Move it here from its menu in the layout editor. It counts as Hidden and opens from the \(Constants.displayName) Bar.\n\nTurn this off and those items become ordinary hidden items. Your list comes back when you turn it on again."

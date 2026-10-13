@@ -240,7 +240,7 @@ extension DisplaySettingsPane {
         let displayMessage = if displaySettings.spacingApplyMode == .writeOnly {
             String(localized: "This will overwrite the settings of ^[\(pending.displayCount) display](inflect: true) with the global template. If the active display’s spacing changes, the new spacing appears the next time each menu bar app starts, and apps are not restarted.")
         } else {
-            String(localized: "This will overwrite the settings of ^[\(pending.displayCount) display](inflect: true) with the global template. If the active display’s spacing changes, Thaw will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost.")
+            String(localized: "This will overwrite the settings of ^[\(pending.displayCount) display](inflect: true) with the global template. If the active display’s spacing changes, Foldy will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost.")
         }
         if pending.activeProfileID != nil {
             let profileInstruction = String(localized: "Save the global template to the active profile “\(profileName)”, or save it to every profile.")

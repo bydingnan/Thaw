@@ -93,7 +93,7 @@ struct MenuBarAccessPane: View {
             in: 0 ... 30,
             step: 1
         )
-        .annotation("How long a hidden menu bar item you open from search or the Thaw Bar stays in the menu bar.")
+        .annotation("How long a hidden menu bar item you open from search or the Foldy Bar stays in the menu bar.")
     }
 
     // MARK: - Always Hidden gestures

@@ -9,17 +9,11 @@ import MenuBarModel
 import UserNotifications
 
 @MainActor
-final class UserNotificationManager: NSObject {
+final class UserNotificationManager {
     private let diagLog = DiagLog(category: "UserNotificationManager")
-    private(set) weak var appState: AppState?
 
     var notificationCenter: UNUserNotificationCenter {
         .current()
-    }
-
-    func performSetup(with appState: AppState) {
-        self.appState = appState
-        notificationCenter.delegate = self
     }
 
     /// Requests authorization to allow user notifications for the app.
@@ -46,40 +40,5 @@ final class UserNotificationManager: NSObject {
         )
 
         notificationCenter.add(request)
-    }
-
-    /// Removes the notifications from Notification Center that match the given identifiers.
-    func removeDeliveredNotifications(with identifiers: [UserNotificationIdentifier]) {
-        notificationCenter.removeDeliveredNotifications(withIdentifiers: identifiers.map(\.rawValue))
-    }
-}
-
-// MARK: UserNotificationManager: UNUserNotificationCenterDelegate
-
-extension UserNotificationManager: @MainActor UNUserNotificationCenterDelegate {
-    func userNotificationCenter(
-        _: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
-    ) {
-        defer {
-            completionHandler()
-        }
-
-        guard let appState else {
-            return
-        }
-
-        switch UserNotificationIdentifier(rawValue: response.notification.request.identifier) {
-        case .updateCheck:
-            guard response.actionIdentifier == UNNotificationDefaultActionIdentifier else {
-                break
-            }
-            appState.updatesManager.checkForUpdates()
-        case .hotkeyToggleFeedback:
-            break
-        case nil:
-            break
-        }
     }
 }

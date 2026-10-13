@@ -39,7 +39,7 @@ struct NativeVisibilityRecoveryView: View {
                         } else {
                             Text("Other disabled apps")
                                 .font(ThawType.heading)
-                            Text("Thaw has no recovery record for these apps. Select only the ones you want to allow in the menu bar.")
+                            Text("Foldy has no recovery record for these apps. Select only the ones you want to allow in the menu bar.")
                                 .foregroundStyle(ThawInk.supporting)
                             ForEach(model.candidates) { candidate in
                                 Toggle(isOn: selection(for: candidate.id)) {

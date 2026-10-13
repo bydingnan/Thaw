@@ -27,7 +27,7 @@ extension MenuBarItemManager {
         let added = tags.subtracting(itemsNotShownOnBarTags)
         if !added.isEmpty {
             MenuBarItemManager.diagLog.info(
-                "Visible item(s) macOS is not drawing on the bar; offering them in the Thaw Bar: \(added.map(\.description).sorted())"
+                "Visible item(s) macOS is not drawing on the bar; offering them in the Foldy Bar: \(added.map(\.description).sorted())"
             )
         }
         itemsNotShownOnBarTags = tags

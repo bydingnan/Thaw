@@ -233,7 +233,7 @@ extension HIDEventManager {
             !isMouseInsideThawBar(appState: appState)
         else {
             if pendingHoverAction == .hide {
-                Self.diagLog.debug("hover hide: cancelled, the pointer is back on the menu bar or the Thaw Bar")
+                Self.diagLog.debug("hover hide: cancelled, the pointer is back on the menu bar or the Foldy Bar")
             }
             cancelPendingHover(.hide)
             return

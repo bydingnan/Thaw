@@ -27,7 +27,7 @@ struct RevealHiddenItemsControlIntent: SetValueIntent {
     static nonisolated let title: LocalizedStringResource = "Reveal Hidden Items"
 
     static nonisolated let description = IntentDescription(
-        "Show or hide the hidden section of Thaw's menu bar.",
+        "Show or hide the hidden section of Foldy's menu bar.",
         categoryName: "Menu Bar"
     )
 
@@ -101,7 +101,7 @@ struct RevealHiddenItemsControl: ControlWidget {
             )
         }
         .displayName("Reveal Hidden Items")
-        .description("Show or hide the hidden section of Thaw's menu bar.")
+        .description("Show or hide the hidden section of Foldy's menu bar.")
     }
 }
 

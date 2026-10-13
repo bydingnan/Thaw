@@ -78,7 +78,7 @@ struct HotkeysSettingsPane: View {
                 case .searchMenuBarItems:
                     Text("Search menu bar items")
                 case .showThawBarOnlyItems:
-                    Text("Show Thaw Bar Only items")
+                    Text("Show Foldy Bar Only items")
                 case .showItemHints:
                     Text("Open an item by letter")
                 case .revealSystemMenuBar:

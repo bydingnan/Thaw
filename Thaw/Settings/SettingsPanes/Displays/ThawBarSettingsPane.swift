@@ -351,7 +351,7 @@ struct ThawBarSettingsPane: View {
 
         // Thaw Bar Only is unplugged for now; restore this with the gate in MenuBarItemManager+ThawBarOnly.swift.
         // Toggle(
-        //     "Thaw Bar Only",
+        //     "Foldy Bar Only",
         //     isOn: Binding(
         //         get: { appState.settings.general.enableThawBarOnly },
         //         set: { appState.settings.general.enableThawBarOnly = $0 }
@@ -360,17 +360,17 @@ struct ThawBarSettingsPane: View {
         // .annotation("Items macOS won't show in the menu bar stay in the \(Constants.displayName) Bar. Turn this off to treat them as ordinary hidden items. Your list comes back when you turn it on again.")
 
         // Toggle(
-        //     "Menu bar icon for Thaw Bar Only items",
+        //     "Menu bar icon for Foldy Bar Only items",
         //     isOn: Binding(
         //         get: { appState.settings.general.showThawBarOnlyLauncher },
         //         set: { appState.settings.general.showThawBarOnlyLauncher = $0 }
         //     )
         // )
-        // .annotation("Shows an icon in the menu bar while there are Thaw Bar Only items. Click it to open a small \(Constants.displayName) Bar with just those items.")
+        // .annotation("Shows an icon in the menu bar while there are Foldy Bar Only items. Click it to open a small \(Constants.displayName) Bar with just those items.")
         // .disabled(!appState.settings.general.enableThawBarOnly)
 
         // Toggle(
-        //     "Show Thaw Bar Only items when showing hidden items",
+        //     "Show Foldy Bar Only items when showing hidden items",
         //     isOn: Binding(
         //         get: { appState.settings.general.showThawBarOnlyWithInlineReveal },
         //         set: { appState.settings.general.showThawBarOnlyWithInlineReveal = $0 }

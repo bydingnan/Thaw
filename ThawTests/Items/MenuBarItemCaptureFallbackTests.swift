@@ -173,6 +173,50 @@ struct MenuBarItemCaptureFallbackTests {
         #expect(await reader.validatedTags == [item.tag])
     }
 
+    @Test(
+        "Post-source ownership and overflow reads overlap and both guard publication",
+        .timeLimit(.minutes(1)),
+        arguments: [CaptureFixture.Source.strip, .hosting, .barWindow], [false, true]
+    )
+    private func postSourceEvidenceRunsTogether(source: CaptureFixture.Source, locksDuringRead: Bool) async throws {
+        let item = makeItem()
+        let locked = OSAllocatedUnfairLock(initialState: false)
+        let geometryGate = CaptureGate()
+        let overflowGate = CaptureGate()
+        let pixels = try makeCapture(opaque: source == .strip)
+        let reader = CaptureFixture(
+            hosting: source == .hosting ? pixels : nil,
+            barWindow: source == .barWindow ? pixels : nil,
+            strip: source == .strip ? pixels : nil,
+            items: [item],
+            validationGates: (geometryGate, overflowGate)
+        )
+        let cache = MenuBarItemImageCache(screenIsLocked: { locked.withLock { $0 } })
+        let pass = Task {
+            await cache.axBoundsCapture(
+                [(item, item.bounds)], scale: 2, displayID: 42,
+                validateFreshBounds: true, concealedIdentifiers: [], using: reader
+            )
+        }
+        // Neither read may wait for the other to finish before starting.
+        // The test's time limit catches reintroducing the serial awaits.
+        await geometryGate.waitUntilArrived()
+        await overflowGate.waitUntilArrived()
+        await overflowGate.release()
+        if locksDuringRead {
+            locked.withLock { $0 = true }
+        }
+        await geometryGate.release()
+        let result = await pass.value
+
+        #expect((result.captured[item.tag] != nil) == !locksDuringRead)
+        #expect(await reader.captures.last == source, "Do not acquire another source while validation is pending")
+        if locksDuringRead {
+            #expect(result.invalidatedTags.isEmpty)
+            #expect(result.unreadable.isEmpty)
+        }
+    }
+
     @Test("A missing strip falls back to a valid hosting glyph")
     func missingStripUsesHosting() async throws {
         let item = makeItem()
@@ -541,6 +585,7 @@ actor CaptureFixture {
     /// The inventory a geometry read reports once that owner's window was captured.
     let itemsAfterOwnerWindow: [pid_t: [MenuBarItem]]
     let gates: [Source: CaptureGate]
+    let validationGates: (geometry: CaptureGate, overflow: CaptureGate)?
     let onCapture: @Sendable (Source) -> Void
     private(set) var captures: [Source] = []
     private(set) var sourcesAtValidation: [Source] = []
@@ -559,6 +604,7 @@ actor CaptureFixture {
         ownerWindowOverflowBounds: [CGRect] = [],
         itemsAfterOwnerWindow: [pid_t: [MenuBarItem]] = [:],
         gates: [Source: CaptureGate] = [:],
+        validationGates: (geometry: CaptureGate, overflow: CaptureGate)? = nil,
         onCapture: @escaping @Sendable (Source) -> Void = { _ in }
     ) {
         self.hosting = hosting
@@ -570,6 +616,7 @@ actor CaptureFixture {
         self.ownerWindowOverflowBounds = ownerWindowOverflowBounds
         self.itemsAfterOwnerWindow = itemsAfterOwnerWindow
         self.gates = gates
+        self.validationGates = validationGates
         self.onCapture = onCapture
     }
 
@@ -582,7 +629,10 @@ actor CaptureFixture {
     }
 
     func overflowBounds(displayID _: CGDirectDisplayID) async -> [CGRect] {
-        (captures.contains(.strip) ? stripOverflowBounds : [])
+        if !captures.isEmpty {
+            await validationGates?.overflow.arriveAndWait()
+        }
+        return (captures.contains(.strip) ? stripOverflowBounds : [])
             + (captures.contains(.barWindow) ? ownerWindowOverflowBounds : [])
     }
 
@@ -613,6 +663,7 @@ actor CaptureFixture {
     func menuBarItems(displayID _: CGDirectDisplayID) async -> [MenuBarItem] {
         inventoryReadCount += 1
         sourcesAtInventoryRead.append(captures.last)
+        await validationGates?.geometry.arriveAndWait()
         return items
     }
 
@@ -621,6 +672,7 @@ actor CaptureFixture {
     ) async -> (bounds: [String: CGRect], ambiguous: Set<String>) {
         validatedTags = candidates.map(\.item.tag)
         sourcesAtValidation = captures
+        await validationGates?.geometry.arriveAndWait()
         switch geometry {
         case .stable:
             return (Dictionary(uniqueKeysWithValues: candidates.map { ($0.item.uniqueIdentifier, $0.bounds) }), [])

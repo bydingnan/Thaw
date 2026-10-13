@@ -147,7 +147,7 @@
       }
     },
     "%@ %@ running, but %@ can't see their menu bar items, so it can't hide or arrange them. Relaunching %@ fixes this." : {
-      "comment" : "Layout pane warning when running apps' menu bar items are invisible to Thaw's scan. The first argument is a list of app names.",
+      "comment" : "Layout pane warning when running apps' menu bar items are invisible to Foldy's scan. The first argument is a list of app names.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -305,10 +305,10 @@
 
     },
     "%@ Bar off" : {
-      "comment" : "Profile preview summary fragment: the Thaw Bar is disabled. %@ is the app name."
+      "comment" : "Profile preview summary fragment: the Foldy Bar is disabled. %@ is the app name."
     },
     "%@ Bar on" : {
-      "comment" : "Profile preview summary fragment: the Thaw Bar is enabled. %@ is the app name."
+      "comment" : "Profile preview summary fragment: the Foldy Bar is enabled. %@ is the app name."
     },
     "%@ Groups always move together, so no items were moved." : {
       "comment" : "Explanation shown when a whole-group move was refused"
@@ -364,16 +364,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ are running, but %2$@ can't see their menu bar items, so it can't hide or arrange them. Relaunching %3$@ fixes this."
-          }
-        }
-      }
-    },
-    "%@ can check for updates automatically. You can also check manually from the menu bar or Settings %@ About." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ can check for updates automatically. You can also check manually from the menu bar or Settings %2$@ About."
           }
         }
       }
@@ -965,7 +955,7 @@
       }
     },
     "%@ is trying to place them. If this stays for more than a few seconds, check System Settings %@ Menu Bar for a divider that macOS has hidden." : {
-      "comment" : "Layout pane caption while Thaw's own dividers are off the bar. Placement usually completes on its own; System Settings only matters if macOS hid a divider.",
+      "comment" : "Layout pane caption while Foldy's own dividers are off the bar. Placement usually completes on its own; System Settings only matters if macOS hid a divider.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1102,26 +1092,6 @@
     },
     "%@ left when its app quit" : {
 
-    },
-    "%@ loads these from %@ when it shows you an update. They are part of the update, so they follow the automatic updates setting." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ loads these from %2$@ when it shows you an update. They are part of the update, so they follow the automatic updates setting."
-          }
-        }
-      }
-    },
-    "%@ loads these from %@ when it shows you an update. They are part of the update, so they follow the update check's switch." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ loads these from %2$@ when it shows you an update. They are part of the update, so they follow the update check's switch."
-          }
-        }
-      }
     },
     "%@ needs Accessibility to list your menu bar items." : {
 
@@ -2278,13 +2248,13 @@
         }
       }
     },
-    "**App icons instead of menu bar previews:** Thaw uses an app-icon fallback when a usable capture is unavailable, including when Screen Recording permission is off. The fallback is intentional; an item disappearing entirely still needs investigation." : {
+    "**App icons instead of menu bar previews:** Foldy uses an app-icon fallback when a usable capture is unavailable, including when Screen Recording permission is off. The fallback is intentional; an item disappearing entirely still needs investigation." : {
 
     },
     "**Apps that need their own update:** macOS 27 changed how menu bar items are published, and an app built against the older behavior can sit in the wrong place, refuse to hide, or show no icon. f.lux behaves this way today. The fix has to come from the app's own developer; %@ cannot correct it from the outside. Check for an update to that app." : {
 
     },
-    "**Apps that need their own update:** macOS 27 changed how menu bar items are published, and an app built against the older behavior can sit in the wrong place, refuse to hide, or show no icon. f.lux behaves this way today. The fix has to come from the app's own developer; Thaw cannot correct it from the outside." : {
+    "**Apps that need their own update:** macOS 27 changed how menu bar items are published, and an app built against the older behavior can sit in the wrong place, refuse to hide, or show no icon. f.lux behaves this way today. The fix has to come from the app's own developer; Foldy cannot correct it from the outside." : {
 
     },
     "**Control Center items assigned to Hidden are switched off, not hidden:** Wi‑Fi, Bluetooth and other Control Center modules in Hidden or Always Hidden are turned off in macOS, and they do not come back when the section is revealed. Move them to Visible to show them again." : {
@@ -2341,10 +2311,10 @@
     "A click on the %@ icon trades your shown and hidden items instead of revealing the hidden ones. Click again to swap back. Option-click and right-click keep their usual actions." : {
 
     },
-    "A click on the Thaw icon trades your shown and hidden items instead of revealing the hidden ones. Click again to swap back." : {
+    "A click on the Foldy icon trades your shown and hidden items instead of revealing the hidden ones. Click again to swap back." : {
 
     },
-    "A click on the Thaw icon trades your shown and hidden items instead of revealing the hidden ones. Click again to swap back. Option-click and right-click keep their usual actions." : {
+    "A click on the Foldy icon trades your shown and hidden items instead of revealing the hidden ones. Click again to swap back. Option-click and right-click keep their usual actions." : {
 
     },
     "A custom icon in the menu bar" : {
@@ -2352,125 +2322,6 @@
     },
     "A menu bar icon that opens a small %@ Bar with just the items macOS won't show in the menu bar." : {
 
-    },
-    "A new update is available" : {
-      "comment" : "Title of a notification when a new update is available.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Je k dispozici nová verze"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neues Update verfügbar"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una nueva actualización esta disponible"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Une mise à jour est disponible"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Új frissítés érhető el"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pembaruan tersedia"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "È disponibile un nuovo aggiornamento"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新しいアップデートがあります"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "새로운 업데이트가 있습니다"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Een nieuwe update is beschikbaar"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nowa aktualizacja jest dostępna"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Atualização disponível"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доступно новое обновление"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "มีการอัปเดตใหม่"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yeni bir güncelleme mevcut"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доступне нове оновлення"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Có một bản cập nhật mới"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "您有新的更新可用"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "有新的更新可用"
-          }
-        }
-      }
     },
     "A strip under the menu bar that trades your shown and hidden items in one click." : {
 
@@ -3440,7 +3291,7 @@
 
     },
     "Allow" : {
-      "comment" : "Button title for allowing the app to control Thaw settings.",
+      "comment" : "Button title for allowing the app to control Foldy settings.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
@@ -4731,43 +4582,43 @@
     "Apply Template to All Displays" : {
 
     },
-    "Apply a Thaw menu bar profile when this Focus activates." : {
+    "Apply a Foldy menu bar profile when this Focus activates." : {
       "comment" : "Description of the \"Set Menu Bar Profile\" focus filter intent, including the category name.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Po aktivaci tohoto režimu soustředění přepne Thaw svůj profil."
+            "value" : "Po aktivaci tohoto režimu soustředění přepne Foldy svůj profil."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Thaw-Menüleisten-Profil anwenden, wenn dieser Fokus aktiviert wird."
+            "value" : "Ein Foldy-Menüleisten-Profil anwenden, wenn dieser Fokus aktiviert wird."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplicar un perfil de barra de menú de Thaw cuando este Enfoque se activa."
+            "value" : "Aplicar un perfil de barra de menú de Foldy cuando este Enfoque se activa."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Appliquer un profil de la barre de menu de Thaw lorsque le focus est activé."
+            "value" : "Appliquer un profil de la barre de menu de Foldy lorsque le focus est activé."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Thaw menüsávprofil alkalmazása, amikor ez a Fókusz aktiválódik."
+            "value" : "Foldy menüsávprofil alkalmazása, amikor ez a Fókusz aktiválódik."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Terapkan profil bar menu Thaw saat Fokus ini aktif."
+            "value" : "Terapkan profil bar menu Foldy saat Fokus ini aktif."
           }
         },
         "it" : {
@@ -4779,49 +4630,49 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "集中モード有効時に、指定した Thaw メニューバープロファイルを適用します。"
+            "value" : "集中モード有効時に、指定した Foldy メニューバープロファイルを適用します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 집중 모드가 켜져 있을 때 Thaw 메뉴 바 프로필을 적용합니다."
+            "value" : "이 집중 모드가 켜져 있을 때 Foldy 메뉴 바 프로필을 적용합니다."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pas een profiel uit de Thaw-menubalk toe wanneer deze focus wordt geactiveerd."
+            "value" : "Pas een profiel uit de Foldy-menubalk toe wanneer deze focus wordt geactiveerd."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aktywuj profil paska menu Thaw, gdy włączy się ten tryb skupienia."
+            "value" : "Aktywuj profil paska menu Foldy, gdy włączy się ten tryb skupienia."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplicar um perfil da barra de menus do Thaw quando este foco for ativado."
+            "value" : "Aplicar um perfil da barra de menus do Foldy quando este foco for ativado."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Применять профиль строки меню Thaw, когда включается режим Фокусирования."
+            "value" : "Применять профиль строки меню Foldy, когда включается режим Фокусирования."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ใช้โปรไฟล์แถบเมนู Thaw เมื่อ Focus นี้เปิดใช้งาน"
+            "value" : "ใช้โปรไฟล์แถบเมนู Foldy เมื่อ Focus นี้เปิดใช้งาน"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bu Odak etkinleştiğinde bir Thaw menü çubuğu profili uygula."
+            "value" : "Bu Odak etkinleştiğinde bir Foldy menü çubuğu profili uygula."
           }
         },
         "uk" : {
@@ -4833,24 +4684,24 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Áp dụng cấu hình thanh menu Thaw khi Focus này kích hoạt."
+            "value" : "Áp dụng cấu hình thanh menu Foldy khi Focus này kích hoạt."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用专注模式时切换到指定的 Thaw 菜单栏配置。"
+            "value" : "启用专注模式时切换到指定的 Foldy 菜单栏配置。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "當此專注模式啟動時，套用 Thaw 選單列設定檔。"
+            "value" : "當此專注模式啟動時，套用 Foldy 選單列設定檔。"
           }
         }
       }
     },
-    "Apply a saved Thaw menu bar profile, restoring its layout and settings." : {
+    "Apply a saved Foldy menu bar profile, restoring its layout and settings." : {
 
     },
     "Apply briefly relaunches apps with menu bar items so they pick up the new spacing. Setting takes effect when this display is the active menu bar display." : {
@@ -6213,13 +6064,7 @@
     "Ask us about anything on this page: what %@ reads, what it writes, why it asks for a permission, or how it moves your items. We are open to any question about privacy, and every one gets an answer from a person." : {
 
     },
-    "Ask us about anything on this page: what Thaw reads, what it writes, why it asks for a permission, or what a move just did. We are open to any question about privacy, and every one gets an answer from a person." : {
-
-    },
-    "Asks %@ whether a newer version exists." : {
-
-    },
-    "Asks the update server whether a newer version exists. The only network call Thaw makes on its own." : {
+    "Ask us about anything on this page: what Foldy reads, what it writes, why it asks for a permission, or what a move just did. We are open to any question about privacy, and every one gets an answer from a person." : {
 
     },
     "Assign a profile to each display." : {
@@ -6486,247 +6331,6 @@
     },
     "Automatic switching by display or Space" : {
 
-    },
-    "Automatic updates" : {
-
-    },
-    "Automatically check for updates" : {
-      "comment" : "A toggle that lets the user enable or disable automatic checking for updates.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automaticky kontrolovat aktualizace"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatisch nach Updates suchen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar actualizaciones automáticamente"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vérifier automatiquement les mises à jour"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frissítések automatikus keresése"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Periksa pembaruan secara otomatis"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controlla automaticamente gli aggiornamenti"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動的にアップデートを確認"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "자동으로 업데이트 확인"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatisch naar updates controleren"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatycznie sprawdzaj aktualizacje"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verificar atualizações automaticamente"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Автоматически проверять обновления"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ตรวจสอบการอัปเดตโดยอัตโนมัติ"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Güncellemeleri otomatik kontrol et"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Автоматично перевіряти оновлення"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tự động kiểm tra cập nhật"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动检查更新"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動檢查更新"
-          }
-        }
-      }
-    },
-    "Automatically download updates" : {
-      "comment" : "A toggle that lets the user enable or disable automatic downloading of updates.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automaticky stahovat aktualizace"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updates automatisch herunterladen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Descargar actualizaciones automáticamente"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Télécharger automatiquement les mises à jour"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frissítések automatikus letöltése"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unduh pembaruan secara otomatis"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scarica automaticamente gli aggiornamenti"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動的にアップデートをダウンロード"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "자동으로 업데이트 다운로드"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatisch downloaden van updates"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatycznie pobieraj aktualizacje"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Baixar atualizações automaticamente"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Автоматически загружать обновления"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ดาวน์โหลดการอัปเดตโดยอัตโนมัติ"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Güncellemeleri otomatik indir"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Автоматично завантажувати оновлення"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tự động tải xuống bản cập nhật"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动下载更新"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動下載更新"
-          }
-        }
-      }
     },
     "Automatically rehide" : {
       "comment" : "A toggle that enables or disables automatic rehiding of the hidden menu bar items.",
@@ -7234,10 +6838,10 @@
     "Before a display change or spacing edit relaunches your menu bar apps, %@ asks you to confirm." : {
 
     },
-    "Before a display change or spacing edit relaunches your menu bar apps, Thaw asks you to confirm." : {
+    "Before a display change or spacing edit relaunches your menu bar apps, Foldy asks you to confirm." : {
 
     },
-    "Before a display change or spacing edit relaunches your menu bar apps, Thaw asks you to confirm. Turn this off to apply spacing changes and relaunch apps without confirmation." : {
+    "Before a display change or spacing edit relaunches your menu bar apps, Foldy asks you to confirm. Turn this off to apply spacing changes and relaunch apps without confirmation." : {
       "comment" : "Annotation for the Confirm before relaunching apps toggle in the Displays pane."
     },
     "Before switching" : {
@@ -7250,9 +6854,6 @@
 
     },
     "Below the pointer when it is in the menu bar, otherwise below the %@ icon." : {
-
-    },
-    "Beta" : {
 
     },
     "Bluetooth" : {
@@ -7786,7 +7387,7 @@
 
     },
     "Can modify settings" : {
-      "comment" : "A description of the permission that allows an app to modify Thaw settings.",
+      "comment" : "A description of the permission that allows an app to modify Foldy settings.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
@@ -8163,380 +7764,8 @@
     "Check" : {
 
     },
-    "Check Automatically" : {
-      "comment" : "A button that enables automatic update checking.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zkontrolovat automaticky"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatisch überprüfen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar automáticamente"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vérifier automatiquement"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatikus ellenőrzés"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Periksa secara otomatis"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controlla automaticamente"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動的に確認"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "자동으로 확인"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controleer automatisch"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sprawdź automatycznie"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verificar Automaticamente"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверять автоматически"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ตรวจสอบโดยอัตโนมัติ"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Otomatik Kontrol Et"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перевіряти автоматично"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kiểm tra tự động"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动检查"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動檢查"
-          }
-        }
-      }
-    },
-    "Check Manually" : {
-
-    },
-    "Check Now" : {
-
-    },
     "Check System Settings %@ Menu Bar and enable %@" : {
-      "comment" : "A message displayed when Thaw is disabled in System Settings and how to solve it; the first %@ is the path separator arrow, the second is the app name."
-    },
-    "Check and download" : {
-
-    },
-    "Check for Updates" : {
-      "comment" : "A button that triggers a check for updates.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zkontrolovat dostupnost aktualizací"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach Updates suchen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar actualizaciones"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vérifier les mises à jour"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frissítések keresése"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Periksa pembaruan"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controlla gli aggiornamenti"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アップデートを確認"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "업데이트 확인"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controleer op updates"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sprawdź"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verificar Atualizações"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверить обновления"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ตรวจสอบการอัปเดต"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Güncellemeleri Kontrol Et"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перевірити оновлення"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kiểm tra bản cập nhật"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "检查更新"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "檢查更新"
-          }
-        }
-      }
-    },
-    "Check for Updates…" : {
-      "comment" : "Title of a menu item that checks for software updates.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zkontrolovat dostupnost aktualizací…"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach Updates suchen…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar actualizaciones…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vérifier les mises à jour…"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frissítések keresése…"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Periksa pembaruan…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controlla gli aggiornamenti…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アップデートを確認…"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "업데이트 확인…"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controleer op updates…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sprawdź uaktualnienia…"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verificar Atualizações…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверить обновления…"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ตรวจสอบการอัปเดต…"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Güncellemeleri Kontrol Et…"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перевірити оновлення…"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kiểm tra bản cập nhật…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "检查更新…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "檢查更新⋯"
-          }
-        }
-      }
-    },
-    "Check for updates automatically" : {
-
-    },
-    "Check only" : {
-
+      "comment" : "A message displayed when Foldy is disabled in System Settings and how to solve it; the first %@ is the path separator arrow, the second is the app name."
     },
     "Check permissions" : {
       "comment" : "A button label that, when tapped, opens the app's settings to allow the app to access screen recording permissions.",
@@ -8657,130 +7886,8 @@
         }
       }
     },
-    "Checking asks %@ whether a newer version exists. Downloading also fetches it in the background; without it, the download starts only after you accept an update." : {
-
-    },
     "Checking connection" : {
 
-    },
-    "Checking for updates is not supported in debug mode." : {
-      "comment" : "Alert message displayed in debug mode when checking for app updates.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "V ladicím režimu není kontrola dostupnosti aktualizací podporována."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Updatesuche wird im Fehlersuchmodus nicht unterstützt."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar actualizaciones no esta soportado en el modo de desarrollo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La recherche de mises à jour n'est pas prise en charge en mode débogage."
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A frissítések keresése hibakeresési módban nem támogatott."
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Periksa pembaruan tidak dapat dilakukan di mode debug."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La verifica degli aggiornamenti non è supportata in modalità debug."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "デバッグモードではアップデートの確認はサポートされていません。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "디버그 모드에서는 업데이트 확인이 지원되지 않습니다."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Het controleren op updates wordt niet ondersteund in de debugmodus."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sprawdzanie aktualizacji nie jest obsługiwane w trybie debugowania."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A verificação de atualizações não é suportada no modo de depuração."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Проверка обновлений не поддерживается в режиме отладки."
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "การตรวจสอบการอัปเดตไม่รองรับในโหมดดีบัก"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hata ayıklama modunda güncelleme kontrolü desteklenmiyor."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перевірка оновлень не підтримується в режимі налагодження."
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kiểm tra cập nhật không được hỗ trợ trong chế độ gỡ lỗi."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "调试模式下不支持检查更新。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "除錯模式下不支援檢查更新。"
-          }
-        }
-      }
     },
     "Chevron" : {
       "comment" : "Localized string key representation of the \"Chevron\" case in the `SectionDividerStyle` enum.",
@@ -9021,9 +8128,6 @@
       }
     },
     "Choose Another" : {
-
-    },
-    "Choose Beta or Nightly updates. Automatic updates can be Off, Check only, or Check and download." : {
 
     },
     "Choose Icon…" : {
@@ -9410,7 +8514,7 @@
     "Choose where to move the menu bar items:" : {
 
     },
-    "Choose whether you arrange menu bar items manually or let Thaw arrange them automatically." : {
+    "Choose whether you arrange menu bar items manually or let Foldy arrange them automatically." : {
 
     },
     "Choose which menu bar sections appear in the search panel, and in what order." : {
@@ -9538,9 +8642,6 @@
     "Choose which one you're editing at the top of this pane." : {
 
     },
-    "Choose which release channel updates come from: Stable, Development, or Nightly." : {
-
-    },
     "Chooses where along the top of the display the recording banners sit." : {
 
     },
@@ -9557,7 +8658,7 @@
         }
       }
     },
-    "Choosing that file grants Thaw access to it alone. Without it, reordering has to move items by dragging them into place, which takes over your cursor." : {
+    "Choosing that file grants Foldy access to it alone. Without it, reordering has to move items by dragging them into place, which takes over your cursor." : {
 
     },
     "Chosen display" : {
@@ -10069,7 +9170,7 @@
     "Click the %@ icon to swap" : {
 
     },
-    "Click the Thaw icon to swap" : {
+    "Click the Foldy icon to swap" : {
 
     },
     "Click to hide" : {
@@ -10654,7 +9755,7 @@
       }
     },
     "Continue Anyway" : {
-      "comment" : "Title of a button in an alert displayed when a conflicting menu bar management app is detected, allowing the user to continue using Thaw.",
+      "comment" : "Title of a button in an alert displayed when a conflicting menu bar management app is detected, allowing the user to continue using Foldy.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
@@ -11031,10 +10132,10 @@
     "Control Center will quit and its preference files will be deleted. macOS usually relaunches it automatically." : {
 
     },
-    "Control Center’s settings changed elsewhere, so Thaw stopped hiding apps." : {
+    "Control Center’s settings changed elsewhere, so Foldy stopped hiding apps." : {
 
     },
-    "Control Center’s settings for hidden menu bar apps aren’t in a format Thaw understands." : {
+    "Control Center’s settings for hidden menu bar apps aren’t in a format Foldy understands." : {
 
     },
     "Control it from other apps" : {
@@ -11505,7 +10606,7 @@
     "Credits" : {
 
     },
-    "Crop regions are the exact pixels Thaw reads for each menu bar item. Frames are shown once and never saved to disk." : {
+    "Crop regions are the exact pixels Foldy reads for each menu bar item. Frames are shown once and never saved to disk." : {
 
     },
     "Current" : {
@@ -12273,7 +11374,7 @@
     "Delete this backup?" : {
 
     },
-    "Deletes every saved item position and restarts the system's menu bar service, so the layout rebuilds from scratch. Thaw saves a backup first. Use this when items won't return to the menu bar after you rearrange." : {
+    "Deletes every saved item position and restarts the system's menu bar service, so the layout rebuilds from scratch. Foldy saves a backup first. Use this when items won't return to the menu bar after you rearrange." : {
 
     },
     "Delete…" : {
@@ -12409,125 +11510,6 @@
     },
     "Detect the menu bar items on your Mac and where they're positioned." : {
 
-    },
-    "Development" : {
-      "comment" : "A label for the \"Development\" segment in the update channel picker.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Testovací"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entwicklung"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desarrollo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Développement"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fejlesztés"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pengembangan"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sviluppo"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "開発版"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "개발"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ontwikkeling"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wersja rozwojowa"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desenvolvimento"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разработка"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "การพัฒนา"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geliştirme"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Розробка"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Phát triển"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "开发版"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "開發版"
-          }
-        }
-      }
     },
     "Diagnostics" : {
       "comment" : "Section title in the advanced settings pane for diagnostics settings.",
@@ -13901,9 +12883,6 @@
     "Double-click the %@ icon to open Always Hidden" : {
 
     },
-    "Download and install updates automatically" : {
-
-    },
     "Drag an icon into Hidden to tuck it away. Click %@'s icon in the menu bar to bring it back." : {
 
     },
@@ -13931,10 +12910,10 @@
     "Draws black over the corners of every display, so they look rounded." : {
 
     },
-    "Draws your menu bar items in a Thaw panel instead of the system menu bar." : {
+    "Draws your menu bar items in a Foldy panel instead of the system menu bar." : {
       "comment" : "Settings-search description for the experimental menu-bar-overlay toggle."
     },
-    "Draws your menu bar items in a Thaw panel instead of the system menu bar. The bar keeps its app menus, clock, and modules. Items come back to the menu bar when you turn this off or when %@ quits." : {
+    "Draws your menu bar items in a Foldy panel instead of the system menu bar. The bar keeps its app menus, clock, and modules. Items come back to the menu bar when you turn this off or when %@ quits." : {
       "comment" : "Annotation under the experimental menu-bar-overlay toggle. Placeholder is the app name."
     },
     "Drop an icon here" : {
@@ -13943,7 +12922,7 @@
     "Drops every override %@ set for this Space and returns it to the system default behavior." : {
 
     },
-    "Drops every override Thaw set for this Space and returns it to the system default behavior." : {
+    "Drops every override Foldy set for this Space and returns it to the system default behavior." : {
       "comment" : "Explanatory text beside the Reset This Space button in the Spaces settings pane."
     },
     "Due to a bug in a previous version of the app, the data for %@'s menu bar sections was corrupted and had to be reset." : {
@@ -14715,7 +13694,7 @@
       "comment" : "Title of the permissions screen shown during onboarding."
     },
     "Enable Settings URI Scheme" : {
-      "comment" : "A toggle that enables or disables the ability for external apps to read and modify Thaw settings via thaw:// URLs.",
+      "comment" : "A toggle that enables or disables the ability for external apps to read and modify Foldy settings via thaw:// URLs.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
@@ -15851,55 +14830,55 @@
     "Example: a Before switching script could run `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with %@." : {
 
     },
-    "Example: a bash pre-hook could `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with Thaw." : {
+    "Example: a bash pre-hook could `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with Foldy." : {
       "comment" : "A description of how to use environment variables in a pre-hook.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Příklad: bashový pre-hook může provést příkaz `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"`, aby se aplikace iStat Menus synchronizovala s Thaw."
+            "value" : "Příklad: bashový pre-hook může provést příkaz `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"`, aby se aplikace iStat Menus synchronizovala s Foldy."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beispiel: Ein Bash-Pre-Hook könnte mit `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` dafür sorgen, dass iStat Menus mit Thaw synchron bleibt."
+            "value" : "Beispiel: Ein Bash-Pre-Hook könnte mit `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` dafür sorgen, dass iStat Menus mit Foldy synchron bleibt."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ejemplo: un pre-hook de Bash podría ejecutar `defaults write com.bjango.istatmenus5 ActiveProfile -string «$THAW_PROFILE_NAME»` para mantener iStat Menus sincronizado con Thaw."
+            "value" : "Ejemplo: un pre-hook de Bash podría ejecutar `defaults write com.bjango.istatmenus5 ActiveProfile -string «$THAW_PROFILE_NAME»` para mantener iStat Menus sincronizado con Foldy."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exemple : un pre-hook bash pourrait exécuter \\defaults write com.bjango.istatmenus5 ActiveProfile -string “$THAW_PROFILE_NAME”` pour garder iStat Menus synchronisé avec Thaw."
+            "value" : "Exemple : un pre-hook bash pourrait exécuter \\defaults write com.bjango.istatmenus5 ActiveProfile -string “$THAW_PROFILE_NAME”` pour garder iStat Menus synchronisé avec Foldy."
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Példa: egy bash elő-hook használhatja ezt: \\defaults write com.bjango.istatmenus5 ActiveProfile -string “$THAW_PROFILE_NAME”`, hogy az iStat Menus szinkronban maradjon a Thaw alkalmazással.`"
+            "value" : "Példa: egy bash elő-hook használhatja ezt: \\defaults write com.bjango.istatmenus5 ActiveProfile -string “$THAW_PROFILE_NAME”`, hogy az iStat Menus szinkronban maradjon a Foldy alkalmazással.`"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contoh: pre-hook bash bisa menjalankan `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` supaya iStat Menus tetap sinkron dengan Thaw."
+            "value" : "Contoh: pre-hook bash bisa menjalankan `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` supaya iStat Menus tetap sinkron dengan Foldy."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Example: a bash pre-hook could `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with Thaw."
+            "value" : "Example: a bash pre-hook could `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with Foldy."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Example: a bash pre-hook could `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with Thaw."
+            "value" : "Example: a bash pre-hook could `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with Foldy."
           }
         },
         "ko" : {
@@ -15911,61 +14890,61 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Voorbeeld: een bash pre-hook kan \\defaults write com.bjango.istatmenus5 ActiveProfile -string “$THAW_PROFILE_NAME”` uitvoeren om iStat Menus gesynchroniseerd te houden met Thaw."
+            "value" : "Voorbeeld: een bash pre-hook kan \\defaults write com.bjango.istatmenus5 ActiveProfile -string “$THAW_PROFILE_NAME”` uitvoeren om iStat Menus gesynchroniseerd te houden met Foldy."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Przykład: pre-hook w bashu mógłby wykonać `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"`, aby utrzymać synchronizację iStat Menus z Thaw."
+            "value" : "Przykład: pre-hook w bashu mógłby wykonać `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"`, aby utrzymać synchronizację iStat Menus z Foldy."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exemplo: um pré-hook do Bash poderia executar `defaults write com.bjango.istatmenus5 ActiveProfile -string “$THAW_PROFILE_NAME”` para manter o iStat Menus sincronizado com o Thaw."
+            "value" : "Exemplo: um pré-hook do Bash poderia executar `defaults write com.bjango.istatmenus5 ActiveProfile -string “$THAW_PROFILE_NAME”` para manter o iStat Menus sincronizado com o Foldy."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пример: bash-скрипт pre-hook может выполнить defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\", чтобы синхронизировать iStat Menus с Thaw."
+            "value" : "Пример: bash-скрипт pre-hook может выполнить defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\", чтобы синхронизировать iStat Menus с Foldy."
           }
         },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ตัวอย่าง: bash pre-hook สามารถใช้คำสั่ง `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` เพื่อให้ iStat Menus ซิงก์กับ Thaw อยู่เสมอ"
+            "value" : "ตัวอย่าง: bash pre-hook สามารถใช้คำสั่ง `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` เพื่อให้ iStat Menus ซิงก์กับ Foldy อยู่เสมอ"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bash pre-hook mekanizması, iStat Menus hizmetinin Thaw ile senkronize kalmasını sağlamak için defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\" komutunu çalıştırabilir."
+            "value" : "Bash pre-hook mekanizması, iStat Menus hizmetinin Foldy ile senkronize kalmasını sağlamak için defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\" komutunu çalıştırabilir."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Example: a bash pre-hook could `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with Thaw."
+            "value" : "Example: a bash pre-hook could `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` to keep iStat Menus in sync with Foldy."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ví dụ: một bash pre-hook có thể `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` để giữ cho các Menu iStat được đồng bộ hóa với Thaw."
+            "value" : "Ví dụ: một bash pre-hook có thể `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` để giữ cho các Menu iStat được đồng bộ hóa với Foldy."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "例如：bash 前置 Hook 可通过 `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` 使 iStat Menus 与 Thaw 的配置保持同步。"
+            "value" : "例如：bash 前置 Hook 可通过 `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` 使 iStat Menus 与 Foldy 的配置保持同步。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "範例：bash pre-hook 可使用 `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` 讓 iStat Menus 與 Thaw 同步。"
+            "value" : "範例：bash pre-hook 可使用 `defaults write com.bjango.istatmenus5 ActiveProfile -string \"$THAW_PROFILE_NAME\"` 讓 iStat Menus 與 Foldy 同步。"
           }
         }
       }
@@ -16392,16 +15371,10 @@
     "Features still in testing" : {
 
     },
-    "Fetches a new version in the background, or only after you accept an update." : {
-
-    },
     "Fetches the latest release notes from %@ when you open What’s New and keeps a copy for offline use. When this is off, What’s New shows the last copy it fetched, if there is one." : {
 
     },
     "Fetches the latest release notes when you open What’s New and keeps a copy for offline use. When this is off, What’s New shows the notes that shipped with this version." : {
-
-    },
-    "Fetches the new version in the background. When this is off, the download starts only after you accept an update." : {
 
     },
     "Fetching release notes is off in Privacy, so this is the last copy fetched." : {
@@ -17583,7 +16556,7 @@
     "Grant Full Disk Access" : {
 
     },
-    "Grant Full Disk Access and Thaw writes the system's layout table directly, so reorders land without the cursor moving." : {
+    "Grant Full Disk Access and Foldy writes the system's layout table directly, so reorders land without the cursor moving." : {
 
     },
     "Grant Permission" : {
@@ -19040,13 +18013,13 @@
     "How is it working?" : {
 
     },
-    "How long Thaw waits for macOS to apply a menu bar reorder before continuing with any remaining layout work." : {
+    "How long Foldy waits for macOS to apply a menu bar reorder before continuing with any remaining layout work." : {
 
     },
-    "How long Thaw waits for macOS to apply a menu bar reorder before continuing with remaining layout work." : {
+    "How long Foldy waits for macOS to apply a menu bar reorder before continuing with remaining layout work." : {
 
     },
-    "How long a hidden menu bar item you open from search or the Thaw Bar stays in the menu bar." : {
+    "How long a hidden menu bar item you open from search or the Foldy Bar stays in the menu bar." : {
 
     },
     "How often animated menu bar icons are refreshed in panels. Higher values are smoother but use more CPU." : {
@@ -19168,7 +18141,7 @@
         }
       }
     },
-    "How often animated menu bar icons are refreshed in the Thaw Bar and Layout. Higher values are smoother but use more CPU." : {
+    "How often animated menu bar icons are refreshed in the Foldy Bar and Layout. Higher values are smoother but use more CPU." : {
 
     },
     "How tall the invisible strip at the top of the screen is before a hidden menu bar reveals itself." : {
@@ -19559,7 +18532,7 @@
       "comment" : "A step in the process of allowing an app."
     },
     "If you have not, you’ll see a confirmation dialog showing the app name and what it wants to do." : {
-      "comment" : "A step in the process of using Thaw."
+      "comment" : "A step in the process of using Foldy."
     },
     "Import Profile(s)" : {
       "comment" : "A button label that imports one or more profiles.",
@@ -19722,7 +18695,7 @@
     "Inside the shape" : {
 
     },
-    "Install Thaw straight from Droppy's Droplets and it stays updated automatically, or toggle hidden items and search your menu bar without leaving the keyboard, right from Raycast." : {
+    "Install Foldy straight from Droppy's Droplets and it stays updated automatically, or toggle hidden items and search your menu bar without leaving the keyboard, right from Raycast." : {
 
     },
     "Install as a Droplet" : {
@@ -20158,7 +19131,7 @@
         }
       }
     },
-    "It’s one of Apple’s own items, which macOS keeps in the menu bar unless Thaw asks it not to. Turn on “Allow hiding Apple’s own menu bar items” below to move it." : {
+    "It’s one of Apple’s own items, which macOS keeps in the menu bar unless Foldy asks it not to. Turn on “Allow hiding Apple’s own menu bar items” below to move it." : {
       "comment" : "Explanation shown when an Apple item was refused because system item hiding is off"
     },
     "Join the %@ Discord" : {
@@ -20169,9 +19142,6 @@
     },
     "Just the essentials: hiding, layout, and appearance." : {
       "comment" : "Card description for the Simple choice during onboarding."
-    },
-    "Keep %@ up to date?" : {
-
     },
     "Keep search" : {
       "comment" : "A toggle to keep a search query open.",
@@ -20324,128 +19294,6 @@
     },
     "Lab discussion" : {
 
-    },
-    "Last checked %@" : {
-
-    },
-    "Last checked: %@" : {
-      "comment" : "A text label displaying the date and time of the last update check. The text is monospaced and has a secondary foreground color. If there is no previous check, the text is hidden.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Poslední kontrola: %@"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuletzt überprüft: %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Última comprobación: %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dernière vérification : %@"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utolsó ellenőrzés: %@"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terakhir diperiksa: %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ultimo controllo: %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最終確認: %@"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "마지막 확인: %@"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Laatst gecontroleerd: %@"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ostatnio sprawdzono: %@"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Última verificação: %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Последняя проверка: %@"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ตรวจสอบครั้งล่าสุดเมื่อ: %@"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Son kontrol: %@"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Остання перевірка: %@"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lần kiểm tra cuối: %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上次检查： %@"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上次檢查：%@"
-          }
-        }
-      }
     },
     "Last clicked" : {
 
@@ -20971,7 +19819,7 @@
 
     },
     "Left aligned" : {
-      "comment" : "Text displayed in a button to align the Thaw Bar to the left edge of the display.",
+      "comment" : "Text displayed in a button to align the Foldy Bar to the left edge of the display.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
@@ -21208,7 +20056,7 @@
         }
       }
     },
-    "Let Thaw keep items in your Layout order, or arrange them yourself by ⌘-dragging in the menu bar." : {
+    "Let Foldy keep items in your Layout order, or arrange them yourself by ⌘-dragging in the menu bar." : {
 
     },
     "Lets %@ hide apps with the same switch System Settings > Menu Bar uses." : {
@@ -21220,10 +20068,10 @@
     "Lets %@ update macOS's saved menu bar layout directly, so items move into place without your pointer moving." : {
 
     },
-    "Lets Thaw capture menu bar item images for search, the layout editor and the Thaw Bar. Optional." : {
+    "Lets Foldy capture menu bar item images for search, the layout editor and the Foldy Bar. Optional." : {
 
     },
-    "Lets Thaw read and move menu bar items. Required." : {
+    "Lets Foldy read and move menu bar items. Required." : {
 
     },
     "Licenses" : {
@@ -21357,16 +20205,16 @@
     "Liquid Glass" : {
 
     },
-    "List the menu bar items Thaw is currently hiding, and reveal any of them." : {
+    "List the menu bar items Foldy is currently hiding, and reveal any of them." : {
 
     },
     "Little Snitch" : {
 
     },
-    "Little Snitch app icon. A reliable menu bar preview is unavailable, and this slot can’t be moved in Thaw." : {
+    "Little Snitch app icon. A reliable menu bar preview is unavailable, and this slot can’t be moved in Foldy." : {
 
     },
-    "Little Snitch can’t provide a reliable menu bar preview. Thaw is showing its app icon; this slot can’t be moved here." : {
+    "Little Snitch can’t provide a reliable menu bar preview. Foldy is showing its app icon; this slot can’t be moved here." : {
 
     },
     "Loading menu bar items…" : {
@@ -21611,7 +20459,7 @@
       }
     },
     "Lock %@ Bar position" : {
-      "comment" : "Toggle in Displays settings pinning the Thaw Bar in place. %@ is the app name."
+      "comment" : "Toggle in Displays settings pinning the Foldy Bar in place. %@ is the app name."
     },
     "Logs, backups and resets" : {
 
@@ -22142,7 +20990,7 @@
       }
     },
     "Menu Bar Profile" : {
-      "comment" : "Display name for the entity type representing a Thaw profile.",
+      "comment" : "Display name for the entity type representing a Foldy profile.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
@@ -22275,7 +21123,7 @@
     "Menu bar history" : {
 
     },
-    "Menu bar icon for Thaw Bar Only items" : {
+    "Menu bar icon for Foldy Bar Only items" : {
 
     },
     "Menu bar item is not movable." : {
@@ -23220,7 +22068,7 @@
     "Move to Section" : {
 
     },
-    "Move to Thaw Bar Only" : {
+    "Move to Foldy Bar Only" : {
 
     },
     "Move to Visible" : {
@@ -23383,7 +22231,7 @@
     "Moves write the system's layout table directly" : {
 
     },
-    "Moves your menu bar items out of the system menu bar and into a Thaw strip that appears when you point at the space they left. The bar keeps its app menus, clock, and system modules. Items go back to the menu bar when you turn this off or when %@ quits." : {
+    "Moves your menu bar items out of the system menu bar and into a Foldy strip that appears when you point at the space they left. The bar keeps its app menus, clock, and system modules. Items go back to the menu bar when you turn this off or when %@ quits." : {
 
     },
     "Name" : {
@@ -23770,21 +22618,6 @@
     "Next Track" : {
 
     },
-    "Nightly" : {
-      "comment" : "A label for the \"Nightly\" segment in the update channel picker."
-    },
-    "Nightly channel · Last checked %@" : {
-
-    },
-    "Nightly channel · Not checked yet" : {
-
-    },
-    "Nightly is the only update channel currently offered for macOS 27. As support matures, releases will move to the Development channel and, eventually, Stable." : {
-      "comment" : "Annotation under the locked update-channel row on macOS 27 explaining why Nightly is the only choice."
-    },
-    "Nightly updates" : {
-
-    },
     "No active profile" : {
 
     },
@@ -23803,7 +22636,7 @@
     "No backups yet. %@ saves one before it resets saved item positions, and again before it restores one." : {
 
     },
-    "No backups yet. Thaw saves one before it resets your layout positions, and again before it restores one." : {
+    "No backups yet. Foldy saves one before it resets your layout positions, and again before it restores one." : {
 
     },
     "No displays are known yet." : {
@@ -24572,7 +23405,7 @@
       }
     },
     "Not available because the %@ Bar is enabled in the global template." : {
-      "comment" : "Annotation shown when the Always-show-hidden-items toggle in the Global section is disabled because Use Thaw Bar is enabled in the global template. %@ is the Thaw display name.",
+      "comment" : "Annotation shown when the Always-show-hidden-items toggle in the Global section is disabled because Use Foldy Bar is enabled in the global template. %@ is the Foldy display name.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
@@ -24691,9 +23524,6 @@
       }
     },
     "Not available on this version of macOS" : {
-
-    },
-    "Not checked yet" : {
 
     },
     "Not clicked since %@" : {
@@ -26034,7 +24864,7 @@
         }
       }
     },
-    "Open Thaw Settings" : {
+    "Open Foldy Settings" : {
 
     },
     "Open a menu bar item's menu, revealing it first if it is hidden." : {
@@ -26058,7 +24888,7 @@
     "Open source under GPL; inspect how it works" : {
 
     },
-    "Open the Thaw settings window." : {
+    "Open the Foldy settings window." : {
 
     },
     "Open the layout editor" : {
@@ -26210,7 +25040,7 @@
         }
       }
     },
-    "Other built-in items are managed separately, and third-party items can always be hidden.\n\nWhile the Thaw Bar is off, hidden Clock, Control Center and Siri stay pinned to the right side of the layout. You can still switch them between visible and hidden." : {
+    "Other built-in items are managed separately, and third-party items can always be hidden.\n\nWhile the Foldy Bar is off, hidden Clock, Control Center and Siri stay pinned to the right side of the layout. You can still switch them between visible and hidden." : {
 
     },
     "Other network connection" : {
@@ -26499,7 +25329,7 @@
     "Pick a connected display to open the %@ Bar." : {
 
     },
-    "Pick how much of Thaw you want to see in settings. Every feature keeps working either way." : {
+    "Pick how much of Foldy you want to see in settings. Every feature keeps working either way." : {
       "comment" : "Subtitle of the onboarding Simple-or-Full choice step."
     },
     "Pills" : {
@@ -27285,7 +26115,7 @@
         }
       }
     },
-    "Puts Thaw icons in place of Focus, AirDrop, Now Playing and Fast User Switching while they sit in Hidden." : {
+    "Puts Foldy icons in place of Focus, AirDrop, Now Playing and Fast User Switching while they sit in Hidden." : {
 
     },
     "Questions about privacy?" : {
@@ -27922,10 +26752,10 @@
     "Removed while hidden" : {
 
     },
-    "Removes Apple's Input menu and puts a Thaw icon you can hide in its place, with the same input sources." : {
+    "Removes Apple's Input menu and puts a Foldy icon you can hide in its place, with the same input sources." : {
 
     },
-    "Removes Apple's Time Machine icon, which cannot be hidden, and puts a Thaw icon you can hide in its place." : {
+    "Removes Apple's Time Machine icon, which cannot be hidden, and puts a Foldy icon you can hide in its place." : {
 
     },
     "Rename" : {
@@ -28062,7 +26892,7 @@
     "Reorders are moving items by hand" : {
 
     },
-    "Reorders land without the cursor moving, because Thaw writes the system’s menu bar layout table. Thaw touches only that one file." : {
+    "Reorders land without the cursor moving, because Foldy writes the system’s menu bar layout table. Foldy touches only that one file." : {
 
     },
     "Replace Control Center items" : {
@@ -29325,7 +28155,7 @@
 
     },
     "Right aligned" : {
-      "comment" : "Localized string key for the right-aligned Thaw Bar location.",
+      "comment" : "Localized string key for the right-aligned Foldy Bar location.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
@@ -29571,7 +28401,7 @@
     "Right-click %@’s icon to get a panel of controls instead of a menu of text." : {
 
     },
-    "Right-click Thaw's icon to get a panel of controls instead of a menu of text. Shows the sections, zen mode, the active profile and the Swap bar." : {
+    "Right-click Foldy's icon to get a panel of controls instead of a menu of text. Shows the sections, zen mode, the active profile and the Swap bar." : {
 
     },
     "Right-click an empty area of the menu bar to open a minimal version of %@'s menu." : {
@@ -29580,7 +28410,7 @@
     "Right-click an empty part of the menu bar to edit the look without opening Settings." : {
 
     },
-    "Right-click an item and choose Move to › Thaw Bar Only to keep it out of the menu bar." : {
+    "Right-click an item and choose Move to › Foldy Bar Only to keep it out of the menu bar." : {
 
     },
     "Right-click an item in the layout bars above to group it with another. Grouped items always move and hide together." : {
@@ -30369,7 +29199,7 @@
     "Save the new spacing to the active profile “%@”, or to every profile." : {
 
     },
-    "Save your current configuration as a named profile. Switch between layouts, or let Thaw switch automatically when you change your frontmost app." : {
+    "Save your current configuration as a named profile. Switch between layouts, or let Foldy switch automatically when you change your frontmost app." : {
       "comment" : "Description of the profiles onboarding slide."
     },
     "Saved item positions" : {
@@ -31170,7 +30000,7 @@
     "Sections" : {
 
     },
-    "Select “%@” to let Thaw reorder menu bar items without moving the cursor. Thaw is granted access to this one file only." : {
+    "Select “%@” to let Foldy reorder menu bar items without moving the cursor. Foldy is granted access to this one file only." : {
 
     },
     "Select “group.com.apple.controlcenter.plist” to let %@ hide apps the way System Settings does. %@ is granted access to this one file only." : {
@@ -32090,10 +30920,10 @@
     "Show Swap bar" : {
 
     },
-    "Show Thaw Bar Only items" : {
+    "Show Foldy Bar Only items" : {
 
     },
-    "Show Thaw Bar Only items when showing hidden items" : {
+    "Show Foldy Bar Only items when showing hidden items" : {
 
     },
     "Show a floating bar at the bottom of the screen with buttons to swap the shown and hidden items, show sections, switch profiles and turn on Zen Mode" : {
@@ -32468,13 +31298,13 @@
     "Show crop regions" : {
 
     },
-    "Show each item's app icon in the Thaw Bar and Layout instead of a live screenshot." : {
+    "Show each item's app icon in the Foldy Bar and Layout instead of a live screenshot." : {
 
     },
-    "Show each item's app icon in the Thaw Bar and layout editor instead of a live screenshot." : {
+    "Show each item's app icon in the Foldy Bar and layout editor instead of a live screenshot." : {
 
     },
-    "Show each item's app icon in the Thaw Bar and layout editor instead of a live screenshot. Use this if macOS 27's native overflow control bleeds into the captured previews. The real menu bar is unaffected." : {
+    "Show each item's app icon in the Foldy Bar and layout editor instead of a live screenshot. Use this if macOS 27's native overflow control bleeds into the captured previews. The real menu bar is unaffected." : {
 
     },
     "Show grouping and other actions for this item." : {
@@ -32490,7 +31320,7 @@
       "comment" : "Annotation under the empty-area gesture multi-select."
     },
     "Show hidden menu bar items in a separate bar below the menu bar." : {
-      "comment" : "Annotation under the Use-Thaw-Bar toggle in the Global section of the Displays pane.",
+      "comment" : "Annotation under the Use-Foldy-Bar toggle in the Global section of the Displays pane.",
       "localizations" : {
         "cs" : {
           "stringUnit" : {
@@ -33123,7 +31953,7 @@
     "Show or hide the frontmost application's menus." : {
 
     },
-    "Show or hide the hidden section of Thaw's menu bar." : {
+    "Show or hide the hidden section of Foldy's menu bar." : {
 
     },
     "Show or hide the hidden section of the menu bar." : {
@@ -33394,7 +32224,7 @@
     "Shown" : {
 
     },
-    "Shown when %@ has no picture of the item, which is always the case for a Thaw Bar Only item." : {
+    "Shown when %@ has no picture of the item, which is always the case for a Foldy Bar Only item." : {
 
     },
     "Shown, hidden and always hidden" : {
@@ -33403,7 +32233,7 @@
     "Shows a banner when an app starts using your microphone, naming the app, and another when a camera turns on. macOS doesn't tell anyone which app is using a camera, so that one says only that it's in use. While either is on, %@'s menu lists what's using it." : {
 
     },
-    "Shows an icon in the menu bar while there are Thaw Bar Only items. Click it to open a small %@ Bar with just those items." : {
+    "Shows an icon in the menu bar while there are Foldy Bar Only items. Click it to open a small %@ Bar with just those items." : {
 
     },
     "Shows only the essential settings. All features keep working and keep their configuration." : {
@@ -33781,7 +32611,7 @@
     "Some menu bar items are out of reach" : {
 
     },
-    "Some native menu bar items may be missing or hidden. Control Center items and Shortcuts may also be unavailable in the menu bar. These are part of the same macOS 27 limitations, rather than separate Thaw bugs. We’re actively investigating ways to support these items." : {
+    "Some native menu bar items may be missing or hidden. Control Center items and Shortcuts may also be unavailable in the menu bar. These are part of the same macOS 27 limitations, rather than separate Foldy bugs. We’re actively investigating ways to support these items." : {
 
     },
     "Some of Apple’s menu bar items may be missing or hidden, and Control Center items and Shortcuts may not be available in the menu bar. These come from macOS 27 itself, not from %@." : {
@@ -34069,125 +32899,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "方角端蓋"
-          }
-        }
-      }
-    },
-    "Stable" : {
-      "comment" : "A segment in the update channel picker that displays \"Stable\".",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stabilní"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stabil"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estable"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stable"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stabil"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stabil"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stabile"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "安定版"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "안정"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stabiel"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wersja stabilna"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estável"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Стабильный"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "เสถียร"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kararlı"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Стабільний"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ổn định"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "稳定版"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "穩定版"
           }
         }
       }
@@ -34818,7 +33529,7 @@
         }
       }
     },
-    "Support Thaw" : {
+    "Support Foldy" : {
 
     },
     "Swap" : {
@@ -34890,7 +33601,7 @@
     "Switch layouts by display, Space or Focus" : {
 
     },
-    "Switches off every network call Thaw makes." : {
+    "Switches off every network call Foldy makes." : {
 
     },
     "Symbol" : {
@@ -34929,59 +33640,59 @@
     "That's the whole trick. You'll do this with your real icons in a moment." : {
 
     },
-    "Thaw Bar" : {
+    "Foldy Bar" : {
 
     },
-    "Thaw Bar Only" : {
+    "Foldy Bar Only" : {
 
     },
-    "Thaw Bar Only items" : {
+    "Foldy Bar Only items" : {
 
     },
-    "Thaw can’t read Control Center’s settings." : {
+    "Foldy can’t read Control Center’s settings." : {
 
     },
-    "Thaw couldn’t save the hidden menu bar app settings. Recovery information has been kept." : {
+    "Foldy couldn’t save the hidden menu bar app settings. Recovery information has been kept." : {
 
     },
-    "Thaw is capturing nothing. Screen Recording permission has not been granted." : {
+    "Foldy is capturing nothing. Screen Recording permission has not been granted." : {
 
     },
-    "Thaw is ready to manage your menu bar." : {
+    "Foldy is ready to manage your menu bar." : {
 
     },
-    "Thaw isn't running yet. Open Thaw and try again." : {
+    "Foldy isn't running yet. Open Foldy and try again." : {
 
     },
-    "Thaw keeps items in the order you set in Layout. To move another app’s item it sometimes has to drag it for you, and your mouse is briefly unavailable while it does." : {
+    "Foldy keeps items in the order you set in Layout. To move another app’s item it sometimes has to drag it for you, and your mouse is briefly unavailable while it does." : {
 
     },
-    "Thaw reads a %lld × %lld pt band at the top of the display. Nothing else on screen is captured." : {
+    "Foldy reads a %lld × %lld pt band at the top of the display. Nothing else on screen is captured." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Thaw reads a %1$lld × %2$lld pt band at the top of the display. Nothing else on screen is captured."
+            "value" : "Foldy reads a %1$lld × %2$lld pt band at the top of the display. Nothing else on screen is captured."
           }
         }
       }
     },
-    "Thaw reads a band at the top of the display. Nothing else on screen is captured." : {
+    "Foldy reads a band at the top of the display. Nothing else on screen is captured." : {
 
     },
-    "Thaw still needs to restore these apps: %@. Recovery information has been kept." : {
+    "Foldy still needs to restore these apps: %@. Recovery information has been kept." : {
 
     },
-    "Thaw uses the permissions below to manage your menu bar. Permission checks happen on your Mac." : {
+    "Foldy uses the permissions below to manage your menu bar. Permission checks happen on your Mac." : {
 
     },
-    "Thaw widget · Live readings" : {
+    "Foldy widget · Live readings" : {
 
     },
-    "Thaw widget · Sample readings" : {
+    "Foldy widget · Sample readings" : {
 
     },
-    "Thaw's saved order" : {
+    "Foldy's saved order" : {
 
     },
     "The %@ Bar is aligned to the left edge of the display." : {
@@ -35580,7 +34291,7 @@
       }
     },
     "The %@ icon has to stay in Visible." : {
-      "comment" : "Explanation shown when the Thaw control icon is dropped outside the Visible section"
+      "comment" : "Explanation shown when the Foldy control icon is dropped outside the Visible section"
     },
     "The %@ icon must always remain in the visible section." : {
       "comment" : "The message text in an alert that appears when the user tries to drag the \\(Constants.displayName) icon out of the visible section.",
@@ -35707,7 +34418,7 @@
     "The active Space is still settling. Switch to it again to assign a profile." : {
       "comment" : "Shown in the profile settings pane when the active Space cannot be resolved yet."
     },
-    "The agent's layout table is protected. Grant Full Disk Access above to compare it against Thaw's saved layout." : {
+    "The agent's layout table is protected. Grant Full Disk Access above to compare it against Foldy's saved layout." : {
 
     },
     "The agent's table (by weight)" : {
@@ -35722,7 +34433,7 @@
         "cs" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prodleva, než se nad ikonou v liště Thaw zobrazí popisek."
+            "value" : "Prodleva, než se nad ikonou v liště Foldy zobrazí popisek."
           }
         },
         "de" : {
@@ -36062,7 +34773,7 @@
     "The system's layout table" : {
 
     },
-    "The table is one file inside MenuBarAgent’s protected container (~/Library/Group Containers/com.apple.MenuBar). Thaw reads it to place items and writes it only when you reorder." : {
+    "The table is one file inside MenuBarAgent’s protected container (~/Library/Group Containers/com.apple.MenuBar). Foldy reads it to place items and writes it only when you reorder." : {
 
     },
     "The widget preview reads connection type from macOS locally. It does not contact a server or send network details. Monitoring runs only while the widget item is enabled in Widgets." : {
@@ -36348,7 +35059,7 @@
     "This macOS build is missing the system capability %@ needs to hide items." : {
       "comment" : "Refusal reason in the menu-bar-overlay warning pill: the platform cannot conceal items. Placeholder is the app name."
     },
-    "This macOS build is missing the system capability Thaw needs to hide items. Reordering still works; hiding does not." : {
+    "This macOS build is missing the system capability Foldy needs to hide items. Reordering still works; hiding does not." : {
 
     },
     "This macOS version has no menu bar agent for %@ to talk to. That agent arrived in macOS 27, and %@'s other menu bar features are unaffected." : {
@@ -36363,13 +35074,10 @@
     "This session saw the layout table refuse access." : {
 
     },
-    "This update is ready to install. Use the update window to install it now or later." : {
-
-    },
     "This version of macOS doesn't let %@ hide items. You can still reorder them in the bars above." : {
 
     },
-    "This will overwrite the settings of %lld displays with the global template. If the active display’s spacing changes, Thaw will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost." : {
+    "This will overwrite the settings of %lld displays with the global template. If the active display’s spacing changes, Foldy will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost." : {
       "comment" : "A confirmation message shown when the user is prompted to apply the global template. The argument is the number of displays that will be affected.",
       "localizations" : {
         "en" : {
@@ -36378,13 +35086,13 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "This will overwrite the settings of %lld display with the global template. If the active display's spacing changes, Thaw will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost."
+                  "value" : "This will overwrite the settings of %lld display with the global template. If the active display's spacing changes, Foldy will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost."
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "This will overwrite the settings of %lld displays with the global template. If the active display’s spacing changes, Thaw will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost."
+                  "value" : "This will overwrite the settings of %lld displays with the global template. If the active display’s spacing changes, Foldy will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost."
                 }
               }
             }
@@ -36392,7 +35100,7 @@
         }
       }
     },
-    "This will overwrite the settings of ^[%lld display](inflect: true) with the global template. If the active display’s spacing changes, Thaw will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost." : {
+    "This will overwrite the settings of ^[%lld display](inflect: true) with the global template. If the active display’s spacing changes, Foldy will relaunch each app with a menu bar item. Relaunching apps may cause unsaved input, progress, or transient app state to be lost." : {
 
     },
     "This will reset app settings to their default values. Saved profiles, allowed apps, and user data will not be deleted. This action cannot be undone." : {
@@ -38952,134 +37660,6 @@
         }
       }
     },
-    "Update channel" : {
-      "comment" : "A label displayed above a picker for selecting the update channel.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kanál aktualizací"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updatekanal"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualizar canal"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canal de mise à jour"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frissítési csatorna"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saluran pembaruan"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canale di aggiornamento"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アップデートチャンネル"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "업데이트 채널"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Update kanaal"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kanał aktualizacji"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canal de atualização"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Канал обновлений"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ช่องทางการอัปเดต"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Güncelleme kanalı"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Канал оновлень"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kênh cập nhật"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更新频道"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更新頻道"
-          }
-        }
-      }
-    },
-    "Update check" : {
-
-    },
-    "Update download" : {
-
-    },
-    "Update release notes" : {
-
-    },
     "Update this profile with the current state" : {
       "comment" : "A menu item that updates a profile with the current state of the app.",
       "localizations" : {
@@ -39198,12 +37778,6 @@
           }
         }
       }
-    },
-    "Updates" : {
-
-    },
-    "Updates arrive on the nightly channel. Automatic updates can be Off, Check only, or Check and download." : {
-
     },
     "Use %@ Bar" : {
       "comment" : "A toggle that lets the user enable or disable the use of the \\(Constants.displayName) Bar. The argument is the name of the \\(Constants.displayName) Bar.",
@@ -39583,12 +38157,12 @@
     "Use it for an item that’s missing from the menu bar and can’t be placed there. Move it here from its menu in the layout editor. It counts as Hidden and opens from the %@ Bar.\n\nTurn this off and those items become ordinary hidden items. Your list comes back when you turn it on again." : {
 
     },
-    "Use it when an app’s item is missing from the menu bar and %@ can’t place it there. To use it, move the item to Thaw Bar Only from its menu in the layout editor. %@ then treats the item as Hidden and keeps it one click away in the %@ Bar.\n\nTurn this off to treat those items as ordinary hidden items. Your list is kept and comes back when you turn it on again." : {
+    "Use it when an app’s item is missing from the menu bar and %@ can’t place it there. To use it, move the item to Foldy Bar Only from its menu in the layout editor. %@ then treats the item as Hidden and keeps it one click away in the %@ Bar.\n\nTurn this off to treat those items as ordinary hidden items. Your list is kept and comes back when you turn it on again." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Use it when an app’s item is missing from the menu bar and %1$@ can’t place it there. To use it, move the item to Thaw Bar Only from its menu in the layout editor. %2$@ then treats the item as Hidden and keeps it one click away in the %3$@ Bar.\n\nTurn this off to treat those items as ordinary hidden items. Your list is kept and comes back when you turn it on again."
+            "value" : "Use it when an app’s item is missing from the menu bar and %1$@ can’t place it there. To use it, move the item to Foldy Bar Only from its menu in the layout editor. %2$@ then treats the item as Hidden and keeps it one click away in the %3$@ Bar.\n\nTurn this off to treat those items as ordinary hidden items. Your list is kept and comes back when you turn it on again."
           }
         }
       }
@@ -39599,7 +38173,7 @@
     "Use the app in a different language than the system." : {
 
     },
-    "Use the app's own menu bar icon when Thaw finds one, and the app icon otherwise" : {
+    "Use the app's own menu bar icon when Foldy finds one, and the app icon otherwise" : {
 
     },
     "Use the faster LCS algorithm for profile sorting on notched displays. It minimizes moves but may be less reliable at smaller resolutions." : {
@@ -39738,128 +38312,6 @@
           }
         }
       }
-    },
-    "Version %@ (%@) is now available" : {
-      "comment" : "The body text of a notification that alerts the user that a new update is available. The first argument is the version string of the new update. The second argument is the version string of the new update.",
-      "localizations" : {
-        "cs" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verze %@ (%@) je nyní k dispozici"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Version %1$@ (%2$@) ist jetzt verfügbar"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Version %1$@ (%2$@) disponible"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La version %@ (%@) est désormais disponible"
-          }
-        },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A(z) %1$@ (%2$@) verzió már elérhető"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Versi %@ (%@) sekarang tersedia"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Version2 %@ (%@) non disponibile"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "バージョン %@ (%@) が利用可能になりました"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "버전 %1$@ (%2$@)을(를) 사용할 수 있습니다"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Versie %@ (%@) is nu beschikbaar"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dostępna jest nowa wersja: %@ (%@)"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Versão %@ (%@) disponível"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доступна версия %@ (%@)"
-          }
-        },
-        "th" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "เวอร์ชั่น %@ (%@) พร้อมใช้งานแล้ว"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ (%@) sürümü artık mevcut"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доступна версія %1$@ (%2$@)"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hiện đã có phiên bản %@ (%@)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "版本 %1$@ (%2$@) 现已推出"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "版本 %1$@ (%2$@) 現已推出"
-          }
-        }
-      }
-    },
-    "Version, updates and credits" : {
-
     },
     "Vertical" : {
       "comment" : "Label for the vertical layout mode.",
@@ -40245,10 +38697,10 @@
     "Welcome to your menu bar" : {
 
     },
-    "What Thaw does when you reorder" : {
+    "What Foldy does when you reorder" : {
 
     },
-    "What Thaw sees" : {
+    "What Foldy sees" : {
 
     },
     "What macOS 27 does not let %@ do yet" : {
@@ -40269,13 +38721,13 @@
     "What’s new in %@" : {
 
     },
-    "When a display transition requires Thaw to apply a different menu bar spacing, Thaw relaunches apps with menu bar items. Relaunching apps may cause unsaved input, progress, or transient app state to be lost." : {
+    "When a display transition requires Foldy to apply a different menu bar spacing, Foldy relaunches apps with menu bar items. Relaunching apps may cause unsaved input, progress, or transient app state to be lost." : {
       "comment" : "A warning that a display transition requiring a different menu bar spacing relaunches menu bar apps, which can lose unsaved state.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "When a display transition requires Thaw to apply a different menu bar spacing, Thaw relaunches apps with menu bar items. Relaunching apps may cause unsaved input, progress, or transient app state to be lost."
+            "value" : "When a display transition requires Foldy to apply a different menu bar spacing, Foldy relaunches apps with menu bar items. Relaunching apps may cause unsaved input, progress, or transient app state to be lost."
           }
         }
       }
@@ -40289,8 +38741,8 @@
     "When an app opens a thaw:// link to change settings, %@ checks whether you have allowed that app." : {
 
     },
-    "When an app sends a thaw:// URL to change settings, Thaw checks whether you have allowed that app." : {
-      "comment" : "A step in the process of how to use Thaw."
+    "When an app sends a thaw:// URL to change settings, Foldy checks whether you have allowed that app." : {
+      "comment" : "A step in the process of how to use Foldy."
     },
     "When hidden items open on the menu bar, items kept to the %@ Bar appear in a small %@ Bar under it." : {
       "localizations" : {
@@ -40327,7 +38779,7 @@
     "While an item is dragged into place, the pointer is hidden and your mouse input is held, then both come back." : {
 
     },
-    "While an item is hidden, macOS does not draw it anywhere, so Thaw cannot see it either. Thaw captures a hidden item's icon only during the brief moment it reveals the item to fetch one." : {
+    "While an item is hidden, macOS does not draw it anywhere, so Foldy cannot see it either. Foldy captures a hidden item's icon only during the brief moment it reveals the item to fetch one." : {
 
     },
     "While rearranging" : {
@@ -40347,9 +38799,6 @@
     },
     "Width" : {
       "comment" : "Fact label showing an item's width, in the layout editor's item inspector popover."
-    },
-    "With the update" : {
-
     },
     "Without confirmation, save spacing to" : {
       "comment" : "Label for the picker choosing which profiles receive a spacing change when relaunch confirmations are disabled."
@@ -40628,7 +39077,7 @@
     "You haven't clicked %@ in 30 days. Moving them to Hidden frees room in your menu bar." : {
 
     },
-    "You set the order yourself by ⌘-dragging items in the menu bar. Thaw still hides and shows items, but never moves them or changes the order macOS has saved." : {
+    "You set the order yourself by ⌘-dragging items in the menu bar. Foldy still hides and shows items, but never moves them or changes the order macOS has saved." : {
 
     },
     "You're All Set" : {
@@ -41208,7 +39657,7 @@
         }
       }
     },
-    "macOS 27 currently prevents Thaw from hiding some system items. Support is still a work in progress, and future macOS updates may change this behavior before Thaw can provide a complete solution. This limitation is already known, so no bug report is needed." : {
+    "macOS 27 currently prevents Foldy from hiding some system items. Support is still a work in progress, and future macOS updates may change this behavior before Foldy can provide a complete solution. This limitation is already known, so no bug report is needed." : {
 
     },
     "macOS 27 does not let %@ hide some system items." : {
@@ -41220,7 +39669,7 @@
     "macOS 27 draws them itself instead of letting each one place its own icon, so %@ has to ask macOS to move them rather than moving them directly. Some refuse to move, some return to Visible on their own, and Clock and Control Center can only be hidden together with Siri." : {
 
     },
-    "macOS 27 draws them itself instead of letting each one place its own icon, so Thaw has to ask the system to move them rather than moving them directly. Some refuse to move, some return to Visible on their own, and Clock and Control Center can only be hidden together with Siri." : {
+    "macOS 27 draws them itself instead of letting each one place its own icon, so Foldy has to ask the system to move them rather than moving them directly. Some refuse to move, some return to Visible on their own, and Clock and Control Center can only be hidden together with Siri." : {
 
     },
     "macOS 27 preferred" : {
@@ -41243,7 +39692,7 @@
         }
       }
     },
-    "macOS didn’t apply every move in %@. The group’s saved order is correct and Thaw will retry." : {
+    "macOS didn’t apply every move in %@. The group’s saved order is correct and Foldy will retry." : {
       "comment" : "Explanation shown when a group reorder did not converge"
     },
     "macOS doesn’t allow this item to leave its place in the menu bar." : {
@@ -41774,9 +40223,6 @@
     "the repository" : {
 
     },
-    "the update server" : {
-
-    },
     "took %lld ms" : {
 
     },
@@ -41802,7 +40248,7 @@
       "comment" : "Error sentence for a move whose destination anchor and every fallback anchor disappeared between the drop and execution."
     },
     "“%@” couldn’t move to %@" : {
-      "comment" : "Title shown when a whole-group move was refused\nTitle shown when an Apple item was refused because system item hiding is off\nTitle shown when an item cannot be assigned to a section\nTitle shown when the Thaw control icon is dropped outside the Visible section",
+      "comment" : "Title shown when a whole-group move was refused\nTitle shown when an Apple item was refused because system item hiding is off\nTitle shown when an item cannot be assigned to a section\nTitle shown when the Foldy control icon is dropped outside the Visible section",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -41824,8 +40270,8 @@
     "“%@” is macOS’s overflow arrow, not a menu bar item, and cannot be moved" : {
 
     },
-    "“%@” is one of Thaw’s own control items and cannot be moved" : {
-      "comment" : "Move refusal sentence for one of Thaw's own control items (not the visible one)."
+    "“%@” is one of Foldy’s own control items and cannot be moved" : {
+      "comment" : "Move refusal sentence for one of Foldy's own control items (not the visible one)."
     },
     "“%@” is placed by macOS itself and cannot be moved" : {
 

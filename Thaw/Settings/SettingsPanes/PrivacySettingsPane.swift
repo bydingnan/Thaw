@@ -13,7 +13,6 @@ import ThawUI
 /// lives on Tools, beside the diagnostic log it mirrors.
 struct PrivacySettingsPane: View {
     @Environment(AppState.self) private var appState
-    @Bindable var updatesManager: UpdatesManager
     @Bindable var advancedSettings: AdvancedSettings
 
     var body: some View {
@@ -77,76 +76,23 @@ struct PrivacySettingsPane: View {
 
     @ViewBuilder
     private var networkAccess: some View {
-        if Constants.supportsSparkleUpdates {
-            // One picker, not two switches: downloading implies checking.
-            ThawPicker("Automatic updates", selection: automaticUpdatesMode) {
-                Text("Off").tag(AutomaticUpdates.off)
-                Text("Check only").tag(AutomaticUpdates.check)
-                Text("Check and download").tag(AutomaticUpdates.download)
-            }
-            .annotation {
-                Text("Checking asks \(updateHost) whether a newer version exists. Downloading also fetches it in the background; without it, the download starts only after you accept an update.")
-            }
+        Toggle(isOn: $advancedSettings.fetchReleaseNotes) {
+            Text("What’s New notes")
+        }
+        .annotation {
+            Text("Fetches the latest release notes from \(changelogHost) when you open What’s New and keeps a copy for offline use. When this is off, What’s New shows the last copy it fetched, if there is one.")
+        }
 
-            HStack(alignment: .firstTextBaseline) {
-                Text("Update release notes")
+        // Hidden once the remaining network feature is off.
+        if advancedSettings.fetchReleaseNotes {
+            HStack {
                 Spacer()
-                Text("With the update")
-                    .foregroundStyle(ThawInk.supporting)
-            }
-            .annotation {
-                Text("\(Constants.displayName) loads these from \(updateHost) when it shows you an update. They are part of the update, so they follow the automatic updates setting.")
-            }
-
-            Toggle(isOn: $advancedSettings.fetchReleaseNotes) {
-                Text("What’s New notes")
-            }
-            .annotation {
-                Text("Fetches the latest release notes from \(changelogHost) when you open What’s New and keeps a copy for offline use. When this is off, What’s New shows the last copy it fetched, if there is one.")
-            }
-
-            // Hidden once everything is off, when it would do nothing.
-            if updatesManager.automaticallyChecksForUpdates
-                || updatesManager.automaticallyDownloadsUpdates
-                || advancedSettings.fetchReleaseNotes
-            {
-                HStack {
-                    Spacer()
-                    Button("Turn Everything Off") {
-                        updatesManager.automaticallyChecksForUpdates = false
-                        updatesManager.automaticallyDownloadsUpdates = false
-                        advancedSettings.fetchReleaseNotes = false
-                    }
-                    .buttonStyle(.settingsGlass)
+                Button("Turn Everything Off") {
+                    advancedSettings.fetchReleaseNotes = false
                 }
+                .buttonStyle(.settingsGlass)
             }
-        } else {
-            Text("This build of \(Constants.displayName) makes no network calls.")
-                .foregroundStyle(ThawInk.supporting)
         }
-    }
-
-    private enum AutomaticUpdates: Hashable {
-        case off, check, download
-    }
-
-    private var automaticUpdatesMode: Binding<AutomaticUpdates> {
-        Binding {
-            if !updatesManager.automaticallyChecksForUpdates {
-                return .off
-            }
-            return updatesManager.automaticallyDownloadsUpdates ? .download : .check
-        } set: { mode in
-            updatesManager.automaticallyChecksForUpdates = mode != .off
-            updatesManager.automaticallyDownloadsUpdates = mode == .download
-        }
-    }
-
-    /// Read from the updater's own Info.plist key so the row cannot name a
-    /// different server. NetworkAccessInventoryTests keeps the list complete.
-    private var updateHost: String {
-        let feed = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String
-        return feed.flatMap(URL.init(string:))?.host ?? String(localized: "the update server")
     }
 
     private var changelogHost: String {

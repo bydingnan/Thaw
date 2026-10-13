@@ -36,7 +36,6 @@ struct WhatsNewView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else if let release = selectedRelease {
                 VStack(alignment: .leading, spacing: 28) {
-                    updateNotice(for: release)
                     sourceNotice
                     releaseBody(release)
                 }
@@ -61,38 +60,20 @@ struct WhatsNewView: View {
             }
             .buttonStyle(.settingsGlass)
         }
-        .task(id: TaskKey(fetch: appState.settings.advanced.fetchReleaseNotes, update: appState.pendingUpdateVersion)) {
+        .task(id: appState.settings.advanced.fetchReleaseNotes) {
             // Fetched when the Privacy switch allows it, otherwise the last
             // fetched copy; nothing is bundled. Only version 3 releases show.
             let allowFetch = appState.settings.advanced.fetchReleaseNotes
             let loaded = await ChangelogDocument.load(allowFetch: allowFetch)
             releases = loaded.document.map { ChangelogDocument.displayReleases(in: $0) } ?? []
             source = loaded.source
-            if let update = appState.pendingUpdateVersion, releases.contains(where: { $0.version == update }) {
-                selectedVersion = update
-            } else if selectedVersion == nil || !releases.contains(where: { $0.version == selectedVersion }) {
+            if selectedVersion == nil || !releases.contains(where: { $0.version == selectedVersion }) {
                 selectedVersion = releases.first?.version
             }
             isLoading = false
         }
     }
 
-    /// Reloads when the Privacy switch flips or an update opens the window,
-    /// since the update's notes are newer than any loaded copy.
-    private struct TaskKey: Equatable {
-        var fetch: Bool
-        var update: String?
-    }
-
-    /// Marks the notes of an update that is ready but not installed yet.
-    @ViewBuilder
-    private func updateNotice(for release: ChangelogDocument.Release) -> some View {
-        if release.version == appState.pendingUpdateVersion {
-            Text("This update is ready to install. Use the update window to install it now or later.")
-                .font(ThawType.body)
-                .foregroundStyle(.secondary)
-        }
-    }
 
     /// Says where the notes came from when that is not the repository, so
     /// a reader looking at older text knows why.

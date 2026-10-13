@@ -32,22 +32,11 @@ nonisolated enum Constants {
         """
     }
 
-    /// The user-readable copyright string in the app's bundle.
-    static let copyrightString = Bundle.main.copyrightString!
-
     /// The app's bundle identifier.
     static let bundleIdentifier = Bundle.main.bundleIdentifier!
 
     /// The app's display name.
     static let displayName = Bundle.main.displayName
-
-    /// Sparkle update checks are available on all supported OS versions.
-    ///
-    /// macOS 27 preview builds use the alpha channel by default; Stable and
-    /// Development remain available when those appcast items apply.
-    static var supportsSparkleUpdates: Bool {
-        true
-    }
 
     // swiftlint:enable force_unwrapping
 
@@ -166,9 +155,6 @@ nonisolated enum Constants {
     /// Info.plist key used to configure the changelog URL.
     static let changelogURLInfoPlistKey = "ThawChangelogURL"
 
-    /// Info.plist key used to configure the donation URL.
-    static let donateURLInfoPlistKey = "ThawDonateURL"
-
     /// Info.plist key used to configure the community chat URL.
     static let discordURLInfoPlistKey = "ThawDiscordURL"
 
@@ -187,12 +173,8 @@ nonisolated enum Constants {
     /// System Settings > Menu Bar.
     static let menuBarSystemSettingsURL = URL(string: "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension")
 
-    static let frequentIssuesURL = repositoryURL.appending(path: "blob/development/FREQUENT_ISSUES.md")
     static let contributorsURL = repositoryURL.appending(path: "graphs/contributors")
     static let translatorsURL = repositoryURL.appending(path: "blob/development/CREDITS.md")
-
-    /// The URL for sponsoring/donating.
-    static let donateURL: URL = requiredInfoPlistURL(donateURLInfoPlistKey)
 
     /// The project's community chat.
     static let discordURL: URL = requiredInfoPlistURL(discordURLInfoPlistKey)

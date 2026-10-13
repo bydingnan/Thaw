@@ -41,7 +41,7 @@ nonisolated extension SearchIndex {
         SearchEntry(
             id: "lab.enableModuleStandIns",
             title: "Replace Control Center items while hidden",
-            descriptionText: String(localized: "Puts Thaw icons in place of Focus, AirDrop, Now Playing and Fast User Switching while they sit in Hidden."),
+            descriptionText: String(localized: "Puts Foldy icons in place of Focus, AirDrop, Now Playing and Fast User Switching while they sit in Hidden."),
             pane: .theLab,
             section: "Experiments",
             keywords: ["focus", "do not disturb", "dnd", "moon", "airdrop", "now playing", "music", "user", "fast user switching", "menu extra", "system item", "replace", "stand-in"],
@@ -50,7 +50,7 @@ nonisolated extension SearchIndex {
         SearchEntry(
             id: "lab.enableTimeMachineTakeover",
             title: "Replace Time Machine",
-            descriptionText: String(localized: "Removes Apple's Time Machine icon, which cannot be hidden, and puts a Thaw icon you can hide in its place."),
+            descriptionText: String(localized: "Removes Apple's Time Machine icon, which cannot be hidden, and puts a Foldy icon you can hide in its place."),
             pane: .theLab,
             section: "Experiments",
             keywords: ["time machine", "backup", "menu extra", "system item", "replace", "stand-in", "timemachine"],
@@ -59,7 +59,7 @@ nonisolated extension SearchIndex {
         SearchEntry(
             id: "lab.enableTextInputTakeover",
             title: "Replace Input Menu",
-            descriptionText: String(localized: "Removes Apple's Input menu and puts a Thaw icon you can hide in its place, with the same input sources."),
+            descriptionText: String(localized: "Removes Apple's Input menu and puts a Foldy icon you can hide in its place, with the same input sources."),
             pane: .theLab,
             section: "Experiments",
             keywords: ["input menu", "text input", "keyboard", "input source", "language", "layout", "menu extra", "system item", "replace", "stand-in"],

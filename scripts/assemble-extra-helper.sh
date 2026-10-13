@@ -4,17 +4,25 @@
 set -euo pipefail
 exe=$1 out=$2 parent=$3 role=$4 identity=${5:--}
 case $role in
-  focus) name="Thaw Focus" symbol=moon ;;
-  timemachine) name="Thaw Time Machine" symbol=clock.arrow.trianglehead.counterclockwise.rotate.90 ;;
-  timer) name="Thaw Timer" symbol=timer ;;
-  airdrop) name="Thaw AirDrop" symbol=dot.radiowaves.left.and.right ;;
-  nowplaying) name="Thaw Now Playing" symbol=play.circle ;;
-  user) name="Thaw User Switcher" symbol=person.crop.circle ;;
-  textinput) name="Thaw Text Input" symbol=keyboard ;;
-  slot[1-6]) name="Thaw Stand-In ${role#slot}" symbol=square.dashed ;;
+  focus) name="Foldy Focus" symbol=moon ;;
+  timemachine) name="Foldy Time Machine" symbol=clock.arrow.trianglehead.counterclockwise.rotate.90 ;;
+  timer) name="Foldy Timer" symbol=timer ;;
+  airdrop) name="Foldy AirDrop" symbol=dot.radiowaves.left.and.right ;;
+  nowplaying) name="Foldy Now Playing" symbol=play.circle ;;
+  user) name="Foldy User Switcher" symbol=person.crop.circle ;;
+  textinput) name="Foldy Text Input" symbol=keyboard ;;
+  slot[1-6]) name="Foldy Stand-In ${role#slot}" symbol=square.dashed ;;
   *) echo "unknown role $role" >&2; exit 1 ;;
 esac
 app="$out/$name.app"
+# Incremental builds retain renamed products unless their old bundle is removed.
+legacy_app="$out/${name/Foldy/Thaw}.app"
+if [[ -d "$legacy_app" ]]; then
+  legacy_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$legacy_app/Contents/Info.plist" 2>/dev/null || true)
+  if [[ $legacy_id == "$parent.extra.$role" ]]; then
+    rm -rf "$legacy_app"
+  fi
+fi
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS"
 cp "$exe" "$app/Contents/MacOS/ThawExtraHelper"

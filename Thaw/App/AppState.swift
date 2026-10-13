@@ -81,12 +81,7 @@ final class AppState {
     /// into isDraggingMenuBarItem.
     let hidEventManager = HIDEventManager()
 
-    /// Sparkle wrapper. Stays idle until the user consents, so setting it up
-    /// does not by itself reach the network.
-    let updatesManager = UpdatesManager()
-
-    /// Delivers the app's user notifications and owns their categories and
-    /// actions.
+    /// Delivers local notifications for hotkey feedback.
     let userNotificationManager = UserNotificationManager()
 
     /// Receives Control Center commands through Darwin notifications; see ControlCommandObserver for why commands avoid App Groups.
@@ -120,16 +115,8 @@ final class AppState {
     /// without subscribing to HIDEventManager themselves.
     private(set) var isDraggingMenuBarItem = false
 
-    /// Consent sheet is only for users who completed onboarding without answering the update question.
-    var isUpdateConsentPresented = false
-
     /// Consumed by the permissions window to replay the tour once, regardless of stored flags.
     var replayRequested = false
-
-    /// The version an available update installs, while its notes are open in
-    /// What's New. Sparkle's own release notes are off, so this is where the
-    /// update's notes are read before installing.
-    var pendingUpdateVersion: String?
 
     // MARK: - Window bookkeeping
 
@@ -216,8 +203,6 @@ final class AppState {
         groupFolders.performSetup(with: self)
         thawBarOnlyProxies.performSetup(with: self)
         diagLog.debug("bootstrap: imageCache setup complete")
-        updatesManager.performSetup(with: self)
-        userNotificationManager.performSetup(with: self)
         profileManager.performSetup(with: self)
         controlCommandObserver.performSetup(with: self)
         controlStatePublisher.performSetup(with: self)
@@ -296,13 +281,6 @@ final class AppState {
             SettingsSearchNavigation.selectSidebarPane(pane, navigationState: navigationState)
         }
 
-        if Constants.supportsSparkleUpdates {
-            Defaults.set(true, forKey: .hasSeenUpdateConsent)
-            updatesManager.automaticallyChecksForUpdates = outcome.automaticUpdates
-            updatesManager.automaticallyDownloadsUpdates = outcome.automaticUpdates
-            startUpdaterIfNeeded()
-        }
-
         Defaults.set(true, forKey: .hasSeenOnboarding)
         Defaults.set(Constants.currentOnboardingVersion, forKey: .onboardingVersion)
         permissions.refreshPermissionsState()
@@ -332,11 +310,6 @@ final class AppState {
             activate(withPolicy: .regular)
             openWindow(.whatsNew)
         }
-    }
-
-    /// Allows explicit starting of the updater from UI flows.
-    func startUpdaterIfNeeded() {
-        updatesManager.startUpdaterIfNeeded()
     }
 
     /// exit(0) bypasses termination teardown; run it here to prevent macOS 27 ghost icons with dead menus after relaunch.
@@ -521,7 +494,9 @@ final class AppState {
             }
         }
     }
+}
 
+extension AppState {
     // MARK: - Windows
 
     /// Emits the scene's window or nil when closed, starting with the current value and never finishing.
@@ -572,6 +547,8 @@ final class AppState {
             openWindowAction(id: id)
 
             try? await Task.sleep(for: .milliseconds(100))
+            // A close during the presentation delay must not restore the Dock icon.
+            guard self.openWindows.contains(id) else { return }
             self.activate(withPolicy: .regular)
         }
     }
@@ -599,6 +576,7 @@ final class AppState {
             if id == .settings {
                 navigationState.cancelSettingsPresentation()
                 navigationState.isSettingsPresented = false
+                deactivate(withPolicy: .accessory)
             }
             // The window's whole SwiftUI graph is now unreachable; make the
             // footprint reflect that rather than wait on malloc.
@@ -609,6 +587,8 @@ final class AppState {
         trackedWindows[id] = window
         openWindows.insert(id)
         windowVisibilityCancellables[id] = window.publisher(for: \.isVisible)
+            .merge(with: NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: window)
+                .map { _ in false })
             .removeDuplicates()
             .sink { [weak self] isVisible in
                 self?.handleWindowVisibilityChanged(id: id, isVisible: isVisible)
@@ -635,19 +615,8 @@ final class AppState {
         navigationState.isSettingsPresented = isVisible
 
         if isVisible {
-            // Show consent only for completed tours without an update answer.
-            // Unseen tours answer in the permissions window, even alongside restored Settings; wait for consent.
-            if Constants.supportsSparkleUpdates,
-               Defaults.bool(forKey: .hasSeenOnboarding),
-               !Defaults.bool(forKey: .hasSeenUpdateConsent)
-            {
-                isUpdateConsentPresented = true
-            } else if Defaults.bool(forKey: .hasSeenUpdateConsent) {
-                startUpdaterIfNeeded()
-            }
-
-            // Select About after construction to avoid losing sidebar rendering; defer What's New while the consent sheet is open.
-            if navigationState.isWhatsNewRequested, !isUpdateConsentPresented {
+            // Select About after construction to avoid losing sidebar rendering.
+            if navigationState.isWhatsNewRequested {
                 navigationState.settingsNavigationIdentifier = .about
             }
         } else {
@@ -668,7 +637,9 @@ final class AppState {
             openWindow(id: id)
         }
     }
+}
 
+extension AppState {
     // MARK: - Activation and permissions
 
     /// Centralizes policy changes for focus-drop attribution; DiagLog avoids stack-capture cost when diagnostics are off.

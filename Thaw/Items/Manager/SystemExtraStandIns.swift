@@ -57,13 +57,13 @@ enum SystemExtraStandIn: String, CaseIterable {
 
     private var bundleName: String {
         switch self {
-        case .focus: "Thaw Focus"
-        case .timeMachine: "Thaw Time Machine"
-        case .timer: "Thaw Timer"
-        case .airDrop: "Thaw AirDrop"
-        case .nowPlaying: "Thaw Now Playing"
-        case .userSwitcher: "Thaw User Switcher"
-        case .textInput: "Thaw Text Input"
+        case .focus: "Foldy Focus"
+        case .timeMachine: "Foldy Time Machine"
+        case .timer: "Foldy Timer"
+        case .airDrop: "Foldy AirDrop"
+        case .nowPlaying: "Foldy Now Playing"
+        case .userSwitcher: "Foldy User Switcher"
+        case .textInput: "Foldy Text Input"
         }
     }
 

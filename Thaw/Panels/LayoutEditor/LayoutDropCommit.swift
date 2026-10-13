@@ -28,11 +28,11 @@ enum LayoutDropCommit {
                 LayoutBarFeedbackCenter.Refusal(
                     title: String(
                         localized: "“\(Constants.displayName)” couldn’t move to \(MenuBarSection.Name.visible.displayString)",
-                        comment: "Title shown when the Thaw control icon is dropped outside the Visible section"
+                        comment: "Title shown when the Foldy control icon is dropped outside the Visible section"
                     ),
                     message: String(
                         localized: "The \(Constants.displayName) icon has to stay in Visible.",
-                        comment: "Explanation shown when the Thaw control icon is dropped outside the Visible section"
+                        comment: "Explanation shown when the Foldy control icon is dropped outside the Visible section"
                     )
                 )
             )

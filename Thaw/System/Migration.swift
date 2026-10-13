@@ -75,7 +75,7 @@ extension MigrationManager {
         // Only create per-display configs if the user had Thaw Bar enabled.
         guard useThawBar else {
             Defaults.set(true, forKey: .hasMigratedPerDisplayThawBar)
-            diagLog.info("Per-display Thaw Bar migration: Thaw Bar was disabled, nothing to migrate")
+            diagLog.info("Per-display Foldy Bar migration: Foldy Bar was disabled, nothing to migrate")
             return .success
         }
 
@@ -88,7 +88,7 @@ extension MigrationManager {
             let data = try encoder.encode(configs)
             Defaults.set(data, forKey: .displayThawBarConfigurations)
             Defaults.set(true, forKey: .hasMigratedPerDisplayThawBar)
-            diagLog.info("Per-display Thaw Bar migration: migrated \(configs.count) display(s)")
+            diagLog.info("Per-display Foldy Bar migration: migrated \(configs.count) display(s)")
         } catch {
             return .failureAndLogError(.perDisplayThawBarMigrationError(error))
         }
@@ -119,7 +119,7 @@ extension MigrationManager {
         var description: String {
             switch self {
             case let .perDisplayThawBarMigrationError(error):
-                "Error migrating per-display Thaw Bar configuration: \(error)"
+                "Error migrating per-display Foldy Bar configuration: \(error)"
             }
         }
     }

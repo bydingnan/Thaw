@@ -73,7 +73,7 @@ enum SettingsNavigationIdentifier: String, @MainActor NavigationIdentifier {
         case .theLab: "Features still in testing"
         case .tools: "Logs, backups and resets"
         case .privacy: "Permissions and access"
-        case .about: "Version, updates and credits"
+        case .about: ""
         }
     }
 
