@@ -132,6 +132,29 @@ struct MenuBarItemCaptureFallbackTests {
         #expect(await reader.captures.last == source, "Do not start fallbacks after the lock")
     }
 
+    @Test("A capture cancelled mid-read proves nothing about the item", arguments: [CaptureFixture.Source.strip, .hosting])
+    private func cancellationDuringCaptureRecordsNoFailure(source: CaptureFixture.Source) async {
+        let item = makeItem()
+        let reader = CaptureFixture(hosting: nil, strip: nil, onCapture: {
+            if $0 == source {
+                withUnsafeCurrentTask { $0?.cancel() }
+            }
+        })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
+        let result = await Task {
+            await cache.axBoundsCapture(
+                [(item, item.bounds)], scale: 2, displayID: 42,
+                validateFreshBounds: false, concealedIdentifiers: [], using: reader
+            )
+        }.value
+        #expect(result.captured.isEmpty)
+        if source == .strip {
+            #expect(result.invalidatedTags.isEmpty)
+            #expect(result.unreadable.isEmpty)
+        }
+        #expect(await reader.captures.last == source, "Do not start fallbacks after the cancellation")
+    }
+
     @Test("An already locked session starts no screenshot reads")
     func lockedSessionDoesNotStartCapture() async {
         let item = makeItem()
@@ -215,6 +238,50 @@ struct MenuBarItemCaptureFallbackTests {
             #expect(result.invalidatedTags.isEmpty)
             #expect(result.unreadable.isEmpty)
         }
+    }
+
+    @Test(
+        "Cancellation during post-source validation keeps prior pictures without publishing unvalidated crops",
+        .timeLimit(.minutes(1)),
+        arguments: [CaptureFixture.Source.strip, .hosting, .barWindow], [false, true]
+    )
+    private func cancellationDuringPostSourceValidationKeepsPictures(
+        source: CaptureFixture.Source,
+        contaminated: Bool
+    ) async throws {
+        let item = makeItem()
+        let geometryGate = CaptureGate()
+        let overflowGate = CaptureGate()
+        let pixels = try makeCapture(opaque: source == .strip)
+        let reader = CaptureFixture(
+            hosting: source == .hosting ? pixels : nil,
+            barWindow: source == .barWindow ? pixels : nil,
+            strip: source == .strip ? pixels : nil,
+            items: [item],
+            stripOverflowBounds: contaminated ? [item.bounds] : [],
+            validationGates: (geometryGate, overflowGate)
+        )
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { false })
+        let pass = Task {
+            await cache.axBoundsCapture(
+                [(item, item.bounds)], scale: 2, displayID: 42,
+                validateFreshBounds: true, concealedIdentifiers: [], using: reader
+            )
+        }
+        await geometryGate.waitUntilArrived()
+        await overflowGate.waitUntilArrived()
+        pass.cancel()
+        await overflowGate.release()
+        await geometryGate.release()
+        let result = await pass.value
+
+        #expect(result.captured.isEmpty)
+        #expect(result.invalidatedTags.isEmpty)
+        #expect(result.unconditionallyInvalidatedTags.isEmpty)
+        #expect(result.unreadable.isEmpty)
+        #expect(result.failedCaptureItems.isEmpty)
+        #expect(result.recoveredItems.isEmpty)
+        #expect(await reader.captures.last == source, "A superseded pass starts no more pixel sources")
     }
 
     @Test("A missing strip falls back to a valid hosting glyph")

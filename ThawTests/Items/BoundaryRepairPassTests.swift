@@ -66,4 +66,28 @@ struct BoundaryRepairPassTests {
         let pass = BoundaryRepairPass()
         #expect(!pass.needsRetry(in: [item("Battery")]))
     }
+
+    @Test("A skipped strand is not offered again, so the ones behind it get their turn")
+    func skippedStrandDoesNotStarveOthers() throws {
+        let hiddenByMacOS = item("Battery")
+        let stranded = item("VPN", x: 150)
+        var pass = BoundaryRepairPass()
+        try pass.skip(#require(pass.next(in: [hiddenByMacOS, stranded])))
+
+        let next = try #require(pass.next(in: [hiddenByMacOS, stranded]))
+        #expect(next.uniqueIdentifier == stranded.uniqueIdentifier)
+        #expect(pass.attempted.isEmpty)
+    }
+
+    @Test("A skipped strand alone does not request another pass")
+    func skippedStrandDoesNotRetry() {
+        let hiddenByMacOS = item("Battery")
+        let stranded = item("VPN", x: 150)
+        var pass = BoundaryRepairPass()
+        pass.skip(hiddenByMacOS)
+        pass.recordAttempt(stranded)
+
+        #expect(!pass.needsRetry(in: [hiddenByMacOS]))
+        #expect(pass.needsRetry(in: [hiddenByMacOS, stranded]))
+    }
 }

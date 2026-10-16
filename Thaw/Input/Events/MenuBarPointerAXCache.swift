@@ -8,6 +8,7 @@
 import CoreGraphics
 import Foundation
 import MenuBarModel
+import ThawAXCore
 
 /// Accessibility answers the input taps read without waiting for them.
 ///
@@ -50,6 +51,29 @@ final class MenuBarPointerAXCache {
     private var applicationMenu: ApplicationMenuAnswer?
     private var applicationMenuTask: Task<Void, Never>?
     private var applicationMenuTaskPID: pid_t?
+
+    /// The bar is re-read this often while the pointer is in it.
+    private static let drawnBarRefreshAge: Duration = .milliseconds(300)
+
+    /// A bar read mid-change answers nothing; this many tries cover a reveal's reflow.
+    private static let drawnBarRetries = 5
+
+    private var drawnBar: (entries: [MenuBarAgentWindow.Entry], answeredAt: ContinuousClock.Instant)?
+    private var drawnBarTask: Task<Void, Never>?
+    private var drawnBarAskedAt: ContinuousClock.Instant?
+    /// A read older than this describes a bar that has changed since.
+    private var drawnBarChangedAt: ContinuousClock.Instant = .now
+    private let readDrawnBar: @Sendable () async -> [MenuBarAgentWindow.Entry]?
+
+    init(readDrawnBar: @escaping @Sendable () async -> [MenuBarAgentWindow.Entry]? = {
+        await MenuBarItemAXProvider.drawnBarConcurrent()
+    }) {
+        self.readDrawnBar = readDrawnBar
+    }
+
+    /// Apps the bar draws but the walk cannot read, and the drawn-bar read last compared.
+    var unreadableOwners = UnreadableOwnerTracker()
+    var unreadableOwnersComparedAt: ContinuousClock.Instant?
 
     // MARK: Foreign widget
 
@@ -122,6 +146,48 @@ final class MenuBarPointerAXCache {
             applicationMenu = ApplicationMenuAnswer(pid: pid, frames: frames, answeredAt: .now)
             applicationMenuTask = nil
             applicationMenuTaskPID = nil
+        }
+    }
+
+    // MARK: Drawn bar
+
+    /// What MenuBarAgent draws on the bar and when that was read, or nil when
+    /// the bar has changed since the last read. Asking keeps the read fresh.
+    func drawnBarAnswer() -> (entries: [MenuBarAgentWindow.Entry], answeredAt: ContinuousClock.Instant)? {
+        refreshDrawnBarIfStale()
+        guard let drawnBar, drawnBar.answeredAt > drawnBarChangedAt else {
+            return nil
+        }
+        return drawnBar
+    }
+
+    /// Reads the bar again after it changed, so a click needs no mouse movement first.
+    func drawnBarDidChange() {
+        drawnBarChangedAt = .now
+        drawnBarAskedAt = nil
+        refreshDrawnBarIfStale()
+    }
+
+    /// Starts a read unless one is running or the last was asked for moments ago.
+    func refreshDrawnBarIfStale() {
+        guard drawnBarTask == nil else { return }
+        if let drawnBarAskedAt, drawnBarAskedAt.duration(to: .now) < Self.drawnBarRefreshAge {
+            return
+        }
+        drawnBarAskedAt = .now
+        drawnBarTask = Task { [weak self, readDrawnBar] in
+            for attempt in 0 ..< Self.drawnBarRetries {
+                if attempt > 0 {
+                    try? await Task.sleep(for: Self.drawnBarRefreshAge)
+                }
+                let askedAt = ContinuousClock.now
+                guard let entries = await readDrawnBar() else { continue }
+                guard let self else { return }
+                drawnBar = (entries, askedAt)
+                // The bar changed while this read was out: read it again.
+                if askedAt > drawnBarChangedAt { break }
+            }
+            self?.drawnBarTask = nil
         }
     }
 }

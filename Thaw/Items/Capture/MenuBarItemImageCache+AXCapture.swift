@@ -62,6 +62,8 @@ extension MenuBarItemImageCache {
         )
         await captureAXStrip(candidates, context: &context, using: reader, into: &result)
         guard !screenIsLocked() else { return CapturePass() }
+        // A superseded pass keeps the crops it has and starts no further source.
+        guard !Task.isCancelled else { return result }
         let unresolved = candidates.filter { candidate in
             guard !result.captured.keys.contains(candidate.item.tag) else { return false }
             // A different pixel source cannot repair an unidentified or moved item.
@@ -114,7 +116,7 @@ extension MenuBarItemImageCache {
         into result: inout CapturePass
     ) async {
         let hosting = await readAXHostingCapture(candidates, displayID: context.displayID, using: reader, into: &result)
-        guard !screenIsLocked() else { return }
+        guard !screenIsLocked(), !Task.isCancelled else { return }
         var hostingOwners = [CGRect: MenuBarItemTag]()
         if let hosting {
             guard let sourceContext = await contextAfterSource(context, using: reader) else { return }
@@ -133,7 +135,7 @@ extension MenuBarItemImageCache {
         let unresolved = candidates.filter { !result.captured.keys.contains($0.item.tag) }
         var windowOwners = [CGRect: MenuBarItemTag]()
         for ownerPID in Set(unresolved.map(\.item.ownerPID)).sorted() {
-            guard !screenIsLocked() else { return }
+            guard !screenIsLocked(), !Task.isCancelled else { return }
             let capture = await reader.barWindowCapture(ownerPID: ownerPID, displayID: context.displayID)
             guard !screenIsLocked() else { return }
             guard let capture else { continue }
@@ -157,7 +159,7 @@ extension MenuBarItemImageCache {
     /// The returned context belongs to that source alone, so a later source
     /// never inherits positions read before its own screenshot. Overflow
     /// evidence only accumulates, since a control that appeared during any
-    /// source can contaminate the crops. Nil when the screen locked meanwhile.
+    /// source can contaminate the crops. Nil when locked or superseded meanwhile.
     private nonisolated func contextAfterSource(
         _ context: AXCropContext,
         using reader: any MenuBarCaptureReading
@@ -170,7 +172,7 @@ extension MenuBarItemImageCache {
             async let itemsRead = reader.menuBarItems(displayID: context.displayID)
             async let overflowRead = reader.overflowBounds(displayID: context.displayID)
             let (items, overflow) = await (itemsRead, overflowRead)
-            guard !screenIsLocked() else { return nil }
+            guard !screenIsLocked(), !Task.isCancelled else { return nil }
             refreshed.postCaptureBounds = Dictionary(
                 items.map { ($0.uniqueIdentifier, $0.bounds) }, uniquingKeysWith: { first, _ in first }
             )
@@ -178,7 +180,7 @@ extension MenuBarItemImageCache {
         } else {
             refreshed.overflowBounds += await reader.overflowBounds(displayID: context.displayID)
         }
-        guard !screenIsLocked() else { return nil }
+        guard !screenIsLocked(), !Task.isCancelled else { return nil }
         return refreshed
     }
 
@@ -195,6 +197,8 @@ extension MenuBarItemImageCache {
             hostingFailureWarnedDisplays.withLock { _ = $0.remove(displayID) }
             return capture
         }
+        // Cancellation makes every source answer nil; that is not a failed read.
+        guard !Task.isCancelled else { return nil }
         guard result.noteMissingCapture(of: candidates.map(\.item), captureWasAllowed: captureIsAllowed()) else {
             return nil
         }
@@ -218,6 +222,11 @@ extension MenuBarItemImageCache {
         let capture = await reader.displayStripCapture(displayID: context.displayID)
         guard !screenIsLocked() else { return }
         guard let capture, Self.isPlausibleAXCapture(capture) else {
+            // Cancellation makes every source answer nil; that is not a failed read.
+            guard !Task.isCancelled else {
+                Self.diagLog.debug("axBoundsCapture: capture superseded for \(candidates.count) items; keeping their pictures")
+                return
+            }
             if result.noteMissingCapture(of: candidates.map(\.item), captureWasAllowed: captureIsAllowed()) {
                 Self.diagLog.warning("axBoundsCapture: captureMenuBarDisplayStripAsync failed for \(candidates.count) items")
             } else {
@@ -233,7 +242,7 @@ extension MenuBarItemImageCache {
         async let liveRead = reader.liveBounds(for: candidates)
         async let overflowRead = reader.overflowBounds(displayID: displayID)
         let (live, overflow) = await (liveRead, overflowRead)
-        guard !screenIsLocked() else { return }
+        guard !screenIsLocked(), !Task.isCancelled else { return }
         context.hasStripGeometry = true
         context.postCaptureBounds = live.bounds
         context.ambiguousIdentifiers = live.ambiguous
@@ -299,7 +308,7 @@ extension MenuBarItemImageCache.CapturePass {
     /// Records items whose pixels did not arrive. A capture refused because no Thaw surface is open
     /// proves nothing about the pictures already cached, so it records nothing and returns false.
     @discardableResult
-    nonisolated mutating func noteMissingCapture(of items: [MenuBarItem], captureWasAllowed: Bool) -> Bool {
+    mutating nonisolated func noteMissingCapture(of items: [MenuBarItem], captureWasAllowed: Bool) -> Bool {
         guard captureWasAllowed else { return false }
         unreadable.append(contentsOf: items)
         invalidatedTags.formUnion(items.map(\.tag))

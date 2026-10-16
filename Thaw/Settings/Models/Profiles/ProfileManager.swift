@@ -462,12 +462,9 @@ final class ProfileManager {
         // created on another machine may not contain this display's UUID.
         appState.settings.displaySettings.globalConfiguration = profile.globalDisplayConfiguration
 
-        // Set before the configurations, whose change applies spacing under this mode.
-        if let spacingApplyMode = profile.spacingApplyMode {
-            appState.settings.displaySettings.spacingApplyMode = spacingApplyMode
-        }
+        // Set before the configurations, whose change applies spacing under these settings.
+        ProfileRelaunchSafety.apply(profile, to: appState.settings.displaySettings)
         appState.settings.displaySettings.configurations = profile.displayConfigurations
-        appState.settings.displaySettings.confirmSpacingRelaunch = profile.confirmSpacingRelaunch
         appState.settings.displaySettings.unconfirmedSpacingProfileScope = profile.unconfirmedSpacingProfileScope
         appState.appearanceManager.configuration = profile.appearanceConfiguration
 

@@ -50,7 +50,7 @@ struct WhatsNewView: View {
             }
         } links: {
             Button("Full changelog") {
-                openURL(Constants.repositoryURL)
+                openURL(Constants.releasesURL)
             }
             .buttonStyle(.settingsGlass)
             Text(verbatim: "/")

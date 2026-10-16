@@ -6,7 +6,6 @@
 //  Licensed under the GNU GPLv3
 
 import AsyncAlgorithms
-import AXSwift6
 import Cocoa
 import MenuBarModel
 import os.lock
@@ -107,8 +106,8 @@ nonisolated enum MenuBarItemAXProvider {
         }
 
         let ourBundleID = Bundle.main.bundleIdentifier
+        let formerHosts = UnseenMenuBarHosts.formerHosts()
         var raw: [RawItem] = []
-        let itemHeightCeiling = maxItemHeight(menuBarHeight: NSScreen.tallestCachedMenuBarHeight)
         var isOutOfTime: Bool {
             guard let deadline else { return false }
             return ContinuousClock.now >= deadline
@@ -122,90 +121,19 @@ nonisolated enum MenuBarItemAXProvider {
                 return (restoredIdentities(assemble(raw)), false)
             }
             let appBundleID = runningApp.bundleIdentifier ?? runningApp.localizedName ?? "(pid \(runningApp.processIdentifier))"
-
-            guard let app = AXHelpers.application(for: runningApp) else {
-                continue
-            }
-            guard let bar = AXHelpers.extrasMenuBar(for: app) else {
-                // Without its own extras bar Thaw cannot find its control items.
-                if runningApp.bundleIdentifier == ourBundleID {
-                    diagLog.warning("menuBarItems: Foldy (\(appBundleID)) has no AXExtrasMenuBar, control items cannot be discovered")
-                }
-                continue
-            }
-
-            let children = AXHelpers.children(for: bar)
-            diagLog.debug("menuBarItems: \(appBundleID) → \(children.count) child(ren) in AXExtrasMenuBar")
-            guard !children.isEmpty else {
-                continue
-            }
-
-            let namespace = namespace(for: runningApp)
-            // The native overflow chevron, identified by AXOverflowButton or its
-            // AXButton role (not its localized title) plus the memo's last-seen
-            // frames. Any match drops the child.
-            let overflowControl: (elements: [AXSwift6.UIElement], frames: [CGRect]) = namespace == .menuBarAgent
-                ? nativeOverflowControlSignature(bar: bar, on: display)
-                : ([], [])
-            // Per-app fallback index so untitled items get distinct titles
-            // ("Item-0", "Item-1", …), mirroring the CGS window titles.
-            var fallbackIndex = 0
-            var diagnosticChildDescriptions: [String] = []
-
-            for child in children {
-                if isOutOfTime {
-                    diagLog.warning(
-                        "menuBarItems: walk exceeded its budget inside \(appBundleID); returning incomplete"
-                    )
-                    return (restoredIdentities(assemble(raw)), false)
-                }
-                // One message for all five attributes costs the same as the
-                // frame alone.
-                let attributes = AXHelpers.menuBarChildAttributes(for: child, includingRole: namespace == .menuBarAgent)
-                // Skip incidental children (open popovers / panels).
-                guard let frame = Self.itemFrame(attributes.frame, maximumHeight: itemHeightCeiling) else {
-                    continue
-                }
-                // No per-display filter: macOS 27 renders one status-item set on
-                // every bar, with frames stated against a single bar's layout.
-                if overflowControl.elements.contains(child) || namespace == .menuBarAgent && AXPrimitives.isMenuBarAgentOverflowRole(attributes.role)
-                    || overflowControl.frames.contains(where: { Self.frame(frame, matches: $0) })
-                {
-                    diagLog.debug("menuBarItems: skipping native overflow control (structural) frame=\(frame)")
-                    continue
-                }
-
-                let ownerPID = AXHelpers.pid(for: child) ?? runningApp.processIdentifier
-                let derived = Self.rawItem(
-                    for: attributes, namespace: namespace, frame: frame, ownerPID: ownerPID, fallbackIndex: &fallbackIndex
-                )
-                guard let item = derived.item else {
-                    diagLog.debug("menuBarItems: skipping native overflow control (title) title='\(derived.identityTitle)' frame=\(frame)")
-                    continue
-                }
-
-                if runningApp.bundleIdentifier == ourBundleID {
-                    diagLog.debug("menuBarItems: Foldy item, title='\(derived.identityTitle)' frame=\(frame) ownerPID=\(ownerPID)")
-                }
-
-                if Defaults.bool(forKey: .diagnosticRestrictionSceneProbes),
-                   runningApp.bundleIdentifier == SharedConstants.menuBarHostingBundleID
-                {
-                    diagnosticChildDescriptions.append(
-                        "\(derived.identityTitle) frame=\(NSStringFromRect(frame)) ownerPID=\(ownerPID)"
-                    )
-                }
-
-                raw.append(item)
-            }
-
-            if Defaults.bool(forKey: .diagnosticRestrictionSceneProbes),
-               runningApp.bundleIdentifier == SharedConstants.menuBarHostingBundleID
-            {
-                diagLog.info(
-                    "menuBarItems: MenuBarAgent children: " +
-                        diagnosticChildDescriptions.joined(separator: " | ")
-                )
+            let collected = collectApp(
+                runningApp: runningApp,
+                appBundleID: appBundleID,
+                display: display,
+                displayBounds: nil,
+                ourBundleID: ourBundleID,
+                formerHosts: formerHosts,
+                isOutOfTime: { isOutOfTime }
+            )
+            raw += collected.raw
+            guard collected.completed else {
+                diagLog.warning("menuBarItems: walk exceeded its budget inside \(appBundleID); returning incomplete")
+                return (restoredIdentities(assemble(raw)), false)
             }
         }
 
@@ -401,7 +329,7 @@ nonisolated enum MenuBarItemAXProvider {
                         displayBounds: nil,
                         ourBundleID: ourBundleID,
                         formerHosts: formerHosts
-                    )
+                    ).raw
                 }
                 appsWithExtrasBar += own.isEmpty ? 0 : 1
                 state.record(own, owner: ownerPID, generation: pass.generation)
@@ -415,7 +343,7 @@ nonisolated enum MenuBarItemAXProvider {
                     displayBounds: nil,
                     ourBundleID: ourBundleID,
                     formerHosts: formerHosts
-                )
+                ).raw
             }
             let collectedResult = await withTaskGroup(
                 of: CollectAppResult?.self
@@ -512,36 +440,40 @@ nonisolated enum MenuBarItemAXProvider {
 
     /// The per-app enumeration body shared by both walks. Returns the app's
     /// raw items; an app with no extras bar or no children contributes an
-    /// empty array.
+    /// empty array. completed is false when isOutOfTime stopped it between
+    /// children, with the items read so far.
     private static func collectApp(
         runningApp: NSRunningApplication,
         appBundleID: String,
         display: CGDirectDisplayID?,
         displayBounds: CGRect?,
         ourBundleID: String?,
-        formerHosts: Set<String>
-    ) -> [RawItem] {
+        formerHosts: Set<String>,
+        isOutOfTime: () -> Bool = { false }
+    ) -> (raw: [RawItem], completed: Bool) {
         guard let app = AXHelpers.application(for: runningApp) else {
-            return []
+            return ([], true)
         }
         guard let bar = AXHelpers.extrasMenuBar(for: app) else {
-            if runningApp.bundleIdentifier == ourBundleID {
-                diagLog.warning(
-                    "menuBarItems: Foldy (\(appBundleID)) has no AXExtrasMenuBar, control items cannot be discovered"
-                )
-            }
-            logEmptyExtrasBarReadOnce(for: runningApp, appBundleID: appBundleID, hasBar: false, formerHosts: formerHosts)
-            return []
+            noteMissingExtrasBar(of: runningApp, appBundleID: appBundleID, ourBundleID: ourBundleID, formerHosts: formerHosts)
+            return ([], true)
         }
 
         let children = AXHelpers.children(for: bar)
         guard !children.isEmpty else {
             logEmptyExtrasBarReadOnce(for: runningApp, appBundleID: appBundleID, hasBar: true, formerHosts: formerHosts)
-            return []
+            return ([], true)
+        }
+        let isHost = runningApp.bundleIdentifier == SharedConstants.menuBarHostingBundleID
+        var probedChildren: [String]? = isHost && Defaults.bool(forKey: .diagnosticRestrictionSceneProbes) ? [] : nil
+        defer {
+            if let probedChildren {
+                diagLog.info("menuBarItems: MenuBarAgent children: " + probedChildren.joined(separator: " | "))
+            }
         }
 
         let namespace = namespace(for: runningApp)
-        let overflowControl: (elements: [AXSwift6.UIElement], frames: [CGRect]) = namespace == .menuBarAgent
+        let overflowControl: (elements: [AXElement], frames: [CGRect]) = namespace == .menuBarAgent
             ? nativeOverflowControlSignature(bar: bar, on: display)
             : ([], [])
         var fallbackIndex = 0
@@ -549,38 +481,16 @@ nonisolated enum MenuBarItemAXProvider {
         let itemHeightCeiling = maxItemHeight(menuBarHeight: NSScreen.tallestCachedMenuBarHeight)
 
         for (childIndex, child) in children.enumerated() {
+            guard !isOutOfTime() else { return (raw, false) }
             let attributes = AXHelpers.menuBarChildAttributes(for: child, includingRole: namespace == .menuBarAgent)
-            let diagnosticIdentity = attributes.identifier?.nonEmpty
-                ?? attributes.accessibilityDescription?.nonEmpty
-                ?? "child-\(childIndex)"
-            if CaptureDiagnostics.shouldCompareFrame(ownerPID: runningApp.processIdentifier, identity: diagnosticIdentity) {
-                try? child.setMessagingTimeout(AXPrimitives.defaultMessagingTimeout)
-                let singleFrame = AXHelpers.frame(for: child)
-                let descendantFrames = attributes.children.prefix(4).compactMap { descendant -> CGRect? in
-                    try? descendant.setMessagingTimeout(AXPrimitives.defaultMessagingTimeout)
-                    return AXHelpers.descendantAttributes(for: descendant).frame
-                }
-                diagLog.debug(
-                    "[CaptureFrameTrace] bundle=\(appBundleID) pid=\(runningApp.processIdentifier) child=\(childIndex) " +
-                        "identifier=\(attributes.identifier ?? "nil") " +
-                        "title=\(attributes.title ?? "nil") " +
-                        "description=\(attributes.accessibilityDescription ?? "nil") " +
-                        "batch=\(attributes.frame.map { NSStringFromRect($0) } ?? "nil") " +
-                        "single=\(singleFrame.map { NSStringFromRect($0) } ?? "nil") " +
-                        "descendants=\(descendantFrames.map { NSStringFromRect($0) })"
-                )
-            }
+            traceCaptureFrames(of: child, attributes: attributes, childIndex: childIndex, runningApp: runningApp, appBundleID: appBundleID)
             guard let frame = Self.itemFrame(attributes.frame, maximumHeight: itemHeightCeiling) else {
                 continue
             }
             // Dormant: the live caller passes no bounds. Don't use it to narrow
             // the inventory; a frame's display is not an item attribute.
-            if let displayBounds, !Self.frame(frame, isWithin: displayBounds) {
-                continue
-            }
-            if overflowControl.elements.contains(child) || namespace == .menuBarAgent && AXPrimitives.isMenuBarAgentOverflowRole(attributes.role)
-                || overflowControl.frames.contains(where: { Self.frame(frame, matches: $0) })
-            {
+            let isOffDisplay = displayBounds.map { !Self.frame(frame, isWithin: $0) } ?? false
+            if isOffDisplay || isNativeOverflowControl(child, frame: frame, role: attributes.role, namespace: namespace, signature: overflowControl) {
                 continue
             }
 
@@ -589,11 +499,70 @@ nonisolated enum MenuBarItemAXProvider {
                 for: attributes, namespace: namespace, frame: frame, ownerPID: ownerPID, fallbackIndex: &fallbackIndex
             )
             guard let item = derived.item else {
+                diagLog.debug("menuBarItems: skipping native overflow control (title) title='\(derived.identityTitle)' frame=\(frame)")
                 continue
             }
+            probedChildren?.append("\(derived.identityTitle) frame=\(NSStringFromRect(frame)) ownerPID=\(ownerPID)")
             raw.append(item)
         }
-        return raw
+        return (raw, true)
+    }
+
+    private static func noteMissingExtrasBar(
+        of runningApp: NSRunningApplication, appBundleID: String, ourBundleID: String?, formerHosts: Set<String>
+    ) {
+        if runningApp.bundleIdentifier == ourBundleID {
+            diagLog.warning(
+                "menuBarItems: Foldy (\(appBundleID)) has no AXExtrasMenuBar, control items cannot be discovered"
+            )
+        }
+        logEmptyExtrasBarReadOnce(for: runningApp, appBundleID: appBundleID, hasBar: false, formerHosts: formerHosts)
+    }
+
+    /// The native overflow chevron, by AXOverflowButton, by its AXButton role
+    /// (not its localized title), or by the memo's last-seen frames.
+    private static func isNativeOverflowControl(
+        _ child: AXElement,
+        frame: CGRect,
+        role: String?,
+        namespace: MenuBarItemTag.Namespace,
+        signature: (elements: [AXElement], frames: [CGRect])
+    ) -> Bool {
+        let matches = signature.elements.contains(child)
+            || namespace == .menuBarAgent && AXPrimitives.isMenuBarAgentOverflowRole(role)
+            || signature.frames.contains(where: { Self.frame(frame, matches: $0) })
+        if matches {
+            diagLog.debug("menuBarItems: skipping native overflow control (structural) frame=\(frame)")
+        }
+        return matches
+    }
+
+    private static func traceCaptureFrames(
+        of child: AXElement,
+        attributes: AXHelpers.MenuBarChildAttributes,
+        childIndex: Int,
+        runningApp: NSRunningApplication,
+        appBundleID: String
+    ) {
+        let identity = attributes.identifier?.nonEmpty
+            ?? attributes.accessibilityDescription?.nonEmpty
+            ?? "child-\(childIndex)"
+        guard CaptureDiagnostics.shouldCompareFrame(ownerPID: runningApp.processIdentifier, identity: identity) else { return }
+        child.setMessagingTimeout(AXPrimitives.defaultMessagingTimeout)
+        let singleFrame = AXHelpers.frame(for: child)
+        let descendantFrames = attributes.children.prefix(4).compactMap { descendant -> CGRect? in
+            descendant.setMessagingTimeout(AXPrimitives.defaultMessagingTimeout)
+            return AXHelpers.descendantAttributes(for: descendant).frame
+        }
+        diagLog.debug(
+            "[CaptureFrameTrace] bundle=\(appBundleID) pid=\(runningApp.processIdentifier) child=\(childIndex) " +
+                "identifier=\(attributes.identifier ?? "nil") " +
+                "title=\(attributes.title ?? "nil") " +
+                "description=\(attributes.accessibilityDescription ?? "nil") " +
+                "batch=\(attributes.frame.map { NSStringFromRect($0) } ?? "nil") " +
+                "single=\(singleFrame.map { NSStringFromRect($0) } ?? "nil") " +
+                "descendants=\(descendantFrames.map { NSStringFromRect($0) })"
+        )
     }
 
     /// Logs, once per owner and AX result, why an app that had menu bar items
@@ -609,10 +578,7 @@ nonisolated enum MenuBarItemAXProvider {
     ) {
         guard formerHosts.contains(appBundleID) else { return }
         let pid = runningApp.processIdentifier
-        let element = AXUIElementCreateApplication(pid)
-        AXUIElementSetMessagingTimeout(element, AXPrimitives.defaultMessagingTimeout)
-        var value: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(element, "AXExtrasMenuBar" as CFString, &value)
+        let result = AXPrimitives.extrasMenuBarReadResult(pid: pid)
         let isNew = loggedEmptyExtrasBarReads.withLock { logged in
             guard logged[pid] != result else { return false }
             logged[pid] = result
@@ -638,7 +604,7 @@ nonisolated enum MenuBarItemAXProvider {
 
     /// Presses the first of the resolved elements that takes a press. One AX
     /// round trip per candidate, with no walk in front of it.
-    static func press(resolved elements: [UIElement]) -> Bool {
+    static func press(resolved elements: [AXElement]) -> Bool {
         for element in elements where AXHelpers.press(element) {
             return true
         }
@@ -839,10 +805,11 @@ nonisolated enum MenuBarItemAXProvider {
         initialState: [CGDirectDisplayID: ChevronProbeMemo]()
     )
 
-    /// How long an empty full sweep is trusted. Without it the sweep (80-230 ms
-    /// of AX hit-tests) runs on every refresh; chevrons appear only when Thaw
-    /// conceals, so the latency is cheap. Must exceed the 5 s refresh backstop.
-    private static let chevronAbsenceCooldown = Duration.seconds(12)
+    /// How long an empty sweep is trusted; longer than the 5 s refresh backstop, or the hit-tests run every refresh.
+    /// A built-in display runs out of room sooner than an external one, so it is swept more often.
+    static nonisolated func chevronAbsenceCooldown(isBuiltIn: Bool) -> Duration {
+        isBuiltIn ? .seconds(12) : .seconds(60)
+    }
 
     /// The chevron hit-test, narrowed by what the last sweep found.
     ///
@@ -856,16 +823,21 @@ nonisolated enum MenuBarItemAXProvider {
         displayBounds: CGRect
     ) -> NativeOverflowObservation {
         let memo = chevronProbeMemo.withLock { $0[display] } ?? ChevronProbeMemo()
+        let cooldown = chevronAbsenceCooldown(isBuiltIn: CGDisplayIsBuiltin(display) != 0)
 
         // A reveal mask sits above the bar, so a hit-test taken while it is up
         // reads the mask, not the bar; hold the last observation instead.
-        if ClockRevealMaskActivity.isAnyMaskShowing {
+        // The same while Thaw's own menus are in the bar: AppKit answers those
+        // hits on this thread and NSMenu asserts off the main one.
+        if ClockRevealMaskActivity.isAnyMaskShowing || isThawTheMenuBarOwner(NSWorkspace.shared.menuBarOwningApplication?.processIdentifier) {
             if memo.hint == nil, memo.lastAbsentAt == nil {
                 diagLog.debug(
-                    "chevron: skipping the strip on display \(display) while a reveal mask is up; no absence recorded"
+                    "chevron: skipping the strip on display \(display) while it cannot be hit-tested; no absence recorded"
                 )
             }
-            return Self.chevronObservationWhileMasked(hint: memo.hint, lastAbsentAt: memo.lastAbsentAt, now: .now)
+            return Self.chevronObservationWhileMasked(
+                hint: memo.hint, lastAbsentAt: memo.lastAbsentAt, now: .now, cooldown: cooldown
+            )
         }
 
         if let hint = memo.hint {
@@ -882,7 +854,7 @@ nonisolated enum MenuBarItemAXProvider {
                 break
             }
         } else if let lastAbsentAt = memo.lastAbsentAt,
-                  ContinuousClock.now - lastAbsentAt < chevronAbsenceCooldown
+                  ContinuousClock.now - lastAbsentAt < cooldown
         {
             return .absent
         }
@@ -900,17 +872,22 @@ nonisolated enum MenuBarItemAXProvider {
         return full
     }
 
+    static nonisolated func isThawTheMenuBarOwner(_ owner: pid_t?) -> Bool {
+        owner.map(AXPrimitives.isOwnProcess) ?? false
+    }
+
     /// A known chevron or an absence inside its cooldown stands; anything else
     /// is unavailable, so a masked bar cannot start a new absence.
     static nonisolated func chevronObservationWhileMasked(
         hint: CGRect?,
         lastAbsentAt: ContinuousClock.Instant?,
-        now: ContinuousClock.Instant
+        now: ContinuousClock.Instant,
+        cooldown: Duration = chevronAbsenceCooldown(isBuiltIn: true)
     ) -> NativeOverflowObservation {
         if let hint {
             return .present([hint])
         }
-        if let lastAbsentAt, now - lastAbsentAt < chevronAbsenceCooldown {
+        if let lastAbsentAt, now - lastAbsentAt < cooldown {
             return .absent
         }
         return .unavailable
@@ -1028,12 +1005,12 @@ nonisolated enum MenuBarItemAXProvider {
         guard let children = AXHelpers.childrenIfAvailable(for: bar) else {
             return .unavailable
         }
-        let descendants = children.flatMap { child -> [AXSwift6.UIElement] in
+        let descendants = children.flatMap { child -> [AXElement] in
             let childDescendants = AXHelpers.childrenIfAvailable(for: child) ?? []
             return [child] + childDescendants
         }
         var attributeReadFailed = false
-        let attributedControls = ([bar] + children).compactMap { element -> AXSwift6.UIElement? in
+        let attributedControls = ([bar] + children).compactMap { element -> AXElement? in
             guard let supportsOverflowButton = AXHelpers.supportsOverflowButton(element) else {
                 attributeReadFailed = true
                 return nil
@@ -1383,10 +1360,10 @@ nonisolated enum MenuBarItemAXProvider {
     /// element plus the memo's overflow frames. Memo-only because this runs
     /// inside the 4 Hz live loop.
     static func nativeOverflowControlSignature(
-        bar: AXSwift6.UIElement,
+        bar: AXElement,
         on display: CGDirectDisplayID?
-    ) -> (elements: [AXSwift6.UIElement], frames: [CGRect]) {
-        var elements = [AXSwift6.UIElement]()
+    ) -> (elements: [AXElement], frames: [CGRect]) {
+        var elements = [AXElement]()
         var frames = [CGRect]()
         if let button = AXHelpers.overflowButton(for: bar) {
             elements.append(button)

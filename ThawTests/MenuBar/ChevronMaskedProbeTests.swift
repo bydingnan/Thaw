@@ -6,6 +6,7 @@
 //  Licensed under the GNU GPLv3
 
 import CoreGraphics
+import Foundation
 import Testing
 @testable import Thaw
 
@@ -46,6 +47,23 @@ struct ChevronMaskedProbeTests {
         #expect(observation == .unavailable)
     }
 
+    @Test("An external display trusts an empty sweep for longer than a built-in one")
+    func externalDisplayIsSweptLessOften() {
+        let builtIn = MenuBarItemAXProvider.chevronAbsenceCooldown(isBuiltIn: true)
+        let external = MenuBarItemAXProvider.chevronAbsenceCooldown(isBuiltIn: false)
+        #expect(builtIn > .seconds(5), "must outlast the 5 s refresh backstop")
+        #expect(external > builtIn)
+
+        let now = ContinuousClock.now
+        let observation = MenuBarItemAXProvider.chevronObservationWhileMasked(
+            hint: nil,
+            lastAbsentAt: now - .seconds(30),
+            now: now,
+            cooldown: external
+        )
+        #expect(observation == .absent)
+    }
+
     @Test("No hint and no absence is unavailable")
     func noHintNoAbsenceIsUnavailable() {
         let observation = MenuBarItemAXProvider.chevronObservationWhileMasked(
@@ -54,5 +72,12 @@ struct ChevronMaskedProbeTests {
             now: .now
         )
         #expect(observation == .unavailable)
+    }
+
+    @Test("Thaw's own menus in the bar hold the probe; another app's or none do not")
+    func ownMenusHoldTheProbe() {
+        #expect(MenuBarItemAXProvider.isThawTheMenuBarOwner(ProcessInfo.processInfo.processIdentifier))
+        #expect(!MenuBarItemAXProvider.isThawTheMenuBarOwner(1))
+        #expect(!MenuBarItemAXProvider.isThawTheMenuBarOwner(nil))
     }
 }

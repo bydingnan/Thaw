@@ -143,11 +143,9 @@ struct MenuBarLayoutSettingsPane: View {
 
             HidingMethodSection(settings: appState.settings.advanced, offersAppleItems: canArrangeLayout)
 
+            // Thaw Bar Only is unplugged; its switch returns to this section with its gate.
             if canArrangeLayout {
-                LayoutUnshowableItemControls(
-                    general: appState.settings.general,
-                    advanced: appState.settings.advanced
-                )
+                ControlCenterReplacementsSection(settings: appState.settings.advanced)
             }
 
             LayoutMoreOptionsSection(
@@ -431,38 +429,6 @@ struct LayoutBarsSection: View {
     }
 }
 
-/// macOS 27 hosts Apple items through a fragile move path; keep the explanation reachable behind the info button without crowding the row.
-/// Name affected items because "system items" can be mistaken for only Clock and Control Center.
-/// Keep missing-item controls on the arrangement pane so users can find them, with details behind info buttons.
-private struct LayoutUnshowableItemControls: View {
-    @Bindable var general: GeneralSettings
-    @Bindable var advanced: AdvancedSettings
-
-    var body: some View {
-        ThawSection {
-            Text("Items macOS won’t show")
-        } content: {
-            // Thaw Bar Only is unplugged for now; restore this with the gate in MenuBarItemManager+ThawBarOnly.swift.
-            // Toggle("Foldy Bar Only", isOn: $general.enableThawBarOnly)
-            //     .annotation(
-            //         "Keeps an item macOS won’t draw reachable in the \(Constants.displayName) Bar.",
-            //         more: "Use it for an item that’s missing from the menu bar and can’t be placed there. Move it here from its menu in the layout editor. It counts as Hidden and opens from the \(Constants.displayName) Bar.\n\nTurn this off and those items become ordinary hidden items. Your list comes back when you turn it on again."
-            //     )
-
-            Toggle(isOn: $advanced.enableModuleStandIns) {
-                HStack(spacing: ThawSpacing.compact) {
-                    Text("Replace Control Center items")
-                    ThawBadge.alpha
-                }
-            }
-            .annotation(
-                "\(Constants.displayName) icons replace Focus, AirDrop and others macOS hides.",
-                more: "macOS hides Focus, AirDrop, Now Playing and Fast User Switching whenever any other item is hidden, even in Visible. \(Constants.displayName) puts its own icon in each one’s place, with the main actions in its menu. You can move or hide it like any item.\n\nTurn this off to bring the originals back."
-            )
-        }
-    }
-}
-
 /// Share layout recovery with SimpleModeSettingsPane so correcting mistakes does not require advanced tuning.
 struct LayoutResetControls: View {
     let itemManager: MenuBarItemManager
@@ -682,7 +648,7 @@ private struct LayoutSuggestionCards: View {
         itemManager.managedItems(for: .visible)
     }
 
-    // Hints suggest improvements, not failures; closing means "Not now" and suppresses them for a month.
+    /// Hints suggest improvements, not failures; closing means "Not now" and suppresses them for a month.
     var body: some View {
         // swiftlint:disable:next redundant_discardable_let
         let _ = dismissals

@@ -11,7 +11,7 @@ import CoreGraphics
 import Foundation
 
 /// Shared raw AX operations keep app and helper walks consistent using only system frameworks.
-/// The helper calls directly; AXHelpers bridges the app's AXSwift6 wrappers through action and owner closures.
+/// The helper calls them directly; the app reaches them through AXHelpers.
 public enum AXPrimitives {
     /// Bound AX round trips below the system's roughly six-second timeout so one hung app cannot stall reads or presses.
     public static let defaultMessagingTimeout: Float = 0.25
@@ -52,7 +52,7 @@ public enum AXPrimitives {
         )
     }
 
-    /// Closures bridge AXSwift6 wrappers that do not expose raw elements, sharing cannotComplete resolution.
+    /// The press ladder with the action and owner lookup as closures, so cannotComplete resolution can be tested.
     /// Query ownerPID only on cannotComplete to avoid an extra round trip on the common path.
     @discardableResult
     public static func press(
@@ -141,6 +141,16 @@ public enum AXPrimitives {
             return nil
         }
         return CGRect(origin: origin, size: size)
+    }
+
+    /// The element's top-left corner, or nil when it did not answer with a point.
+    public static func position(of element: AXUIElement, messagingTimeout: Float = defaultMessagingTimeout) -> CGPoint? {
+        AXUIElementSetMessagingTimeout(element, messagingTimeout)
+        guard let value = copyAttribute(element, kAXPositionAttribute), CFGetTypeID(value) == AXValueGetTypeID() else {
+            return nil
+        }
+        var point = CGPoint.zero
+        return AXValueGetValue(unsafeDowncast(value, to: AXValue.self), .cgPoint, &point) ? point : nil
     }
 
     // MARK: - Attribute reads
@@ -236,6 +246,15 @@ public enum AXPrimitives {
         let appElement = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(appElement, messagingTimeout)
         return elementAttribute(appElement, kAXExtrasMenuBarAttribute as String)
+    }
+
+    /// How an app answers when asked for its extras menu bar, for diagnostics:
+    /// the code tells a refusal apart from an app that has none.
+    public static func extrasMenuBarReadResult(pid: pid_t, messagingTimeout: Float = defaultMessagingTimeout) -> AXError {
+        let appElement = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(appElement, messagingTimeout)
+        var value: CFTypeRef?
+        return AXUIElementCopyAttributeValue(appElement, kAXExtrasMenuBarAttribute as CFString, &value)
     }
 
     // MARK: - Status-item presses

@@ -382,11 +382,8 @@ extension PrimitiveButtonStyle where Self == GlassButtonStyle {
 
 // MARK: - SettingsDetailHeader
 
-/// The toolbar's overflow menu: the window-level switches that have no pane
-/// of their own, plus About and the update actions people look for in a
-/// title bar. Replaying onboarding lives in Troubleshooting. The
-/// system draws the button; in the full window it is the one beside the
-/// search field, and Simple Mode shows the same menu alone.
+/// The toolbar's overflow menu: window-level switches that have no pane of their own.
+/// Anything with a row in a pane stays out, so each setting has one home.
 private struct SettingsOverflowMenu: View {
     let appState: AppState
     let generalSettings: GeneralSettings
@@ -411,9 +408,13 @@ private struct SettingsOverflowMenu: View {
             Divider()
             Toggle("Simple Mode", isOn: $generalSettings.simpleMode)
             Toggle("Show Descriptions", isOn: $generalSettings.showSettingDescriptions)
-            Divider()
-            Button("Customize Sidebar…") {
-                isCustomizeSidebarPresented = true
+            // Simple Mode has no sidebar to customize, and the sheet is only
+            // attached to the full window.
+            if !generalSettings.simpleMode {
+                Divider()
+                Button("Customize Sidebar…") {
+                    isCustomizeSidebarPresented = true
+                }
             }
             Divider()
             Button("About \(Constants.displayName)") {
@@ -501,7 +502,7 @@ private struct SettingsSidebar: View {
 /// The basics (General, Layout, Visibility, Appearance, Thaw Bar) sit at the
 /// top, with About last. Custom Status Icon is not a destination: it is an
 /// Experiments toggle. Scripts is an unbuilt
-/// placeholder, reachable through search only.
+/// placeholder with no route from the window.
 enum SettingsSidebarPanes {
     /// One sidebar group: its direct destinations. Groups are separated by a
     /// small gap, with no text heading, the way macOS Settings separates its

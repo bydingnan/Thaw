@@ -1709,6 +1709,7 @@ extension MenuBarItemManager {
                 MenuBarItemManager.diagLog.debug(
                     "boundary repair: \(strand.logString) is hidden by macOS; skipping"
                 )
+                pass.skip(strand)
                 continue
             }
 

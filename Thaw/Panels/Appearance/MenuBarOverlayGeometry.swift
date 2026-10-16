@@ -180,6 +180,8 @@ nonisolated enum MenuBarSplitPillGeometry {
     nonisolated struct TrailingPillContext {
         var revealedSection: MenuBarSection.Name?
         var section: (MenuBarItem) -> MenuBarSection.Name
+        /// Whether the bar draws an item whatever its section says.
+        var isDrawn: (MenuBarItem) -> Bool = { _ in false }
     }
 
     /// Picks drawable split-pill rectangles, preferring the last stable pair
@@ -214,9 +216,9 @@ nonisolated enum MenuBarSplitPillGeometry {
         }
 
         if leading != .zero, trailing != .zero, leading.intersects(trailing) {
-            // Overlap during reflow: draw the leading segment only instead of
-            // resurrecting a stale trailing pill that still spans empty space.
-            return (leading, .zero, leading, .zero)
+            // A long application menu reaches the items: hand both on so the
+            // path builder merges them, instead of leaving the items bare.
+            return (leading, trailing, leading, trailing)
         }
 
         if leading == .zero, trailing == .zero,
@@ -320,9 +322,7 @@ nonisolated enum MenuBarSplitPillGeometry {
 
         // Exclude CC-hidden Sound/WiFi far-left AX slots so the pill does not span empty space.
         // Non-concealable Spotlight/Clock items are forcedVisible and resolve to visible.
-        if context.section(item) != .visible {
-            return false
-        }
-        return true
+        // A hidden icon macOS still draws, as with an app split across sections, stays in.
+        return context.section(item) == .visible || context.isDrawn(item)
     }
 }
