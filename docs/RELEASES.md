@@ -135,6 +135,33 @@ branch to build its triggering commit, or set **ref** to another branch, tag, or
 commit in this repository. Leaving **ref** empty does not switch to the default
 branch. The `.build` PR command uses this behavior to build the PR branch.
 
+### Personal Foldy distribution
+
+The Apple workspace's personal product is `Foldy.app`, not the upstream
+`Thaw.app` installer. Its existing application identity remains
+`com.stonerl.Thaw`; changing that identifier would separate its preferences
+and permissions from the installed Foldy.
+
+From the Apple workspace root, build the current source with:
+
+```bash
+DMG_OUTPUT_DIR=/path/to/distribution bash Scripts/package-foldy-dmg.sh patch
+```
+
+For prereleases, `patch` retains the marketing version and increments the
+shared project build number. The resulting filename includes both, for example
+`Foldy-3.0.0-alpha.9-115.dmg`. An explicit marketing version is also accepted.
+The default output directory is `~/Library/Caches/AppPort/distribution`.
+The script does not install, launch, quit, or change preferences for Foldy.
+
+The local wrapper skips the lint build phase, builds Release from source,
+signs nested code and the app with the configured Developer ID and hardened
+runtime, then notarizes and staples both the app and DMG. Stapler, code-signing,
+and Gatekeeper checks must succeed before completion. It uses the `notarytool`
+keychain profile by default (`NOTARY_PROFILE` overrides it), and prints the
+temporary build/evidence directory. Publishing the DMG and updating the
+Homebrew tap are separate steps handled by the workspace release script.
+
 ### Release discussions
 
 **Discussion category** opens a linked discussion in that category. It defaults
