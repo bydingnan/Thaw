@@ -736,30 +736,17 @@ nonisolated enum MenuBarItemAXProvider {
     /// See InventoryWalkPlan.
     private static let fullWalks = FullWalkLedger()
 
-    /// See nativeOverflowControlBounds(on:).
-    @concurrent
-    static func nativeOverflowControlBoundsConcurrent(
-        on display: CGDirectDisplayID,
-        newerThan: ContinuousClock.Instant? = nil
-    ) async -> [CGRect] {
-        // Warms the memo for the main-thread reader. Must not call the sync
-        // nativeOverflowControlBounds, which is cached-only and never walks.
-        guard case let .present(bounds) = await overflowWalks.observation(on: display, newerThan: newerThan) else {
-            return []
-        }
-        return bounds
-    }
-
     /// See nativeOverflowObservation(on:).
     @concurrent
     static func nativeOverflowObservationConcurrent(
-        on display: CGDirectDisplayID
+        on display: CGDirectDisplayID,
+        newerThan: ContinuousClock.Instant? = nil
     ) async -> NativeOverflowObservation {
-        await overflowWalks.observation(on: display)
+        await overflowWalks.observation(on: display, newerThan: newerThan)
     }
 
-    private static let overflowWalks = OverflowWalkGate<NativeOverflowObservation> { display in
-        nativeOverflowObservation(on: display, forceFresh: true)
+    private static let overflowWalks = OverflowWalkGate<NativeOverflowObservation> { display, cutoff in
+        nativeOverflowObservation(on: display, forceFresh: true, newerThan: cutoff)
     }
 
     /// One all-display inventory prevents simultaneous display/capture callers
@@ -804,94 +791,29 @@ nonisolated enum MenuBarItemAXProvider {
     /// sweep must never claim .absent.
     private static func chevronObservationByHitTest(
         on display: CGDirectDisplayID,
-        displayBounds: CGRect
+        displayBounds: CGRect,
+        newerThan cutoff: ContinuousClock.Instant?
     ) -> NativeOverflowObservation {
         let memo = chevronProbeMemo.withLock { $0[display] } ?? ChevronProbeMemo()
         let cooldown = chevronAbsenceCooldown(isBuiltIn: CGDisplayIsBuiltin(display) != 0)
 
-        // A reveal mask sits above the bar, so a hit-test taken while it is up
-        // reads the mask, not the bar; hold the last observation instead.
-        // The same while Thaw's own menus are in the bar: AppKit answers those
-        // hits on this thread and NSMenu asserts off the main one.
-        if ClockRevealMaskActivity.isAnyMaskShowing || isThawTheMenuBarOwner(NSWorkspace.shared.menuBarOwningApplication?.processIdentifier) {
-            if memo.hint == nil, memo.lastAbsentAt == nil {
-                diagLog.debug(
-                    "chevron: skipping the strip on display \(display) while it cannot be hit-tested; no absence recorded"
-                )
-            }
-            return Self.chevronObservationWhileMasked(
-                hint: memo.hint, lastAbsentAt: memo.lastAbsentAt, now: .now, cooldown: cooldown
-            )
-        }
-
-        if let hint = memo.hint {
-            switch MenuBarChevronProbeProvider.current.sweepForChevrons(
-                in: narrowedProbeRect(around: hint, in: displayBounds)
-            ) {
-            case let .present(frames):
-                recordChevronSweep(found: frames.first, on: display)
-                return .present(frames)
-            case .unavailable:
-                // The band gave up: keep the hint and don't widen on a slow bar.
-                return .unavailable
-            case .absent:
-                break
-            }
-        } else if let lastAbsentAt = memo.lastAbsentAt, ContinuousClock.now - lastAbsentAt < cooldown {
-            return .absent
-        }
-
-        let full = MenuBarChevronProbeProvider.current.sweepForChevrons(in: displayBounds)
-        switch full {
-        case let .present(frames):
-            recordChevronSweep(found: frames.first, on: display)
-        case .absent:
-            recordChevronSweep(found: nil, on: display)
-        case .unavailable:
-            // Not recorded: an unfinished sweep must not start the 12 s cooldown.
-            break
-        }
-        return full
+        let isMasked = ClockRevealMaskActivity.isAnyMaskShowing
+            || isThawTheMenuBarOwner(NSWorkspace.shared.menuBarOwningApplication?.processIdentifier)
+        return ChevronProbeReading.observation(
+            hint: memo.hint,
+            lastAbsentAt: memo.lastAbsentAt,
+            now: .now,
+            cooldown: cooldown,
+            isMasked: isMasked,
+            displayBounds: displayBounds,
+            newerThan: cutoff,
+            sweep: { MenuBarChevronProbeProvider.current.sweepForChevrons(in: $0) },
+            record: { recordChevronSweep(found: $0, on: display) }
+        )
     }
 
     static nonisolated func isThawTheMenuBarOwner(_ owner: pid_t?) -> Bool {
         owner.map(AXPrimitives.isOwnProcess) ?? false
-    }
-
-    /// A known chevron or an absence inside its cooldown stands; anything else
-    /// is unavailable, so a masked bar cannot start a new absence.
-    static nonisolated func chevronObservationWhileMasked(
-        hint: CGRect?,
-        lastAbsentAt: ContinuousClock.Instant?,
-        now: ContinuousClock.Instant,
-        cooldown: Duration = chevronAbsenceCooldown(isBuiltIn: true)
-    ) -> NativeOverflowObservation {
-        if let hint {
-            return .present([hint])
-        }
-        if let lastAbsentAt, now - lastAbsentAt < cooldown {
-            return .absent
-        }
-        return .unavailable
-    }
-
-    /// The band to sweep around a previous sighting.
-    ///
-    /// Only the horizontal span may shrink: detectChevrons probes at the rect's
-    /// minY and rejects hits centred outside it.
-    private static func narrowedProbeRect(around hint: CGRect, in displayBounds: CGRect) -> CGRect {
-        let padding: CGFloat = 60
-        let minX = max(displayBounds.minX, hint.minX - padding)
-        let maxX = min(displayBounds.maxX, hint.maxX + padding)
-        guard maxX > minX else {
-            return displayBounds
-        }
-        return CGRect(
-            x: minX,
-            y: displayBounds.minY,
-            width: maxX - minX,
-            height: displayBounds.height
-        )
     }
 
     private static func recordChevronSweep(found frame: CGRect?, on display: CGDirectDisplayID) {
@@ -937,13 +859,14 @@ nonisolated enum MenuBarItemAXProvider {
     /// Everything else uses nativeOverflowObservationConcurrent(on:).
     static func nativeOverflowObservation(
         on display: CGDirectDisplayID,
-        forceFresh: Bool = false
+        forceFresh: Bool = false,
+        newerThan cutoff: ContinuousClock.Instant? = nil
     ) -> NativeOverflowObservation {
         let now = ContinuousClock.now
-        if !forceFresh, let memo = overflowObservationMemo.withLock({ $0[display] }), now - memo.readAt < overflowObservationLifetime {
+        if !forceFresh, cutoff == nil, let memo = overflowObservationMemo.withLock({ $0[display] }), now - memo.readAt < overflowObservationLifetime {
             return memo.observation
         }
-        let observation = nativeOverflowObservationUncached(on: display)
+        let observation = nativeOverflowObservationUncached(on: display, newerThan: cutoff)
         overflowObservationMemo.withLock { memo in
             guard memo[display].map({ $0.readAt <= now }) ?? true else { return }
             memo[display] = OverflowObservationMemo(observation: observation, readAt: now)
@@ -978,7 +901,10 @@ nonisolated enum MenuBarItemAXProvider {
     }
 
     /// The tree walk itself; see nativeOverflowObservation(on:) for the memo.
-    private static func nativeOverflowObservationUncached(on display: CGDirectDisplayID) -> NativeOverflowObservation {
+    private static func nativeOverflowObservationUncached(
+        on display: CGDirectDisplayID,
+        newerThan cutoff: ContinuousClock.Instant?
+    ) -> NativeOverflowObservation {
         guard AXHelpers.isProcessTrusted(), let bar = AXHelpers.menuBarAgentExtrasBar()
         else {
             return .unavailable
@@ -1039,7 +965,7 @@ nonisolated enum MenuBarItemAXProvider {
         var mergedFrames = frames
         var hitTestGaveUp = false
         if frames.isEmpty {
-            switch chevronObservationByHitTest(on: display, displayBounds: displayBounds) {
+            switch chevronObservationByHitTest(on: display, displayBounds: displayBounds, newerThan: cutoff) {
             case let .present(hitTestFrames):
                 for frame in hitTestFrames where seenFrames.insert(frame).inserted {
                     mergedFrames.append(frame)

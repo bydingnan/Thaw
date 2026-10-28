@@ -37,8 +37,8 @@ extension MenuBarItemImageCache {
         guard !screenIsLocked(), !itemsWithBounds.isEmpty else { return CapturePass() }
         let band = await reader.captureBand(displayID: displayID)
         guard !screenIsLocked() else { return CapturePass() }
-        let overflowBounds = await reader.overflowBounds(displayID: displayID, newerThan: nil)
-        guard !screenIsLocked() else { return CapturePass() }
+        let overflow = await reader.overflowObservation(displayID: displayID, newerThan: nil)
+        guard !screenIsLocked(), let overflowBounds = overflow.validatedCaptureBounds else { return CapturePass() }
         var result = CapturePass()
         // Staged, not applied: the ledger is read-only until the pass commits.
         result.forgivenTags = forgivenTags
@@ -171,15 +171,17 @@ extension MenuBarItemImageCache {
             // depends on the other; an overflow sweep must not wait for a full
             // ownership walk (or vice versa) before it can start.
             async let itemsRead = reader.menuBarItems(displayID: context.displayID)
-            async let overflowRead = reader.overflowBounds(displayID: context.displayID, newerThan: pixelsCompletedAt)
+            async let overflowRead = reader.overflowObservation(displayID: context.displayID, newerThan: pixelsCompletedAt)
             let (items, overflow) = await (itemsRead, overflowRead)
-            guard !screenIsLocked(), !Task.isCancelled else { return nil }
+            guard !screenIsLocked(), !Task.isCancelled, let overflowBounds = overflow.validatedCaptureBounds else { return nil }
             refreshed.postCaptureBounds = Dictionary(
                 items.map { ($0.uniqueIdentifier, $0.bounds) }, uniquingKeysWith: { first, _ in first }
             )
-            refreshed.overflowBounds += overflow
+            refreshed.overflowBounds += overflowBounds
         } else {
-            refreshed.overflowBounds += await reader.overflowBounds(displayID: context.displayID, newerThan: pixelsCompletedAt)
+            let overflow = await reader.overflowObservation(displayID: context.displayID, newerThan: pixelsCompletedAt)
+            guard let overflowBounds = overflow.validatedCaptureBounds else { return nil }
+            refreshed.overflowBounds += overflowBounds
         }
         guard !screenIsLocked(), !Task.isCancelled else { return nil }
         return refreshed
@@ -241,13 +243,13 @@ extension MenuBarItemImageCache {
         let displayID = context.displayID
         let pixelsCompletedAt = ContinuousClock.now
         async let liveRead = reader.liveBounds(for: candidates)
-        async let overflowRead = reader.overflowBounds(displayID: displayID, newerThan: pixelsCompletedAt)
+        async let overflowRead = reader.overflowObservation(displayID: displayID, newerThan: pixelsCompletedAt)
         let (live, overflow) = await (liveRead, overflowRead)
-        guard !screenIsLocked(), !Task.isCancelled else { return }
+        guard !screenIsLocked(), !Task.isCancelled, let overflowBounds = overflow.validatedCaptureBounds else { return }
         context.hasStripGeometry = true
         context.postCaptureBounds = live.bounds
         context.ambiguousIdentifiers = live.ambiguous
-        context.overflowBounds += overflow
+        context.overflowBounds += overflowBounds
         var stripOwners = [CGRect: MenuBarItemTag]()
         appendAXSourceCrops(
             candidates,

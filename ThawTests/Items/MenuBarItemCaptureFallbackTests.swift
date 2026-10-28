@@ -196,6 +196,24 @@ struct MenuBarItemCaptureFallbackTests {
         #expect(await reader.validatedTags == [item.tag])
     }
 
+    @Test(arguments: [CaptureFixture.Source.strip, .hosting, .barWindow], [false, true])
+    private func postSourceOverflowUnavailableDoesNotPublishCrop(source: CaptureFixture.Source, validateFreshBounds: Bool) async throws {
+        let item = makeItem()
+        let pixels = try makeCapture(opaque: source == .strip)
+        for available in [false, true] {
+            let reader = CaptureFixture(
+                hosting: source == .hosting ? pixels : nil,
+                barWindow: source == .barWindow ? pixels : nil,
+                strip: source == .strip ? pixels : nil,
+                items: [item],
+                postSourceOverflow: available ? .absent : .unavailable
+            )
+            let result = await capture(item, using: reader, validateFreshBounds: validateFreshBounds)
+            #expect((result.captured[item.tag] != nil) == available)
+            #expect(await reader.postSourceOverflowReads == [source])
+        }
+    }
+
     @Test(
         "Post-source ownership and overflow reads overlap and both guard publication",
         .timeLimit(.minutes(1)),
@@ -649,6 +667,7 @@ actor CaptureFixture {
     private(set) var items: [MenuBarItem]
     let stripOverflowBounds: [CGRect]
     let ownerWindowOverflowBounds: [CGRect]
+    let postSourceOverflow: NativeOverflowObservation?
     /// The inventory a geometry read reports once that owner's window was captured.
     let itemsAfterOwnerWindow: [pid_t: [MenuBarItem]]
     let gates: [Source: CaptureGate]
@@ -660,6 +679,7 @@ actor CaptureFixture {
     private var inventoryReadCount = 0
     private(set) var sourcesAtInventoryRead: [Source?] = []
     private(set) var inventoryReadsAtCapture: [Int] = []
+    private(set) var postSourceOverflowReads: [Source] = []
 
     init(
         hosting: ScreenCapture.MenuBarHostingCapture?,
@@ -669,6 +689,7 @@ actor CaptureFixture {
         items: [MenuBarItem] = [],
         stripOverflowBounds: [CGRect] = [],
         ownerWindowOverflowBounds: [CGRect] = [],
+        postSourceOverflow: NativeOverflowObservation? = nil,
         itemsAfterOwnerWindow: [pid_t: [MenuBarItem]] = [:],
         gates: [Source: CaptureGate] = [:],
         validationGates: (geometry: CaptureGate, overflow: CaptureGate)? = nil,
@@ -681,6 +702,7 @@ actor CaptureFixture {
         self.items = items
         self.stripOverflowBounds = stripOverflowBounds
         self.ownerWindowOverflowBounds = ownerWindowOverflowBounds
+        self.postSourceOverflow = postSourceOverflow
         self.itemsAfterOwnerWindow = itemsAfterOwnerWindow
         self.gates = gates
         self.validationGates = validationGates
@@ -695,12 +717,19 @@ actor CaptureFixture {
         (CGRect(x: 0, y: 0, width: 1470, height: 956), 300)
     }
 
-    func overflowBounds(displayID _: CGDirectDisplayID, newerThan cutoff: ContinuousClock.Instant?) async -> [CGRect] {
+    func overflowObservation(displayID _: CGDirectDisplayID, newerThan cutoff: ContinuousClock.Instant?) async -> NativeOverflowObservation {
         if cutoff != nil {
+            if let source = captures.last {
+                postSourceOverflowReads.append(source)
+            }
             await validationGates?.overflow.arriveAndWait()
+            if let postSourceOverflow {
+                return postSourceOverflow
+            }
         }
-        return (captures.contains(.strip) ? stripOverflowBounds : [])
+        let bounds = (captures.contains(.strip) ? stripOverflowBounds : [])
             + (captures.contains(.barWindow) ? ownerWindowOverflowBounds : [])
+        return bounds.isEmpty ? .absent : .present(bounds)
     }
 
     func hostingCapture(displayID _: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture? {

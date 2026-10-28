@@ -12,7 +12,7 @@ import ThawCapture
 /// Window-server, screen-capture and AX reads used by one thumbnail pass.
 nonisolated protocol MenuBarCaptureReading: Sendable {
     func captureBand(displayID: CGDirectDisplayID) async -> (frame: CGRect, menuMaxX: CGFloat?)
-    func overflowBounds(displayID: CGDirectDisplayID, newerThan: ContinuousClock.Instant?) async -> [CGRect]
+    func overflowObservation(displayID: CGDirectDisplayID, newerThan: ContinuousClock.Instant?) async -> NativeOverflowObservation
     func hostingCapture(displayID: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture?
     func barWindowCapture(ownerPID: pid_t, displayID: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture?
     func displayStripCapture(displayID: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture?
@@ -20,6 +20,17 @@ nonisolated protocol MenuBarCaptureReading: Sendable {
     func liveBounds(
         for candidates: [(item: MenuBarItem, bounds: CGRect)]
     ) async -> (bounds: [String: CGRect], ambiguous: Set<String>)
+}
+
+nonisolated extension NativeOverflowObservation {
+    /// Nil is missing evidence, not a trustworthy empty set of overflow controls.
+    var validatedCaptureBounds: [CGRect]? {
+        switch self {
+        case let .present(bounds): bounds
+        case .absent: []
+        case .unavailable: nil
+        }
+    }
 }
 
 nonisolated struct LiveMenuBarCaptureReader: MenuBarCaptureReading {
@@ -38,8 +49,8 @@ nonisolated struct LiveMenuBarCaptureReader: MenuBarCaptureReading {
         }
     }
 
-    func overflowBounds(displayID: CGDirectDisplayID, newerThan: ContinuousClock.Instant?) async -> [CGRect] {
-        await MenuBarItemAXProvider.nativeOverflowControlBoundsConcurrent(on: displayID, newerThan: newerThan)
+    func overflowObservation(displayID: CGDirectDisplayID, newerThan: ContinuousClock.Instant?) async -> NativeOverflowObservation {
+        await MenuBarItemAXProvider.nativeOverflowObservationConcurrent(on: displayID, newerThan: newerThan)
     }
 
     func hostingCapture(displayID: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture? {

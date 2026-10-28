@@ -27,6 +27,7 @@ and the Sparkle appcast, unless overridden with the `release_notes` input.
 - Keep display-specific appearance, notch geometry, hover routing, tooltips, recording indicators, group labels, and accessibility children consistent as their inputs change.
 - Explain failed layout placement with Retry and Show Items actions, support keyboard hints beyond 26 items, and use dominant-axis scroll gestures without momentum-only reveals.
 - Fix numbered release-note steps and the Foldy Debug development runner. Isolate Xcode test-host launch from normal menu-bar setup.
+- Require fresh, available overflow evidence before publishing thumbnails, bound hit-tested accessibility descendants, and give macOS time to reclaim Foldy's controls before successful quit or restart.
 
 ## [3.0.0-alpha.9] - 2026-10-14
 

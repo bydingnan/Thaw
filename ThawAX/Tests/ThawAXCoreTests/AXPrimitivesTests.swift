@@ -28,6 +28,68 @@ struct AXPrimitivesTests {
         assertDescendantTimeout(attribute: kAXChildrenAttribute, array: true)
     }
 
+    @Test
+    func rawHitTestElementReceivesMessagingTimeout() throws {
+        let child = AXUIElementCreateApplication(-2)
+        let point = CGPoint(x: 123, y: 456)
+        let timeout: Float = 0.125
+        var events: [String] = []
+        let result = AXPrimitives.hitTestElement(
+            at: point,
+            messagingTimeout: timeout,
+            hitTest: { _, requestedPoint, element in
+                #expect(requestedPoint == point)
+                #expect(events == ["root timeout"])
+                events.append("hit test")
+                element = child
+                return .success
+            },
+            setTimeout: { element, requestedTimeout in
+                #expect(requestedTimeout == timeout)
+                events.append(element == child ? "child timeout" : "root timeout")
+            }
+        )
+        let returned = try #require(result)
+        #expect(returned == child)
+        let read: (AXUIElement, String) -> Void = { element, attribute in
+            #expect(element == child)
+            #expect(events.contains("child timeout"))
+            events.append(attribute)
+        }
+        read(returned, "PID")
+        read(returned, "role")
+        #expect(events == ["root timeout", "hit test", "child timeout", "PID", "role"])
+    }
+
+    @Test
+    func rawHitTestFailureDoesNotReturnOrConfigureDescendant() {
+        let child = AXUIElementCreateApplication(-2)
+        var configured: [AXUIElement] = []
+        let result = AXPrimitives.hitTestElement(
+            at: .zero,
+            hitTest: { _, _, element in
+                element = child
+                return .cannotComplete
+            },
+            setTimeout: { element, _ in configured.append(element) }
+        )
+        #expect(result == nil)
+        #expect(configured.count == 1)
+        #expect(!configured.contains(child))
+    }
+
+    @Test
+    func rawHitTestMissingElementRemainsNil() {
+        var timeoutCount = 0
+        let result = AXPrimitives.hitTestElement(
+            at: .zero,
+            hitTest: { _, _, _ in .success },
+            setTimeout: { _, _ in timeoutCount += 1 }
+        )
+        #expect(result == nil)
+        #expect(timeoutCount == 1)
+    }
+
     private func assertDescendantTimeout(attribute: String, array: Bool) {
         let parent = AXUIElementCreateApplication(-1)
         let child = AXUIElementCreateApplication(-2)

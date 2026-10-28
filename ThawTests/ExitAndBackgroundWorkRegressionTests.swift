@@ -13,32 +13,34 @@ import Testing
 
 @MainActor
 struct ExitAndBackgroundWorkRegressionTests {
-    @Test func terminationTimeoutStillTearsDownControlItems() throws {
+    @Test func terminationTimeoutStillTearsDownControlItems() async throws {
         let coordinator = TerminationCoordinator()
         let token = try #require(coordinator.begin())
         var events: [String] = []
-        coordinator.finish(token, teardown: { events.append("teardown") }, reply: { events.append("reply") })
+        await coordinator.finish(
+            token, timedOut: true, teardown: { events.append("teardown") }, reply: { events.append("reply") }
+        )
         #expect(events == ["teardown", "reply"])
         #expect(!coordinator.isCurrent(token))
     }
 
-    @Test func successAndTimeoutShareSingleTeardown() throws {
-        let coordinator = TerminationCoordinator()
+    @Test func successAndTimeoutShareSingleTeardown() async throws {
+        let coordinator = TerminationCoordinator(sleep: { _ in })
         let token = try #require(coordinator.begin())
         var count = 0
-        coordinator.finish(token, teardown: { count += 1 }, reply: {})
-        coordinator.finish(token, teardown: { count += 1 }, reply: {})
+        await coordinator.finish(token, timedOut: false, teardown: { count += 1 }, reply: {})
+        await coordinator.finish(token, timedOut: true, teardown: { count += 1 }, reply: {})
         coordinator.tearDownOnce { count += 1 }
         #expect(count == 1)
     }
 
-    @Test func lateRestoreCompletionCannotReplyTwice() throws {
-        let coordinator = TerminationCoordinator()
+    @Test func lateRestoreCompletionCannotReplyTwice() async throws {
+        let coordinator = TerminationCoordinator(sleep: { _ in })
         let token = try #require(coordinator.begin())
         #expect(coordinator.begin() == nil)
         var replies = 0
-        coordinator.finish(token, teardown: {}, reply: { replies += 1 })
-        coordinator.finish(token, teardown: {}, reply: { replies += 1 })
+        await coordinator.finish(token, timedOut: true, teardown: {}, reply: { replies += 1 })
+        await coordinator.finish(token, timedOut: false, teardown: {}, reply: { replies += 1 })
         #expect(replies == 1)
     }
 
@@ -59,7 +61,8 @@ struct ExitAndBackgroundWorkRegressionTests {
             prepareWatcher: { { events.append("watcher") } },
             restore: { events.append("restore") },
             teardown: { events.append("teardown") },
-            exit: { events.append("exit") }
+            exit: { events.append("exit") },
+            sleep: { _ in }
         )
         try await coordinator.run()
         #expect(events == ["save", "flush", "restore", "teardown", "watcher", "exit"])
@@ -70,7 +73,7 @@ struct ExitAndBackgroundWorkRegressionTests {
         var exited = false
         let coordinator = RestartCoordinator(
             requestSave: {}, flush: {}, prepareWatcher: { { started = true } }, restore: {}, teardown: {},
-            exit: { #expect(started); exited = true }
+            exit: { #expect(started); exited = true }, sleep: { _ in }
         )
         try await coordinator.run()
         #expect(exited)
@@ -82,7 +85,8 @@ struct ExitAndBackgroundWorkRegressionTests {
         let coordinator = RestartCoordinator(
             requestSave: { touched = true }, flush: { touched = true },
             prepareWatcher: { throw Failure.preparation }, restore: { touched = true },
-            teardown: { touched = true }, exit: { touched = true }
+            teardown: { touched = true }, exit: { touched = true },
+            sleep: { _ in touched = true }
         )
         do {
             try await coordinator.run()

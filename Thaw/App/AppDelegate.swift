@@ -170,7 +170,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             _ = await appState.itemManager.restoreBlockedItemsToVisible()
             guard termination.isCurrent(attemptID) else { return }
-            replyToTerminationRequest(sender, attemptID: attemptID, timedOut: false)
+            await replyToTerminationRequest(sender, attemptID: attemptID, timedOut: false)
         }
 
         terminationTimeoutTask = Task { @MainActor in
@@ -179,7 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } catch {
                 return
             }
-            replyToTerminationRequest(sender, attemptID: attemptID, timedOut: true)
+            await replyToTerminationRequest(sender, attemptID: attemptID, timedOut: true)
         }
 
         return .terminateLater
@@ -316,9 +316,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ sender: NSApplication,
         attemptID: UUID,
         timedOut: Bool
-    ) {
-        termination.finish(
+    ) async {
+        await termination.finish(
             attemptID,
+            timedOut: timedOut,
             teardown: { appState.menuBarManager.tearDownControlItemsForTermination() },
             reply: {
                 terminationTimeoutTask?.cancel()

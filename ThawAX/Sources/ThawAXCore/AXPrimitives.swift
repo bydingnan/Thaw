@@ -330,19 +330,19 @@ public enum AXPrimitives {
     /// Hit-tests global screen coordinates with a bounded timeout so a hung app under the pointer cannot stall the caller.
     public static func hitTestElement(
         at point: CGPoint,
-        messagingTimeout: Float = defaultMessagingTimeout
+        messagingTimeout: Float = defaultMessagingTimeout,
+        hitTest: (AXUIElement, CGPoint, inout AXUIElement?) -> AXError = { root, point, element in
+            AXUIElementCopyElementAtPosition(root, Float(point.x), Float(point.y), &element)
+        },
+        setTimeout: (AXUIElement, Float) -> Void = { _ = AXUIElementSetMessagingTimeout($0, $1) }
     ) -> AXUIElement? {
         let systemWide = AXUIElementCreateSystemWide()
-        AXUIElementSetMessagingTimeout(systemWide, messagingTimeout)
+        setTimeout(systemWide, messagingTimeout)
         var element: AXUIElement?
-        guard AXUIElementCopyElementAtPosition(
-            systemWide,
-            Float(point.x),
-            Float(point.y),
-            &element
-        ) == .success else {
+        guard hitTest(systemWide, point, &element) == .success, let element else {
             return nil
         }
+        setTimeout(element, messagingTimeout)
         return element
     }
 }

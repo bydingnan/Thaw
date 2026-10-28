@@ -17,10 +17,11 @@ struct ChevronMaskedProbeTests {
     func knownChevronStands() {
         let hint = CGRect(x: 1200, y: 0, width: 24, height: 24)
         let now = ContinuousClock.now
-        let observation = MenuBarItemAXProvider.chevronObservationWhileMasked(
+        let observation = ChevronProbeReading.maskedObservation(
             hint: hint,
             lastAbsentAt: nil,
-            now: now
+            now: now,
+            cooldown: .seconds(12)
         )
         #expect(observation == .present([hint]))
     }
@@ -28,10 +29,11 @@ struct ChevronMaskedProbeTests {
     @Test("An absence inside its cooldown stands")
     func absenceInsideCooldownStands() {
         let now = ContinuousClock.now
-        let observation = MenuBarItemAXProvider.chevronObservationWhileMasked(
+        let observation = ChevronProbeReading.maskedObservation(
             hint: nil,
             lastAbsentAt: now - .seconds(1),
-            now: now
+            now: now,
+            cooldown: .seconds(12)
         )
         #expect(observation == .absent)
     }
@@ -39,10 +41,11 @@ struct ChevronMaskedProbeTests {
     @Test("An absence past its cooldown is unavailable")
     func absencePastCooldownIsUnavailable() {
         let now = ContinuousClock.now
-        let observation = MenuBarItemAXProvider.chevronObservationWhileMasked(
+        let observation = ChevronProbeReading.maskedObservation(
             hint: nil,
             lastAbsentAt: now - .seconds(13),
-            now: now
+            now: now,
+            cooldown: .seconds(12)
         )
         #expect(observation == .unavailable)
     }
@@ -55,7 +58,7 @@ struct ChevronMaskedProbeTests {
         #expect(external > builtIn)
 
         let now = ContinuousClock.now
-        let observation = MenuBarItemAXProvider.chevronObservationWhileMasked(
+        let observation = ChevronProbeReading.maskedObservation(
             hint: nil,
             lastAbsentAt: now - .seconds(30),
             now: now,
@@ -66,10 +69,11 @@ struct ChevronMaskedProbeTests {
 
     @Test("No hint and no absence is unavailable")
     func noHintNoAbsenceIsUnavailable() {
-        let observation = MenuBarItemAXProvider.chevronObservationWhileMasked(
+        let observation = ChevronProbeReading.maskedObservation(
             hint: nil,
             lastAbsentAt: nil,
-            now: .now
+            now: .now,
+            cooldown: .seconds(12)
         )
         #expect(observation == .unavailable)
     }

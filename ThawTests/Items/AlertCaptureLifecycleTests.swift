@@ -145,7 +145,7 @@ struct AlertCaptureLifecycleTests {
 
     @Test func postSourceOverflowValidationDoesNotReusePreCaptureMemo() async {
         let counter = Counter()
-        let gate = OverflowWalkGate<Int> { _ in await counter.next() }
+        let gate = OverflowWalkGate<Int> { _, _ in await counter.next() }
         #expect(await gate.observation(on: 1) == 1)
         let pixelsCompletedAt = ContinuousClock.now
         #expect(await gate.observation(on: 1, newerThan: pixelsCompletedAt) == 2)
@@ -155,7 +155,7 @@ struct AlertCaptureLifecycleTests {
         let started = AsyncStream.makeStream(of: Void.self)
         let release = AsyncStream.makeStream(of: Void.self)
         let counter = Counter()
-        let gate = OverflowWalkGate<Int> { _ in
+        let gate = OverflowWalkGate<Int> { _, _ in
             let number = await counter.next()
             if number == 1 {
                 started.continuation.yield(())
