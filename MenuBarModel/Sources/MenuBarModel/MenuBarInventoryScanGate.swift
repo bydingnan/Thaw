@@ -5,6 +5,8 @@
 //  Copyright (Thaw) © 2026 Toni Förster
 //  Licensed under the GNU GPLv3
 
+import ThawConcurrency
+
 /// Shares discovery work without allowing a move to consume a pre-request scan.
 /// The walk must stop cooperatively and return its retained state on cancellation.
 public actor MenuBarInventoryScanGate<Observation: Sendable, Snapshot: Sendable> {
@@ -40,14 +42,13 @@ public actor MenuBarInventoryScanGate<Observation: Sendable, Snapshot: Sendable>
             let coversRequest = existing.scope == scope &&
                 (scope == .discovery || priorityOwners.isSubset(of: existing.priorityOwners))
             if coversRequest, !freshOnly || existing.id > requestedAfter {
-                let snapshot = await existing.task.value
-                return Task.isCancelled ? nil : snapshot
+                return await Self.awaitShared(existing.task)
             }
             // A periodic reader waits instead, or its cadence would starve discovery.
             if preemptsDiscovery, scope != .discovery, existing.scope == .discovery {
                 existing.task.cancel()
             }
-            _ = await existing.task.value
+            guard await Self.awaitShared(existing.task) != nil else { return nil }
         }
         guard !Task.isCancelled else { return nil }
         latestID += 1
@@ -60,8 +61,21 @@ public actor MenuBarInventoryScanGate<Observation: Sendable, Snapshot: Sendable>
             return result.snapshot
         }
         inFlight = InFlight(id: id, scope: scope, priorityOwners: priorityOwners, task: task)
-        let snapshot = await task.value
-        return Task.isCancelled ? nil : snapshot
+        return await Self.awaitShared(task)
+    }
+
+    private static nonisolated func awaitShared(_ task: Task<Snapshot, Never>) async -> Snapshot? {
+        let completion = OneShotContinuation<Snapshot?, Never>()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                completion.setContinuation(continuation)
+                Task {
+                    await completion.settle(.success(task.value))
+                }
+            }
+        } onCancel: {
+            completion.settle(.success(nil))
+        }
     }
 
     private func finish(id: UInt64, state: MenuBarScanState<Observation>) {

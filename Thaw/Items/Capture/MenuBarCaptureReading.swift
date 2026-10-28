@@ -12,7 +12,7 @@ import ThawCapture
 /// Window-server, screen-capture and AX reads used by one thumbnail pass.
 nonisolated protocol MenuBarCaptureReading: Sendable {
     func captureBand(displayID: CGDirectDisplayID) async -> (frame: CGRect, menuMaxX: CGFloat?)
-    func overflowBounds(displayID: CGDirectDisplayID) async -> [CGRect]
+    func overflowBounds(displayID: CGDirectDisplayID, newerThan: ContinuousClock.Instant?) async -> [CGRect]
     func hostingCapture(displayID: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture?
     func barWindowCapture(ownerPID: pid_t, displayID: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture?
     func displayStripCapture(displayID: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture?
@@ -38,8 +38,8 @@ nonisolated struct LiveMenuBarCaptureReader: MenuBarCaptureReading {
         }
     }
 
-    func overflowBounds(displayID: CGDirectDisplayID) async -> [CGRect] {
-        await MenuBarItemAXProvider.nativeOverflowControlBoundsConcurrent(on: displayID)
+    func overflowBounds(displayID: CGDirectDisplayID, newerThan: ContinuousClock.Instant?) async -> [CGRect] {
+        await MenuBarItemAXProvider.nativeOverflowControlBoundsConcurrent(on: displayID, newerThan: newerThan)
     }
 
     func hostingCapture(displayID: CGDirectDisplayID) async -> ScreenCapture.MenuBarHostingCapture? {
@@ -145,19 +145,12 @@ extension MenuBarItemImageCache {
         displayBounds: CGRect
     ) -> (windowID: CGWindowID, frame: CGRect)? {
         guard
-            displayBounds.width > 0,
-            let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]]
+            displayBounds.width > 0, let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]]
         else { return nil }
         var best: (windowID: CGWindowID, frame: CGRect, info: [String: Any])?
         for info in list {
             guard
-                let pid = info[kCGWindowOwnerPID as String] as? pid_t, pid == ownerPID,
-                let number = info[kCGWindowNumber as String] as? CGWindowID,
-                let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
-                let frame = CGRect(dictionaryRepresentation: boundsDict)
-            else { continue }
-            guard ScreenCapture.isMenuBarStripFrame(frame, in: displayBounds),
-                  (info[kCGWindowAlpha as String] as? Double ?? 1) > 0
+                let pid = info[kCGWindowOwnerPID as String] as? pid_t, pid == ownerPID, let number = info[kCGWindowNumber as String] as? CGWindowID, let boundsDict = info[kCGWindowBounds as String] as? NSDictionary, let frame = CGRect(dictionaryRepresentation: boundsDict), ScreenCapture.isMenuBarStripFrame(frame, in: displayBounds), (info[kCGWindowAlpha as String] as? Double ?? 1) > 0
             else { continue }
             if let current = best, frame.width <= current.frame.width {
                 continue
@@ -180,9 +173,7 @@ extension MenuBarItemImageCache {
         displayBounds: CGRect
     ) async -> ScreenCapture.MenuBarHostingCapture? {
         guard
-            let barWindow = barWindow(for: ownerPID, displayBounds: displayBounds),
-            barWindow.frame.width > 0,
-            let capture = await ScreenCapture.captureOwnerBarWindow(
+            let barWindow = barWindow(for: ownerPID, displayBounds: displayBounds), barWindow.frame.width > 0, let capture = await ScreenCapture.captureOwnerBarWindow(
                 windowID: barWindow.windowID,
                 frame: barWindow.frame
             )

@@ -15,7 +15,7 @@ import Foundation
 /// Clock click is bridged. The system stores the binding in
 /// com.apple.symbolichotkeys as a parameters array of
 /// [ascii, keyCode, modifiers]. A stock system never materializes it.
-nonisolated struct SystemNotificationCenterHotkey: Equatable {
+nonisolated struct SystemNotificationCenterHotkey: Equatable, Sendable {
     /// The symbolic-hotkey identifiers for "Show Notification Center"; the
     /// ID moved across releases, so both are read, first enabled entry wins.
     static let symbolicHotKeyIDs = ["162", "163"]
@@ -37,7 +37,6 @@ nonisolated struct SystemNotificationCenterHotkey: Equatable {
     static func shortcuts() -> [SystemNotificationCenterHotkey] {
         let applicationID = "com.apple.symbolichotkeys" as CFString
         let key = "AppleSymbolicHotKeys" as CFString
-        CFPreferencesAppSynchronize(applicationID)
         let table = CFPreferencesCopyAppValue(key, applicationID) as? [String: Any] ?? [:]
         return shortcuts(from: table)
     }
@@ -53,13 +52,7 @@ nonisolated struct SystemNotificationCenterHotkey: Equatable {
         }
         for id in symbolicHotKeyIDs {
             guard
-                let entry = table[id] as? [String: Any],
-                isEnabled(entry),
-                let value = entry["value"] as? [String: Any],
-                let parameters = value["parameters"] as? [NSNumber],
-                parameters.count >= 3,
-                let keyCode = CGKeyCode(exactly: parameters[1].int64Value),
-                keyCode != UInt16.max
+                let entry = table[id] as? [String: Any], isEnabled(entry), let value = entry["value"] as? [String: Any], let parameters = value["parameters"] as? [NSNumber], parameters.count >= 3, let keyCode = CGKeyCode(exactly: parameters[1].int64Value), keyCode != UInt16.max
             else {
                 continue
             }

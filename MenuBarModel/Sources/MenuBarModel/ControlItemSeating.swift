@@ -41,7 +41,8 @@ public enum ControlItemSeating {
                 }
             }
         }
-        return ascending >= descending
+        guard ascending != descending else { return nil }
+        return ascending > descending
     }
 
     /// Whether weight already sorts between its neighbours, in which case the

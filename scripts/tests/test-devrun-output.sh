@@ -74,7 +74,7 @@ case "$name" in
         if [[ "$SCENARIO" == stop-existing ]]; then touch "$TEST_STATE/stopped"; fi
         ;;
     pkill)
-        grep -Fq 'Thaw Debug did not quit; force-quitting it.' "$TEST_STATE/stderr" || exit 98
+        grep -Fq 'Foldy Debug did not quit; force-quitting it.' "$TEST_STATE/stderr" || exit 98
         [[ "$SCENARIO" != stop-failure ]] || exit 1
         touch "$TEST_STATE/stopped"
         ;;
@@ -95,8 +95,8 @@ run_case() {
     local expected=$1 actual=0
     shift
     TEST_STATE="$TEMP_DIR/$SCENARIO-$RANDOM"
-    mkdir -p "$TEST_STATE/products/Thaw Debug.app" "$TEST_STATE/tmp"
-    if [[ "$SCENARIO" == missing-product ]]; then rmdir "$TEST_STATE/products/Thaw Debug.app"; fi
+    mkdir -p "$TEST_STATE/products/Foldy Debug.app" "$TEST_STATE/tmp"
+    if [[ "$SCENARIO" == missing-product ]]; then rmdir "$TEST_STATE/products/Foldy Debug.app"; fi
     : > "$TEST_STATE/commands"
     env PATH="$TEMP_DIR/bin:$PATH" TMPDIR="$TEST_STATE/tmp/" SCENARIO="$SCENARIO" TEST_STATE="$TEST_STATE" \
         /bin/bash "$SCRIPT" "$@" > "$TEST_STATE/output" 2> "$TEST_STATE/stderr" || actual=$?
@@ -120,12 +120,12 @@ contains "$LOG" '== Check prerequisites =='
 contains "$OUTPUT" 'Stop previous app: not running.'
 excludes "$OUTPUT" 'Stop previous app...'
 excludes "$OUTPUT" 'Stop previous app: done'
-contains "$OUTPUT" 'Running Thaw Debug (PID 4242).'
+contains "$OUTPUT" 'Running Foldy Debug (PID 4242).'
 contains "$OUTPUT" 'Diagnostic logging: on (saved setting).'
 excludes "$OUTPUT" 'RAW:'
 contains "$LOG" 'RAW: compiler output'
 contains "$LOG" 'RAW: package resolution'
-contains "$COMMANDS" 'pgrep -f ^/Applications/Thaw Debug\.app/Contents/MacOS/Thaw Debug( |$)'
+contains "$COMMANDS" 'pgrep -f ^/Applications/Foldy Debug\.app/Contents/MacOS/Foldy Debug( |$)'
 
 SCENARIO=logging-off
 run_case 0 --debug --verbose
@@ -158,12 +158,12 @@ excludes "$OUTPUT" 'force-quitting'
 excludes "$COMMANDS" 'pkill '
 SCENARIO=force-stop
 run_case 0
-contains "$COMMANDS" 'pkill -9 -f ^/Applications/Thaw Debug'
-once "$OUTPUT" 'Thaw Debug did not quit; force-quitting it.'
-once "$LOG" 'Thaw Debug did not quit; force-quitting it.'
+contains "$COMMANDS" 'pkill -9 -f ^/Applications/Foldy Debug'
+once "$OUTPUT" 'Foldy Debug did not quit; force-quitting it.'
+once "$LOG" 'Foldy Debug did not quit; force-quitting it.'
 run_case 0 --verbose
-once "$OUTPUT" 'Thaw Debug did not quit; force-quitting it.'
-once "$LOG" 'Thaw Debug did not quit; force-quitting it.'
+once "$OUTPUT" 'Foldy Debug did not quit; force-quitting it.'
+once "$LOG" 'Foldy Debug did not quit; force-quitting it.'
 SCENARIO=stop-failure
 run_case 1
 contains "$OUTPUT" 'Stop previous app: failed'
@@ -178,7 +178,7 @@ contains "$OUTPUT" 'example.swift:7: error: missing argument'
 contains "$LOG" 'compiler detail'
 excludes "$COMMANDS" 'mv '
 excludes "$COMMANDS" 'open '
-excludes "$OUTPUT" 'Running Thaw Debug'
+excludes "$OUTPUT" 'Running Foldy Debug'
 run_case 65 --verbose
 contains "$OUTPUT" 'RAW: compiler output'
 contains "$OUTPUT" 'Build: failed'
@@ -221,13 +221,13 @@ excludes "$COMMANDS" 'open '
 SCENARIO=open-failure
 run_case 70
 contains "$OUTPUT" 'Launch: failed'
-excludes "$OUTPUT" 'Running Thaw Debug'
+excludes "$OUTPUT" 'Running Foldy Debug'
 
 SCENARIO=launch-timeout
 run_case 1
 contains "$OUTPUT" 'Launch: failed'
-contains "$OUTPUT" 'no running Thaw Debug process'
+contains "$OUTPUT" 'no running Foldy Debug process'
 contains "$OUTPUT" 'Check Console for a crash report'
-excludes "$OUTPUT" 'Running Thaw Debug'
+excludes "$OUTPUT" 'Running Foldy Debug'
 
 printf 'devrun output: all scenarios passed\n'

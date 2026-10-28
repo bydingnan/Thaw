@@ -14,11 +14,13 @@ import Testing
 @MainActor
 @Suite("Parked items and the repair identity")
 struct ParkedItemsTests {
+    private static let testDisplays = [CGRect(x: 0, y: 0, width: 1920, height: 1080)]
+
     @Test("The bar's centre comes from the seated visible control")
     func barCentreComesFromTheVisibleControl() {
         let control = Self.item(.visibleControlItem, y: 0, windowID: 1)
         let app = Self.item(Self.appTag("A"), y: 0, windowID: 2)
-        let reading = ParkedItems.parkedSetAndBarMidY(in: [app, control])
+        let reading = ParkedItems.parkedSetAndBarMidY(in: [app, control], displays: Self.testDisplays)
         #expect(reading.barMidY == control.bounds.midY)
         #expect(reading.parkedIDs.isEmpty)
     }
@@ -29,7 +31,7 @@ struct ParkedItemsTests {
         let seated = Self.item(Self.appTag("A"), y: 0, windowID: 2)
         let empty = Self.item(Self.appTag("B"), y: 0, windowID: 3, size: .zero)
         let far = Self.item(Self.appTag("C"), y: 1068, windowID: 4)
-        let reading = ParkedItems.parkedSetAndBarMidY(in: [control, seated, empty, far])
+        let reading = ParkedItems.parkedSetAndBarMidY(in: [control, seated, empty, far], displays: Self.testDisplays)
         #expect(reading.parkedIDs == [3, 4])
     }
 
@@ -37,7 +39,7 @@ struct ParkedItemsTests {
     func noControlMeansNoCentre() {
         let seated = Self.item(Self.appTag("A"), y: 0, windowID: 2)
         let empty = Self.item(Self.appTag("B"), y: 0, windowID: 3, size: .zero)
-        let reading = ParkedItems.parkedSetAndBarMidY(in: [seated, empty])
+        let reading = ParkedItems.parkedSetAndBarMidY(in: [seated, empty], displays: Self.testDisplays)
         #expect(reading.barMidY == nil)
         #expect(reading.parkedIDs == [3])
     }

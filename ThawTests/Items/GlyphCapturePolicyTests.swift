@@ -6,6 +6,7 @@
 //  Licensed under the GNU GPLv3
 
 import CoreGraphics
+import MenuBarModel
 import Testing
 @testable import Thaw
 
@@ -87,29 +88,93 @@ struct GlyphCapturePolicyTests {
         #expect(MenuBarItemImageCache.preferredCachedImage(existing: existing, candidate: candidate) == existing)
     }
 
-    @Test("A candidate under three quarters of the existing width loses")
-    func muchNarrowerCandidateLoses() throws {
+    @Test("An untrusted narrow candidate keeps the settled glyph")
+    func untrustedNarrowCandidateStillKeepsSettledGlyph() throws {
         let existing = try Self.capture(width: 20)
         let candidate = try Self.capture(width: 14)
 
         #expect(MenuBarItemImageCache.preferredCachedImage(existing: existing, candidate: candidate) == existing)
     }
 
-    @Test("A candidate at exactly three quarters of the existing width wins")
-    func threeQuarterWidthCandidateWins() throws {
-        let existing = try Self.capture(width: 20)
+    @Test("A trusted legitimate shrink replaces the wide glyph")
+    func trustedLegitimateShrinkReplacesWideGlyph() throws {
+        let existing = try Self.capture(width: 40)
         let candidate = try Self.capture(width: 15)
 
         #expect(MenuBarItemImageCache.preferredCachedImage(existing: existing, candidate: candidate) == candidate)
     }
 
     @Test("A candidate at least as wide replaces the existing glyph")
-    func wideCandidateWins() throws {
+    func trustedCandidateAtSameWidthReplacesExistingGlyph() throws {
         let existing = try Self.capture(width: 20)
         let same = try Self.capture(width: 20)
         let wider = try Self.capture(width: 32)
 
         #expect(MenuBarItemImageCache.preferredCachedImage(existing: existing, candidate: same) == same)
         #expect(MenuBarItemImageCache.preferredCachedImage(existing: existing, candidate: wider) == wider)
+    }
+
+    private func renderability(blank: Bool) throws -> Bool {
+        let appState = AppState()
+        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        cache.appState = appState
+        let diskTag = MenuBarItemTag(namespace: .string("com.example.renderability"), title: "Glyph", instanceIndex: 0)
+        let item = MenuBarItem(
+            tag: MenuBarItemTag(namespace: diskTag.namespace, title: diskTag.title, windowID: 301, instanceIndex: 0),
+            windowID: 301,
+            ownerPID: 999_993,
+            sourcePID: 999_993,
+            bounds: CGRect(x: 1000, y: 4, width: 24, height: 24),
+            title: "Glyph",
+            isOnScreen: true
+        )
+        var inventory = MenuBarItemCache(displayID: 42)
+        inventory[.visible] = [item]
+        appState.itemManager.itemCache = inventory
+        try cache.setCapture(Self.capture(width: 24, blank: blank), for: diskTag)
+        return cache.hasNoRenderableItems(in: .visible, hasScreenRecordingPermission: true)
+    }
+
+    @Test
+    func hasNoRenderableItemsAcceptsDiskLoadedCaptureWithoutWindowID() throws {
+        #expect(try !renderability(blank: false))
+    }
+
+    @Test
+    func hasNoRenderableItemsRejectsEffectivelyBlankCapture() throws {
+        #expect(try renderability(blank: true))
+    }
+
+    @Test
+    func removedItemReappearanceSeedsBaselineWithoutRevealing() throws {
+        let tag = MenuBarItemTag(namespace: .string("com.example.alert"), title: "A", instanceIndex: 0)
+        var baselines = AlertRevealBaselines()
+        let enabled: Set<String> = [tag.tagIdentifier]
+        #expect(try baselines.changedIdentifiers(in: [tag: Self.capture(width: 20)], enabled: enabled).isEmpty)
+        #expect(baselines.changedIdentifiers(in: [:], enabled: enabled).isEmpty)
+        #expect(try baselines.changedIdentifiers(in: [tag: Self.capture(width: 30)], enabled: enabled).isEmpty)
+    }
+
+    @Test
+    func disabledAndAbsentItemBaselinesArePruned() throws {
+        let a = MenuBarItemTag(namespace: .string("com.example.alert"), title: "A", instanceIndex: 0)
+        let b = MenuBarItemTag(namespace: .string("com.example.alert"), title: "B", instanceIndex: 0)
+        let image = try Self.capture(width: 20)
+        var baselines = AlertRevealBaselines()
+        _ = baselines.changedIdentifiers(in: [a: image, b: image], enabled: [a.tagIdentifier, b.tagIdentifier])
+        _ = baselines.changedIdentifiers(in: [b: image], enabled: [a.tagIdentifier])
+        #expect(baselines.captures.isEmpty)
+    }
+
+    @Test
+    func presentOptedInItemBaselineSurvivesUnrelatedCacheChanges() throws {
+        let a = MenuBarItemTag(namespace: .string("com.example.alert"), title: "A", instanceIndex: 0)
+        let b = MenuBarItemTag(namespace: .string("com.example.alert"), title: "B", instanceIndex: 0)
+        let image = try Self.capture(width: 20)
+        var baselines = AlertRevealBaselines()
+        _ = baselines.changedIdentifiers(in: [a: image], enabled: [a.tagIdentifier])
+        #expect(baselines.changedIdentifiers(in: [a: image, b: image], enabled: [a.tagIdentifier]).isEmpty)
+        let changed = try baselines.changedIdentifiers(in: [a: Self.capture(width: 30)], enabled: [a.tagIdentifier])
+        #expect(changed == [a.tagIdentifier])
     }
 }

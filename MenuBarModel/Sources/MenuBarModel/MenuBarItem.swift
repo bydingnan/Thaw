@@ -126,11 +126,7 @@ public struct MenuBarItem: CustomStringConvertible, Sendable, Codable {
         // Only the host-pinned items (Clock, Control Center, Siri) become
         // hideable. Hiding-unsupported and agent-ungoverned items stay
         // forced-visible, since a hidden assignment could never be carried out.
-        guard experimentalSystemItemHiding,
-              tag.isLayoutAnchoredSystemItem,
-              basePolicy.isForcedVisible,
-              !tag.isHidingUnsupported,
-              !tag.isAgentUngoverned
+        guard experimentalSystemItemHiding, tag.isLayoutAnchoredSystemItem, basePolicy.isForcedVisible, !tag.isHidingUnsupported, !tag.isAgentUngoverned
         else {
             return basePolicy
         }
@@ -157,35 +153,10 @@ public struct MenuBarItem: CustomStringConvertible, Sendable, Codable {
             (sourcePID ?? ownerPID) == (other.sourcePID ?? other.ownerPID)
     }
 
-    /// Whether AX reports this item parked outside the live bar. During
-    /// assertion reflows macOS 27 parks items around y 1400 with a hidden-side
-    /// X, which would falsely trigger divergence detection and reorders.
-    ///
-    /// The absolute Y check comes first: when the visible control parks too,
-    /// a peer-relative check would call everyone on-band.
-    public func isParkedOffMenuBarBand(among peers: [MenuBarItem]) -> Bool {
-        guard bounds.width > 0, bounds.height > 0 else { return true }
-
-        // A parked item reports the leading-edge sentinel (origin.x == -1) in
-        // the bar's own Y band, so the Y checks below miss it.
-        if bounds.origin.x == -1 {
-            return true
-        }
-
-        // Live bar items sit in the top 60 pt or so of the hosting-window space.
-        if bounds.midY > 80 {
-            return true
-        }
-
-        guard let barMidY = peers.first(where: {
-            $0.tag.matchesVisibleControlItem && $0.bounds.midY <= 80
-        })?.bounds.midY
-            ?? peers.first(where: {
-                $0.isControlItem && $0.bounds.width > 8 && $0.bounds.midY <= 80
-            })?.bounds.midY
-        else { return false }
-        // The live band is about 30 pt; parked items are 1000+ pt away on Y.
-        return abs(bounds.midY - barMidY) > 48
+    /// Whether AX reports this item outside its containing display's live bar band.
+    /// Empty and sentinel frames remain parked even during assertion reflows.
+    public func isParkedOffMenuBarBand(among _: [MenuBarItem]) -> Bool {
+        MenuBarBandClassifier.isParked(bounds)
     }
 
     /// A transient Control Center module (such as Live Activities) with a
@@ -251,8 +222,8 @@ public struct MenuBarItem: CustomStringConvertible, Sendable, Codable {
 
         lazy var fallbackName = "Menu Bar Item"
 
-        /// Prefers the AX or catalog name (Wi-Fi, Clock) over the MenuBarAgent
-        /// process name that sourceApplication would give.
+        // Prefers the AX or catalog name (Wi-Fi, Clock) over the MenuBarAgent
+        // process name that sourceApplication would give.
         func menuBarAgentDisplayName(preferredTitle: String?) -> String {
             func significant(_ value: String?) -> String? {
                 guard let value else { return nil }
@@ -298,9 +269,8 @@ public struct MenuBarItem: CustomStringConvertible, Sendable, Codable {
             }
             if
                 let running = NSRunningApplication
-                .runningApplications(withBundleIdentifier: bundleIdentifier)
-                .first,
-                let localizedName = running.localizedName
+                    .runningApplications(withBundleIdentifier: bundleIdentifier)
+                    .first, let localizedName = running.localizedName
             {
                 return localizedName
             }

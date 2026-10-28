@@ -118,25 +118,19 @@ public enum AXPrimitives {
     /// The element's frame, preferring AXFrame and falling back to
     /// AXPosition plus AXSize for elements that do not vend it.
     public static func frame(of element: AXUIElement) -> CGRect? {
-        if let value = copyAttribute(element, "AXFrame"),
-           CFGetTypeID(value) == AXValueGetTypeID()
-        {
+        if let value = copyAttribute(element, "AXFrame"), CFGetTypeID(value) == AXValueGetTypeID() {
             var rect = CGRect.zero
             if AXValueGetValue(unsafeDowncast(value, to: AXValue.self), .cgRect, &rect) {
                 return rect
             }
         }
-        guard let positionValue = copyAttribute(element, kAXPositionAttribute),
-              let sizeValue = copyAttribute(element, kAXSizeAttribute),
-              CFGetTypeID(positionValue) == AXValueGetTypeID(),
-              CFGetTypeID(sizeValue) == AXValueGetTypeID()
+        guard let positionValue = copyAttribute(element, kAXPositionAttribute), let sizeValue = copyAttribute(element, kAXSizeAttribute), CFGetTypeID(positionValue) == AXValueGetTypeID(), CFGetTypeID(sizeValue) == AXValueGetTypeID()
         else {
             return nil
         }
         var origin = CGPoint.zero
         var size = CGSize.zero
-        guard AXValueGetValue(unsafeDowncast(positionValue, to: AXValue.self), .cgPoint, &origin),
-              AXValueGetValue(unsafeDowncast(sizeValue, to: AXValue.self), .cgSize, &size)
+        guard AXValueGetValue(unsafeDowncast(positionValue, to: AXValue.self), .cgPoint, &origin), AXValueGetValue(unsafeDowncast(sizeValue, to: AXValue.self), .cgSize, &size)
         else {
             return nil
         }
@@ -163,17 +157,40 @@ public enum AXPrimitives {
         return value
     }
 
-    public static func elementAttribute(_ element: AXUIElement, _ attribute: String) -> AXUIElement? {
-        guard let value = copyAttribute(element, attribute),
-              CFGetTypeID(value) == AXUIElementGetTypeID()
+    public static func elementAttribute(
+        _ element: AXUIElement,
+        _ attribute: String,
+        read: (AXUIElement, String) -> CFTypeRef? = copyAttribute,
+        setTimeout: (AXUIElement, Float) -> Void = { _ = AXUIElementSetMessagingTimeout($0, $1) }
+    ) -> AXUIElement? {
+        guard let value = read(element, attribute), CFGetTypeID(value) == AXUIElementGetTypeID()
         else {
             return nil
         }
-        return unsafeDowncast(value, to: AXUIElement.self)
+        let descendant = unsafeDowncast(value, to: AXUIElement.self)
+        setTimeout(descendant, defaultMessagingTimeout)
+        return descendant
     }
 
-    public static func children(of element: AXUIElement) -> [AXUIElement] {
-        (copyAttribute(element, kAXChildrenAttribute) as? [AXUIElement]) ?? []
+    public static func elementArrayAttribute(
+        _ element: AXUIElement,
+        _ attribute: String,
+        read: (AXUIElement, String) -> CFTypeRef? = copyAttribute,
+        setTimeout: (AXUIElement, Float) -> Void = { _ = AXUIElementSetMessagingTimeout($0, $1) }
+    ) -> [AXUIElement] {
+        let descendants = (read(element, attribute) as? [AXUIElement]) ?? []
+        for descendant in descendants {
+            setTimeout(descendant, defaultMessagingTimeout)
+        }
+        return descendants
+    }
+
+    public static func children(
+        of element: AXUIElement,
+        read: (AXUIElement, String) -> CFTypeRef? = copyAttribute,
+        setTimeout: (AXUIElement, Float) -> Void = { _ = AXUIElementSetMessagingTimeout($0, $1) }
+    ) -> [AXUIElement] {
+        elementArrayAttribute(element, kAXChildrenAttribute, read: read, setTimeout: setTimeout)
     }
 
     public static func stringAttribute(_ element: AXUIElement, _ attribute: String) -> String? {
@@ -202,7 +219,13 @@ public enum AXPrimitives {
         guard let menuBar = elementAttribute(appElement, kAXMenuBarAttribute as String) else {
             return nil
         }
-        return children(of: menuBar).compactMap { frame(of: $0) }
+        return children(of: menuBar).compactMap { child in
+            guard AXMenuTitle.includes(
+                role: stringAttribute(child, kAXRoleAttribute),
+                isEnabled: copyAttribute(child, kAXEnabledAttribute) as? Bool
+            ) else { return nil }
+            return frame(of: child)
+        }
     }
 
     /// Whether pid is this process. AppKit answers AX reads of a process's own

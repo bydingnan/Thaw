@@ -19,6 +19,10 @@ import Testing
 /// behind it.
 @Suite("Menu bar bounds inclusion")
 struct MenuBarBoundsInclusionTests {
+    /// Explicit seated band for unit tests — never rely on live CGDisplayBounds
+    /// (P1-22: parked checks are display-relative; CI/dev machines vary).
+    private let testDisplays = [CGRect(x: 0, y: 0, width: 1920, height: 1080)]
+
     private func item(
         bundle: String,
         title: String,
@@ -44,7 +48,7 @@ struct MenuBarBoundsInclusionTests {
     func visibleItemIncluded() {
         let item = item(bundle: "com.example.app", title: "Alpha")
         #expect(
-            HIDEventManager.shouldIncludeItemInMenuBarBoundsLookup(item, section: .visible)
+            HIDEventManager.shouldIncludeItemInMenuBarBoundsLookup(item, section: .visible, displays: testDisplays)
         )
     }
 
@@ -54,7 +58,8 @@ struct MenuBarBoundsInclusionTests {
         let included = HIDEventManager.shouldIncludeItemInMenuBarBoundsLookup(
             item,
             section: .hidden,
-            effectivelyConcealed: [canonicalIdentifier(item)]
+            effectivelyConcealed: [canonicalIdentifier(item)],
+            displays: testDisplays
         )
         #expect(!included)
     }
@@ -66,7 +71,8 @@ struct MenuBarBoundsInclusionTests {
             HIDEventManager.shouldIncludeItemInMenuBarBoundsLookup(
                 item,
                 section: .hidden,
-                effectivelyConcealed: []
+                effectivelyConcealed: [],
+                displays: testDisplays
             )
         )
     }
@@ -78,7 +84,8 @@ struct MenuBarBoundsInclusionTests {
             HIDEventManager.shouldIncludeItemInMenuBarBoundsLookup(
                 item,
                 section: .alwaysHidden,
-                effectivelyConcealed: []
+                effectivelyConcealed: [],
+                displays: testDisplays
             )
         )
     }
@@ -90,7 +97,8 @@ struct MenuBarBoundsInclusionTests {
             HIDEventManager.shouldIncludeItemInMenuBarBoundsLookup(
                 item,
                 section: .hidden,
-                effectivelyConcealed: [canonicalIdentifier(item)]
+                effectivelyConcealed: [canonicalIdentifier(item)],
+                displays: testDisplays
             )
         )
     }
@@ -101,7 +109,8 @@ struct MenuBarBoundsInclusionTests {
         let included = HIDEventManager.shouldIncludeItemInMenuBarBoundsLookup(
             parked,
             section: .hidden,
-            effectivelyConcealed: []
+            effectivelyConcealed: [],
+            displays: testDisplays
         )
         #expect(!included)
     }

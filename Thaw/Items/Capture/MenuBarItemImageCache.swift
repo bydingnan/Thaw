@@ -657,8 +657,11 @@ final class MenuBarItemImageCache: @unchecked Sendable {
     /// A total blackout test, not a completeness test: items drop in and out
     /// of the cache constantly. Missing screen recording permission returns true.
     @MainActor
-    func hasNoRenderableItems(in section: MenuBarSection.Name) -> Bool {
-        guard ScreenCapture.hasCachedScreenRecordingPermission else {
+    func hasNoRenderableItems(
+        in section: MenuBarSection.Name,
+        hasScreenRecordingPermission: Bool = ScreenCapture.hasCachedScreenRecordingPermission
+    ) -> Bool {
+        guard hasScreenRecordingPermission else {
             MenuBarItemImageCache.diagLog.debug("hasNoRenderableItems(\(section.logString)): no screen recording permission (hasCachedScreenRecordingPermission=false)")
             return true
         }
@@ -667,7 +670,7 @@ final class MenuBarItemImageCache: @unchecked Sendable {
             // An empty section has nothing to fail at.
             return false
         }
-        guard !items.contains(where: { capturesByTag[$0.tag] != nil }) else {
+        guard !items.contains(where: { Self.cachedCapture(for: $0.tag, in: capturesByTag) != nil }) else {
             return false
         }
         MenuBarItemImageCache.diagLog.debug("hasNoRenderableItems(\(section.logString)): no cached images found for \(items.count) items in section (total cached images: \(capturesByTag.count))")

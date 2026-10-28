@@ -44,8 +44,7 @@ nonisolated enum MenuBarAXSubprocess {
     /// Returns assembled items, or nil when the helper is off or unusable so
     /// the caller falls back to the in-process walk.
     static func items(displayID _: CGDirectDisplayID?) async -> [MenuBarItem]? {
-        guard let client else { return nil }
-        guard untrustedPolicy.withLock({ $0.shouldAsk(now: .now) }) else { return nil }
+        guard let client, untrustedPolicy.withLock({ $0.shouldAsk(now: .now) }) else { return nil }
         // The helper walk must match the in-process walk, which does not filter
         // by display: macOS 27 mirrors one status-item set on every bar, and a
         // filter drops items the app still manages. displayID is kept in the
@@ -147,15 +146,15 @@ extension MenuBarItemAXProvider {
     /// skip. The helper already dropped oversized children.
     static nonisolated func items(fromSubprocess observations: [AXItemObservation]) -> [MenuBarItem] {
         var raw: [RawItem] = []
-        var fallbackIndexByBundle: [String: Int] = [:]
+        var fallbackIndexByPublisher: [pid_t: Int] = [:]
 
         for observation in observations where !observation.isOverflowControl {
             let namespace = namespace(
                 forBundleIdentifier: observation.bundleID,
                 localizedName: observation.processName
             )
-            let bundleKey = observation.bundleID ?? ""
-            let fallbackIndex = fallbackIndexByBundle[bundleKey, default: 0]
+            let publisher = observation.publisherPID
+            let fallbackIndex = fallbackIndexByPublisher[publisher, default: 0]
             let derived = rawItem(
                 namespace: namespace,
                 identifier: nilIfBlank(observation.identifier),
@@ -167,7 +166,7 @@ extension MenuBarItemAXProvider {
                 bounds: observation.frame,
                 ownerPID: observation.ownerPID
             )
-            fallbackIndexByBundle[bundleKey] = derived.fallbackIndex
+            fallbackIndexByPublisher[publisher] = derived.fallbackIndex
             guard let item = derived.item else { continue }
             raw.append(item)
         }

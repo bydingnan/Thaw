@@ -21,9 +21,6 @@ nonisolated struct SlowResponderLedger: Sendable {
     static let baseCooldown: Duration = .seconds(5)
     static let maximumCooldown: Duration = .seconds(30)
 
-    /// Caps suppression for AX calls that ignore their messaging timeout, so owners are not barred for the session.
-    static let inFlightLimit: Duration = .seconds(60)
-
     private struct Record: Sendable {
         var strikes = 0
         var retryAt: ContinuousClock.Instant
@@ -40,13 +37,22 @@ nonisolated struct SlowResponderLedger: Sendable {
         guard let record = records[owner] else {
             return .probe
         }
-        if let since = record.inFlightSince, now - since < Self.inFlightLimit {
+        if record.inFlightSince != nil {
             return .skipInFlight
         }
         if now < record.retryAt {
             return .skipCoolingDown
         }
         return .probeIfResponsive
+    }
+
+    /// Claims an owner before starting AX, including calls later abandoned by cancellation.
+    mutating func beginProbe(_ owner: Int32, now: ContinuousClock.Instant = .now) -> Bool {
+        guard records[owner]?.inFlightSince == nil else { return false }
+        var record = records[owner] ?? Record(retryAt: now)
+        record.inFlightSince = now
+        records[owner] = record
+        return true
     }
 
     /// Records a probe that missed its deadline and is still running.

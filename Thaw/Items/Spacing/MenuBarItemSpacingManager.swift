@@ -213,8 +213,7 @@ final class MenuBarItemSpacingManager {
     private func relaunchApp(_ app: NSRunningApplication) async throws {
         struct RelaunchError: Error {}
         guard
-            let url = app.bundleURL,
-            let bundleIdentifier = app.bundleIdentifier
+            let url = app.bundleURL, let bundleIdentifier = app.bundleIdentifier
         else {
             throw RelaunchError()
         }
@@ -343,11 +342,7 @@ final class MenuBarItemSpacingManager {
         let ownBundleID = NSRunningApplication.current.bundleIdentifier
         var preWaveAppHandles: [pid_t: AppHandle] = [:]
         for pid in pids {
-            if let app = NSRunningApplication(processIdentifier: pid),
-               app != .current,
-               let bid = app.bundleIdentifier,
-               bid != ownBundleID
-            {
+            if let app = NSRunningApplication(processIdentifier: pid), app != .current, let bid = app.bundleIdentifier, bid != ownBundleID {
                 preWaveAppHandles[pid] = AppHandle(bundleID: bid, bundleURL: app.bundleURL)
             }
         }
@@ -355,8 +350,7 @@ final class MenuBarItemSpacingManager {
         await withTaskGroup(of: Void.self) { group in
             for pid in pids {
                 guard
-                    let app = NSRunningApplication(processIdentifier: pid),
-                    app != .current
+                    let app = NSRunningApplication(processIdentifier: pid), app != .current
                 else {
                     // Skip this PID, don't break: earlier break would abort
                     // the entire wave on any unresolvable PID, leaving most
@@ -422,12 +416,13 @@ final class MenuBarItemSpacingManager {
     private func verifyAndFallbackRelaunch(
         preWaveAppHandles: [pid_t: AppHandle]
     ) async -> Set<String> {
-        let missing: [AppHandle] = preWaveAppHandles.compactMap { oldPID, handle in
+        let originalPIDs = Set(preWaveAppHandles.keys)
+        let missing: [AppHandle] = preWaveAppHandles.compactMap { _, handle in
             let current = NSRunningApplication.runningApplications(
                 withBundleIdentifier: handle.bundleID
             )
             // Came back if any current instance is a fresh PID.
-            let isBack = current.contains { $0.processIdentifier != oldPID }
+            let isBack = SpacingRelaunchVerification.hasFreshProcess(currentPIDs: current.map(\.processIdentifier), replacing: originalPIDs)
             return isBack ? nil : handle
         }
         guard !missing.isEmpty else {
@@ -483,9 +478,10 @@ final class MenuBarItemSpacingManager {
         let pollDeadline = ContinuousClock.now.advanced(by: .seconds(2))
         while ContinuousClock.now < pollDeadline {
             let allBack = missingBundleIDs.allSatisfy { bundleID in
-                !NSRunningApplication.runningApplications(
-                    withBundleIdentifier: bundleID
-                ).isEmpty
+                SpacingRelaunchVerification.hasFreshProcess(
+                    currentPIDs: NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).map(\.processIdentifier),
+                    replacing: originalPIDs
+                )
             }
             if allBack {
                 break
@@ -498,7 +494,7 @@ final class MenuBarItemSpacingManager {
             let current = NSRunningApplication.runningApplications(
                 withBundleIdentifier: bundleID
             )
-            if current.isEmpty {
+            if !SpacingRelaunchVerification.hasFreshProcess(currentPIDs: current.map(\.processIdentifier), replacing: originalPIDs) {
                 stillMissing.insert(bundleID)
                 MenuBarItemSpacingManager.diagLog.warning(
                     "applyOffset fallback verification: \(bundleID) still missing"

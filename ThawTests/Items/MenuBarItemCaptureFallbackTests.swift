@@ -34,7 +34,7 @@ struct MenuBarItemCaptureFallbackTests {
         try #require(sections == [.visible])
         let stale = makeItem(x: 1000)
         let neighbour = makeItem(title: "Neighbour", x: 1000, windowID: 102)
-        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
 
         // The log repeated old rectangles after the bar shifted left by 48pt.
         // Keep the layout cache unchanged while the live position changes again.
@@ -68,7 +68,7 @@ struct MenuBarItemCaptureFallbackTests {
             hosting: makeCapture(opaque: false),
             strip: makeCapture(opaque: true), items: []
         )
-        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
         let result = await cache.captureImages(
             of: [item], scale: 2, displayID: 42, screenFrame: nil,
             freshBounds: MenuBarItemImageCache.shouldUseFreshBounds(for: .visible, revealedSection: nil),
@@ -92,7 +92,7 @@ struct MenuBarItemCaptureFallbackTests {
             strip: makeCapture(opaque: true, glyphX: 960),
             geometry: geometry, items: [current]
         )
-        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
         let result = await cache.captureImages(
             of: [stale], scale: 2, displayID: 42, screenFrame: nil,
             freshBounds: MenuBarItemImageCache.shouldUseFreshBounds(for: .visible, revealedSection: nil),
@@ -119,7 +119,7 @@ struct MenuBarItemCaptureFallbackTests {
                 }
             }
         )
-        let cache = MenuBarItemImageCache(screenIsLocked: { locked.withLock { $0 } })
+        let cache = MenuBarItemImageCache(screenIsLocked: { locked.withLock { $0 } }, captureIsAllowed: { true })
         let result = await cache.axBoundsCapture(
             [(item, item.bounds)], scale: 2, displayID: 42,
             validateFreshBounds: false, concealedIdentifiers: [], using: reader
@@ -159,7 +159,7 @@ struct MenuBarItemCaptureFallbackTests {
     func lockedSessionDoesNotStartCapture() async {
         let item = makeItem()
         let reader = CaptureFixture(hosting: nil, strip: nil)
-        let cache = MenuBarItemImageCache(screenIsLocked: { true })
+        let cache = MenuBarItemImageCache(screenIsLocked: { true }, captureIsAllowed: { true })
         let result = await cache.axBoundsCapture(
             [(item, item.bounds)], scale: 2, displayID: 42,
             validateFreshBounds: false, concealedIdentifiers: [], using: reader
@@ -177,7 +177,7 @@ struct MenuBarItemCaptureFallbackTests {
             barWindow: makeCapture(opaque: true, glyph: false),
             strip: makeCapture(opaque: true)
         )
-        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
 
         let result = await cache.axBoundsCapture(
             [(item, item.bounds)],
@@ -214,7 +214,7 @@ struct MenuBarItemCaptureFallbackTests {
             items: [item],
             validationGates: (geometryGate, overflowGate)
         )
-        let cache = MenuBarItemImageCache(screenIsLocked: { locked.withLock { $0 } })
+        let cache = MenuBarItemImageCache(screenIsLocked: { locked.withLock { $0 } }, captureIsAllowed: { true })
         let pass = Task {
             await cache.axBoundsCapture(
                 [(item, item.bounds)], scale: 2, displayID: 42,
@@ -354,7 +354,7 @@ struct MenuBarItemCaptureFallbackTests {
     func successfulCropDefersTheLedger() async throws {
         let item = makeItem()
         let reader = try CaptureFixture(hosting: nil, strip: makeCapture(opaque: true))
-        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
         cache.recordCaptureFailure(for: item)
         let result = await cache.axBoundsCapture(
             [(item, item.bounds)], scale: 2, displayID: 42,
@@ -376,7 +376,7 @@ struct MenuBarItemCaptureFallbackTests {
             hosting: makeCapture(opaque: false),
             strip: makeCapture(opaque: true, glyphX: 1208)
         )
-        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
         let result = await cache.axBoundsCapture(
             [(hosted, hosted.bounds), (fallback, fallback.bounds)],
             scale: 2,
@@ -475,7 +475,7 @@ struct MenuBarItemCaptureFallbackTests {
             items: [first, second],
             gates: [.barWindow: gate]
         )
-        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
         let pass = Task {
             await cache.axBoundsCapture(
                 [(first, first.bounds), (second, second.bounds)],
@@ -543,7 +543,7 @@ struct MenuBarItemCaptureFallbackTests {
             items: [moved, stable],
             itemsAfterOwnerWindow: [movedPID: [makeItem(title: "Moved", x: 1024, windowID: 101, ownerPID: movedPID), stable]]
         )
-        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
         let result = await cache.axBoundsCapture(
             [(moved, moved.bounds), (stable, stable.bounds)],
             scale: 2, displayID: 42, validateFreshBounds: true,
@@ -559,7 +559,7 @@ struct MenuBarItemCaptureFallbackTests {
         validateFreshBounds: Bool = false,
         concealedIdentifiers: Set<String> = []
     ) async -> MenuBarItemImageCache.CapturePass {
-        let cache = MenuBarItemImageCache(screenIsLocked: { false })
+        let cache = MenuBarItemImageCache(screenIsLocked: { false }, captureIsAllowed: { true })
         return await cache.axBoundsCapture(
             [(item, item.bounds)],
             scale: 2,
@@ -695,8 +695,8 @@ actor CaptureFixture {
         (CGRect(x: 0, y: 0, width: 1470, height: 956), 300)
     }
 
-    func overflowBounds(displayID _: CGDirectDisplayID) async -> [CGRect] {
-        if !captures.isEmpty {
+    func overflowBounds(displayID _: CGDirectDisplayID, newerThan cutoff: ContinuousClock.Instant?) async -> [CGRect] {
+        if cutoff != nil {
             await validationGates?.overflow.arriveAndWait()
         }
         return (captures.contains(.strip) ? stripOverflowBounds : [])

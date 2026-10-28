@@ -76,15 +76,12 @@ nonisolated enum MenuBarSplitPillGeometry {
         sourceScreenFrame: CGRect? = nil
     ) -> (itemBounds: [CGRect], stableTrailingBounds: CGRect) {
         // Only the display that supplied these bounds may correct a mirrored pill's edge.
-        guard sample.screenFrame == screenFrame || sample.screenFrame == sourceScreenFrame,
-              revealedSection == nil, !isTransitioning
+        guard sample.screenFrame == screenFrame || sample.screenFrame == sourceScreenFrame, revealedSection == nil, !isTransitioning
         else {
             return (itemBounds, stableTrailingBounds)
         }
         let edge = screenFrame.maxX - (sample.screenFrame.maxX - sample.x)
-        guard let currentMinX = itemBounds.map(\.minX).min(),
-              abs(currentMinX - edge) >= 1,
-              let reference = itemBounds.first
+        guard let currentMinX = itemBounds.map(\.minX).min(), abs(currentMinX - edge) >= 1, let reference = itemBounds.first
         else { return (itemBounds, stableTrailingBounds) }
         var updated = itemBounds
         if edge > currentMinX {
@@ -132,6 +129,7 @@ nonisolated enum MenuBarSplitPillGeometry {
         }
 
         rightX = min(max(rightX, rect.minX), rect.maxX)
+        guard rightX > leftX, rect.height > 0 else { return .zero }
         return CGRect(
             x: leftX,
             y: rect.minY,
@@ -153,8 +151,7 @@ nonisolated enum MenuBarSplitPillGeometry {
             bounds.midX >= screenFrame.minX && bounds.midX <= screenFrame.maxX
         }
         guard
-            let contentMinX = displayItemBounds.map(\.minX).min(),
-            let contentMaxX = displayItemBounds.map(\.maxX).max()
+            let contentMinX = displayItemBounds.map(\.minX).min(), let contentMaxX = displayItemBounds.map(\.maxX).max()
         else { return .zero }
 
         let screenOriginX = screenFrame.minX
@@ -167,6 +164,7 @@ nonisolated enum MenuBarSplitPillGeometry {
 
         leftX = min(max(leftX, rect.minX), rect.maxX)
         rightX = min(max(rightX, rect.minX), rect.maxX)
+        guard rightX > leftX, rect.height > 0 else { return .zero }
         return CGRect(
             x: leftX,
             y: rect.minY,
@@ -193,9 +191,11 @@ nonisolated enum MenuBarSplitPillGeometry {
         lastStableLeading: CGRect,
         lastStableTrailing: CGRect
     ) -> (leading: CGRect, trailing: CGRect, nextStableLeading: CGRect, nextStableTrailing: CGRect) {
-        if geometryFrozen,
-           lastStableLeading != .zero || lastStableTrailing != .zero
-        {
+        let leading = leading.isEmpty ? .zero : leading
+        let trailing = trailing.isEmpty ? .zero : trailing
+        let lastStableLeading = lastStableLeading.isEmpty ? .zero : lastStableLeading
+        let lastStableTrailing = lastStableTrailing.isEmpty ? .zero : lastStableTrailing
+        if geometryFrozen, !lastStableLeading.isEmpty || !lastStableTrailing.isEmpty {
             return (
                 lastStableLeading,
                 lastStableTrailing,
@@ -204,28 +204,24 @@ nonisolated enum MenuBarSplitPillGeometry {
             )
         }
 
-        let freshValid = leading != .zero
-            && trailing != .zero
+        let freshValid = !leading.isEmpty
+            && !trailing.isEmpty
             && !leading.intersects(trailing)
         if freshValid {
             return (leading, trailing, leading, trailing)
         }
 
-        if leading != .zero, trailing == .zero {
+        if !leading.isEmpty, trailing.isEmpty {
             return (leading, .zero, leading, .zero)
         }
 
-        if leading != .zero, trailing != .zero, leading.intersects(trailing) {
+        if !leading.isEmpty, !trailing.isEmpty, leading.intersects(trailing) {
             // A long application menu reaches the items: hand both on so the
             // path builder merges them, instead of leaving the items bare.
             return (leading, trailing, leading, trailing)
         }
 
-        if leading == .zero, trailing == .zero,
-           lastStableLeading != .zero,
-           lastStableTrailing != .zero,
-           !lastStableLeading.intersects(lastStableTrailing)
-        {
+        if leading.isEmpty, trailing.isEmpty, !lastStableLeading.isEmpty, !lastStableTrailing.isEmpty, !lastStableLeading.intersects(lastStableTrailing) {
             return (
                 lastStableLeading,
                 lastStableTrailing,
@@ -234,10 +230,7 @@ nonisolated enum MenuBarSplitPillGeometry {
             )
         }
 
-        if leading == .zero, trailing == .zero,
-           lastStableLeading != .zero,
-           lastStableTrailing == .zero
-        {
+        if leading.isEmpty, trailing.isEmpty, !lastStableLeading.isEmpty, lastStableTrailing.isEmpty {
             return (lastStableLeading, .zero, lastStableLeading, .zero)
         }
 
@@ -247,6 +240,7 @@ nonisolated enum MenuBarSplitPillGeometry {
     /// Bounds that the split trailing pill should wrap on macOS 27.
     static func trailingPillBounds(
         from items: [MenuBarItem],
+        displayBounds: [CGRect],
         context: TrailingPillContext
     ) -> [CGRect] {
         let isRevealingHidden = context.revealedSection == .hidden
@@ -256,7 +250,7 @@ nonisolated enum MenuBarSplitPillGeometry {
         return items.compactMap { item -> CGRect? in
             guard shouldIncludeItemInTrailingPill(
                 item,
-                among: items,
+                displayBounds: displayBounds,
                 context: context,
                 isRevealingHidden: isRevealingHidden,
                 isRevealingAlwaysHidden: isRevealingAlwaysHidden
@@ -272,13 +266,12 @@ nonisolated enum MenuBarSplitPillGeometry {
     static func trailingPillBounds(
         from items: [MenuBarItem],
         screenFrame: CGRect,
+        displayBounds: [CGRect],
         context: TrailingPillContext,
         mapBounds: (CGRect) -> CGRect = { $0 }
     ) -> [CGRect] {
-        var bounds = trailingPillBounds(from: items, context: context).map(mapBounds)
-        if !items.isEmpty, !bounds.isEmpty,
-           !items.contains(where: { $0.tag.namespace == .menuBarAgent })
-        {
+        var bounds = trailingPillBounds(from: items, displayBounds: displayBounds, context: context).map(mapBounds)
+        if !items.isEmpty, !bounds.isEmpty, !items.contains(where: { $0.tag.namespace == .menuBarAgent }) {
             bounds.append(
                 CGRect(
                     x: screenFrame.maxX - 1,
@@ -294,18 +287,14 @@ nonisolated enum MenuBarSplitPillGeometry {
     /// Whether a live status item should contribute to the split trailing pill.
     static func shouldIncludeItemInTrailingPill(
         _ item: MenuBarItem,
-        among peers: [MenuBarItem],
+        displayBounds: [CGRect],
         context: TrailingPillContext,
         isRevealingHidden: Bool,
         isRevealingAlwaysHidden: Bool
     ) -> Bool {
         let isHiddenSectionDivider = item.isControlItem
             && !item.tag.matchesVisibleControlItem
-        guard !item.isSystemClone,
-              !isHiddenSectionDivider,
-              item.isOnScreen,
-              !item.bounds.isEmpty,
-              !item.isParkedOffMenuBarBand(among: peers)
+        guard !item.isSystemClone, !isHiddenSectionDivider, item.isOnScreen, !MenuBarBandClassifier.isParked(item.bounds, displays: displayBounds)
         else {
             return false
         }

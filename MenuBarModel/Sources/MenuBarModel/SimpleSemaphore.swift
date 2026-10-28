@@ -91,24 +91,27 @@ public actor SimpleSemaphore {
 
             defer { group.cancelAll() }
 
-            // The first task to finish wins: true means the permit was
-            // acquired, false means the timeout fired.
-            let first = try await group.next()
-            guard first != true else {
-                return
-            }
-
-            group.cancelAll()
-
-            // The timeout won. The wait task may have been granted a permit in
-            // the same instant, before cancellation could remove its waiter;
-            // drain and release any acquired permit so it is not leaked.
-            while let acquired = try? await group.next() {
-                if acquired {
-                    signal()
+            do {
+                let first = try await group.next()
+                if first == true {
+                    if Task.isCancelled {
+                        signal()
+                        throw CancellationError()
+                    }
+                    return
                 }
+                throw TimeoutError()
+            } catch {
+                group.cancelAll()
+                // A cancelled or timed-out requester owns no permit. Drain
+                // every child, including after one child threw cancellation.
+                while let result = await group.nextResult() {
+                    if case .success(true) = result {
+                        signal()
+                    }
+                }
+                throw error
             }
-            throw TimeoutError()
         }
     }
 

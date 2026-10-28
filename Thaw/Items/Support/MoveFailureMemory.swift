@@ -57,6 +57,13 @@ nonisolated struct MoveFailureMemory {
 
     private var orderFailures: [String: ContinuousClock.Instant] = [:]
     private var itemFailures: [String: ItemRecord] = [:]
+    var retainedOrderCount: Int {
+        orderFailures.count
+    }
+
+    var retainedItemCount: Int {
+        itemFailures.count
+    }
 
     /// Whether the move failed under this desired order within the backoff window.
     func isBackingOff(
@@ -85,8 +92,10 @@ nonisolated struct MoveFailureMemory {
     mutating func recordFailure(
         of move: Move,
         desiredOrder: [String],
-        now: ContinuousClock.Instant = .now
+        now: ContinuousClock.Instant = .now,
+        isCancelled: Bool = Task.isCancelled
     ) {
+        guard !isCancelled else { return }
         backOff(from: move, desiredOrder: desiredOrder, now: now)
         var record = itemFailures[move.itemKey] ?? ItemRecord(count: 0, last: now)
         if now - record.last >= Self.itemFailureCooldown {
@@ -104,7 +113,13 @@ nonisolated struct MoveFailureMemory {
         desiredOrder: [String],
         now: ContinuousClock.Instant = .now
     ) {
+        prune(now: now)
         orderFailures[move.orderKey(desiredOrder: desiredOrder)] = now
+    }
+
+    private mutating func prune(now: ContinuousClock.Instant) {
+        orderFailures = orderFailures.filter { now - $0.value < Self.backoff }
+        itemFailures = itemFailures.filter { now - $0.value.last < Self.itemFailureCooldown }
     }
 
     /// Clears both memories for a move that landed, which proves the target reachable.

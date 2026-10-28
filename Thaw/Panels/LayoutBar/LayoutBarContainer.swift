@@ -94,6 +94,22 @@ final class LayoutBarContainer: NSView {
         }
     }
 
+    var orderedAccessibilityChildren: [NSView] {
+        Self.accessibilityViews(arranged: arrangedViews, handles: Array(groupHandleViews.values), parent: self)
+    }
+
+    static func accessibilityViews(arranged: [NSView], handles: [NSView], parent: NSView) -> [NSView] {
+        (arranged + handles.filter { $0.superview === parent && !$0.isHidden })
+            .enumerated()
+            .sorted {
+                if $0.element.frame.minX == $1.element.frame.minX {
+                    return $0.offset < $1.offset
+                }
+                return $0.element.frame.minX < $1.element.frame.minX
+            }
+            .map(\.element)
+    }
+
     /// The last answer from resolvedGroups() and the group set it was
     /// computed against.
     ///
@@ -139,9 +155,6 @@ final class LayoutBarContainer: NSView {
     required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
-    /// Tracks the last known notch state to avoid redundant badge updates.
-    private var lastScreenHasNotch: Bool?
 
     /// Wires up everything that can invalidate the arrangement: the item cache,
     /// group membership, the badge's backdrop color, and the app and screen
@@ -276,9 +289,7 @@ final class LayoutBarContainer: NSView {
                 .publisher(for: NSWindow.didChangeScreenNotification)
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] notification in
-                    guard let self,
-                          let notifyingWindow = notification.object as? NSWindow,
-                          notifyingWindow === self.window
+                    guard let self, let notifyingWindow = notification.object as? NSWindow, notifyingWindow === self.window
                     else { return }
                     updateBadgeForScreenChange()
                 }
@@ -327,15 +338,13 @@ final class LayoutBarContainer: NSView {
         }
     }
 
-    /// Updates the badge view's color info when the screen changes (notch detection)
+    /// Refreshes contrast when the editor moves to another display.
     private func updateBadgeForScreenChange() {
-        let currentHasNotch = NSScreen.screenWithActiveMenuBar?.hasNotch ?? false
-        if lastScreenHasNotch != currentHasNotch {
-            lastScreenHasNotch = currentHasNotch
-            if let badgeView = arrangedViews.first(where: { $0.isNewItemsBadge }) {
-                badgeView.averageColorInfo = appState.flatMap { MenuBarStyleTint.currentBackground(appState: $0) }
-            }
+        if let badgeView = arrangedViews.first(where: { $0.isNewItemsBadge }) {
+            badgeView.averageColorInfo = appState.flatMap { MenuBarStyleTint.currentBackground(appState: $0) }
+            badgeView.needsDisplay = true
         }
+        needsDisplay = true
     }
 
     /// Re-runs layout for the container after one arranged view changed size.
@@ -602,8 +611,7 @@ final class LayoutBarContainer: NSView {
     /// Updates are deferred while dragging so a refresh cannot overwrite the drag.
     func rebuildViews() {
         guard
-            let appState,
-            acceptsViewUpdates
+            let appState, acceptsViewUpdates
         else {
             return
         }
@@ -644,9 +652,7 @@ final class LayoutBarContainer: NSView {
             guard seenIdentifiers.insert(identifier).inserted else { continue }
             // A recycled view is only valid for the same live item: its canonical
             // identifier can survive a refresh that mints a new synthetic window ID.
-            if let recycled = recyclable[identifier] as? LayoutBarItemView,
-               recycled.item.uniqueIdentifier == item.uniqueIdentifier
-            {
+            if let recycled = recyclable[identifier] as? LayoutBarItemView, recycled.item.uniqueIdentifier == item.uniqueIdentifier {
                 recycled.adopt(item: item, appState: appState)
                 newViews.append(recycled)
             } else {
@@ -666,10 +672,9 @@ final class LayoutBarContainer: NSView {
                 .keys
                 .compactMap { identifier -> LayoutOpaqueSlotDescriptor? in
                     let canonical = MenuBarItemTag.canonicalPersistentIdentifier(identifier)
-                    guard !liveIdentifiers.contains(canonical),
-                          let title = MenuBarModuleDirectoryProvider.current.governableMenuExtraTitle(
-                              forItemIdentifier: canonical
-                          )
+                    guard !liveIdentifiers.contains(canonical), let title = MenuBarModuleDirectoryProvider.current.governableMenuExtraTitle(
+                        forItemIdentifier: canonical
+                    )
                     else { return nil }
                     return .governableExtra(
                         menuExtraTitle: title,
@@ -753,8 +758,7 @@ final class LayoutBarContainer: NSView {
     @discardableResult
     func handleDrag(_ draggingInfo: NSDraggingInfo, phase: DragPhase) -> NSDragOperation {
         guard
-            let sourceView = draggingInfo.draggingSource as? LayoutBarArrangedView,
-            admitsDrag(of: sourceView)
+            let sourceView = draggingInfo.draggingSource as? LayoutBarArrangedView, admitsDrag(of: sourceView)
         else {
             return []
         }
@@ -832,10 +836,7 @@ final class LayoutBarContainer: NSView {
         let experimentalSystemItemHiding = appState?.settings.advanced.enableExperimentalSystemItemHiding ?? false
         // A denylisted item may reorder but not hide; mirror the rejection in
         // performDragOperation with the no-drop cursor.
-        if item.tag.isLayoutAnchoredSystemItem,
-           sourceView.oldContainerInfo?.container === self,
-           !LayoutBarPaddingView.allowsAnchoredSystemItemReordering(appState: appState)
-        {
+        if item.tag.isLayoutAnchoredSystemItem, sourceView.oldContainerInfo?.container === self, !LayoutBarPaddingView.allowsAnchoredSystemItemReordering(appState: appState) {
             return false
         }
         // Every group member must be assignable, or the cursor promises a drop
@@ -876,8 +877,7 @@ final class LayoutBarContainer: NSView {
         // Remember where the block started the first time this container sees
         // it, so a drag that is later cancelled can be undone.
         if
-            sourceView.oldContainerInfo == nil,
-            let startIndex = arrangedViews.firstIndex(of: sourceView)
+            sourceView.oldContainerInfo == nil, let startIndex = arrangedViews.firstIndex(of: sourceView)
         {
             sourceView.oldContainerInfo = (self, startIndex)
         }
@@ -898,22 +898,17 @@ final class LayoutBarContainer: NSView {
         sourceView.dragUnitCount = unitViews.count
         let unitIdentities = Set(unitViews.map(ObjectIdentifier.init))
         guard
-            let target = closestView(toX: cursorX, excludingBadge: excludeBadge),
-            !unitIdentities.contains(ObjectIdentifier(target)),
-            target.isEnabled,
+            let target = closestView(toX: cursorX, excludingBadge: excludeBadge), !unitIdentities.contains(ObjectIdentifier(target)), target.isEnabled,
             // A view that is still animating is not where it looks like it is,
             // so measuring against its frame would fight the animation.
-            target.layer?.animationKeys() == nil,
-            let targetIndex = arrangedViews.firstIndex(of: target)
+            target.layer?.animationKeys() == nil, let targetIndex = arrangedViews.firstIndex(of: target)
         else {
             return
         }
         // Swap only inside the target's width, so passing does not displace it.
         // Blocks from another container are exempt: they have no slot here yet.
         let reach = target.frame.width / 2
-        if !((target.frame.midX - reach) ... (target.frame.midX + reach)).contains(cursorX),
-           sourceView.oldContainerInfo?.container === self
-        {
+        if !((target.frame.midX - reach) ... (target.frame.midX + reach)).contains(cursorX), sourceView.oldContainerInfo?.container === self {
             return
         }
         guard let sourceIndex = arrangedViews.firstIndex(of: sourceView) else {

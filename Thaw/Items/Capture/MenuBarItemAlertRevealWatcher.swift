@@ -5,9 +5,11 @@
 //  Copyright (Thaw) © 2026 Toni Förster
 //  Licensed under the GNU GPLv3
 
+import AppKit
 import Combine
 import Foundation
 import MenuBarModel
+import ThawCapture
 
 // MARK: - MenuBarItemAlertReveals
 
@@ -58,6 +60,28 @@ nonisolated struct AlertRevealPolicy {
     }
 }
 
+/// Tracks only enabled items present in the current capture inventory.
+nonisolated struct AlertRevealBaselines {
+    private(set) var captures: [String: MenuBarItemGlyphCapture] = [:]
+
+    mutating func changedIdentifiers(
+        in images: [MenuBarItemTag: MenuBarItemGlyphCapture],
+        enabled: Set<String>
+    ) -> Set<String> {
+        let present = Set(images.keys.map(\.tagIdentifier))
+        captures = captures.filter { enabled.contains($0.key) && present.contains($0.key) }
+        var changed = Set<String>()
+        for (tag, image) in images where enabled.contains(tag.tagIdentifier) {
+            let identifier = tag.tagIdentifier
+            if let baseline = captures[identifier], !MenuBarItemGlyphCapture.isVisuallyEqual(baseline, image) {
+                changed.insert(identifier)
+            }
+            captures[identifier] = image
+        }
+        return changed
+    }
+}
+
 // MARK: - MenuBarItemAlertRevealWatcher
 
 /// Temporarily reveals concealed items when their captured icon changes,
@@ -70,15 +94,49 @@ final class MenuBarItemAlertRevealWatcher {
 
     /// The last-seen image per opted-in identifier. The first sighting only
     /// seeds the baseline; reveals require a change against it.
-    private var baselines: [String: MenuBarItemGlyphCapture] = [:]
+    private var baselines = AlertRevealBaselines()
 
     private var policy = AlertRevealPolicy()
     private var cancellables = Set<AnyCancellable>()
+    private var captureScheduler: AlertRevealCaptureScheduler<MenuBarItem>?
 
     private(set) weak var appState: AppState?
 
     func performSetup(with appState: AppState) {
         self.appState = appState
+        cancellables.removeAll()
+        let scheduler = AlertRevealCaptureScheduler<MenuBarItem>(
+            inventory: { [weak appState] in appState?.itemManager.managedItems ?? [] },
+            identifier: { $0.tag.tagIdentifier },
+            capture: { [weak appState] items in
+                await ScreenCapture.withOneshotCaptureTicket { @MainActor in
+                    guard let appState, appState.isPermissionGranted(.screenRecording), !appState.itemManager.isResettingLayout, !appState.isDraggingMenuBarItem
+                    else { return }
+                    await appState.imageCache.beginConcealedPrewarm()
+                    defer { appState.imageCache.endConcealedPrewarm() }
+                    guard !Task.isCancelled else { return }
+                    let displayID = appState.itemManager.itemDisplayID ?? CGMainDisplayID()
+                    let controller = appState.menuBarManager.sectionController
+                    guard !controller.isNativeOverflowActive(on: displayID), let screen = NSScreen.screen(for: displayID)
+                    else { return }
+                    await appState.imageCache.captureConcealedItemsByGroupedReveal(
+                        items,
+                        controller: controller,
+                        displayID: displayID,
+                        scale: screen.backingScaleFactor,
+                        missPolicy: .keepExisting
+                    )
+                }
+            }
+        )
+        captureScheduler = scheduler
+        scheduler.update(identifiers: MenuBarItemAlertReveals.identifiers())
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak scheduler] _ in
+                scheduler?.update(identifiers: MenuBarItemAlertReveals.identifiers())
+            }
+            .store(in: &cancellables)
         // MenuBarItemImageCache is @Observable, so captures arrive through
         // an Observations sequence.
         let task = Task { @MainActor [weak self, imageCache = appState.imageCache] in
@@ -95,7 +153,7 @@ final class MenuBarItemAlertRevealWatcher {
     private func process(_ images: [MenuBarItemTag: MenuBarItemGlyphCapture]) {
         let enabled = MenuBarItemAlertReveals.identifiers()
         guard !enabled.isEmpty else {
-            baselines.removeAll()
+            baselines = AlertRevealBaselines()
             return
         }
         guard let appState else {
@@ -108,33 +166,19 @@ final class MenuBarItemAlertRevealWatcher {
         // reveal history that a freshly constructed one would discard.
         policy.cooldown = appState.settings.advanced.menuBarItemAlertRevealCooldown
 
-        for (tag, image) in images {
-            let identifier = tag.tagIdentifier
-            guard enabled.contains(identifier) else {
-                continue
-            }
-            let baseline = baselines[identifier]
-            baselines[identifier] = image
-            guard let baseline else {
-                continue
-            }
-            guard !MenuBarItemGlyphCapture.isVisuallyEqual(baseline, image) else {
-                continue
-            }
+        let changed = baselines.changedIdentifiers(in: images, enabled: enabled)
+        for identifier in changed {
             // Only concealed items need surfacing; a visible item's icon
             // change is already on screen.
-            guard let section = sectionController.sectionAssignment[identifier], section != .visible else {
-                continue
-            }
-            guard policy.shouldReveal(identifier, now: Date()) else {
+            guard let section = sectionController.sectionAssignment[identifier], section != .visible, policy.shouldReveal(identifier, now: Date()) else {
                 continue
             }
             diagLog.info("Icon change detected for \(identifier); revealing temporarily")
-            sectionController.revealItemTemporarily(identifier)
-            sectionController.scheduleTemporaryItemConceal(identifier)
+            sectionController.revealForInteraction(
+                identifier,
+                duration: appState.settings.general.tempShowInterval,
+                menuMonitor: appState.itemManager.menuOpenMonitor
+            )
         }
-
-        // Forget baselines for items that are no longer opted in or present.
-        baselines = baselines.filter { enabled.contains($0.key) }
     }
 }

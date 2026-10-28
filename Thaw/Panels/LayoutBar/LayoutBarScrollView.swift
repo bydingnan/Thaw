@@ -49,6 +49,6 @@ final class LayoutBarScrollView: NSScrollView {
 
 extension LayoutBarScrollView {
     override func accessibilityChildren() -> [Any]? {
-        return arrangedViews
+        return paddingView.orderedAccessibilityChildren
     }
 }

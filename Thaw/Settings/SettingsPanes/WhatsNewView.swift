@@ -74,7 +74,6 @@ struct WhatsNewView: View {
         }
     }
 
-
     /// Says where the notes came from when that is not the repository, so
     /// a reader looking at older text knows why.
     @ViewBuilder
@@ -158,7 +157,7 @@ struct WhatsNewView: View {
     @ViewBuilder
     private func releaseBlock(_ block: ChangelogDocument.Block) -> some View {
         switch block {
-        case let .text(text):
+        case let .text(text), let .numberedStep(text):
             ReadingParagraph(text)
         case let .callout(callout):
             ChangelogCalloutView(callout: callout)
@@ -171,10 +170,12 @@ struct WhatsNewView: View {
         switch block {
         case let .text(text):
             HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(verbatim: "•")
+                Text(verbatim: block.unorderedMarker ?? "")
                     .foregroundStyle(.tertiary)
                 ReadingParagraph(text)
             }
+        case let .numberedStep(text):
+            ReadingParagraph(text)
         case let .callout(callout):
             ChangelogCalloutView(callout: callout)
         }

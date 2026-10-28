@@ -14,26 +14,17 @@ extension HIDEventManager {
     // MARK: Menu Bar Tooltips
 
     func handleMenuBarTooltip(appState: AppState, screen: NSScreen) {
-        guard ScreenCapture.hasCachedScreenRecordingPermission else {
+        guard ScreenCapture.hasCachedScreenRecordingPermission, configuration.showMenuBarTooltips else {
             return
         }
 
-        guard configuration.showMenuBarTooltips else {
-            return
-        }
-
-        guard isMouseInsideMenuBar(appState: appState, screen: screen) else {
-            dismissMenuBarTooltip()
-            return
-        }
-
-        guard let mouseLocation = MouseHelpers.locationCoreGraphics else {
+        guard isMouseInsideMenuBar(appState: appState, screen: screen), let mouseLocation = MouseHelpers.locationCoreGraphics else {
             dismissMenuBarTooltip()
             return
         }
 
         // Cached bounds avoid per-event Window Server IPC.
-        let entries = windowBoundsLock.withLock { $0 }
+        let entries = pointerBoundsCache.entries
         let hoveredEntry = entries.first(where: { $0.bounds.contains(mouseLocation) })
 
         guard let hoveredEntry else {
@@ -59,7 +50,7 @@ extension HIDEventManager {
             try Task.checkCancellation()
 
             // Re-read from the lock to pick up any cache rebuilds during the delay.
-            let freshEntries = windowBoundsLock.withLock { $0 }
+            let freshEntries = pointerBoundsCache.entries
             let positionBounds = freshEntries.first(where: { $0.windowID == hoveredID })?.bounds ?? cachedBounds
 
             let allItems = appState.itemManager.managedItems

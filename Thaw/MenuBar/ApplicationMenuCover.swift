@@ -9,7 +9,6 @@ import Cocoa
 import Combine
 import MenuBarModel
 import Observation
-import ThawAXCore
 import ThawCapture
 
 /// Covers Finder's menu titles while the desktop is focused, with a strip
@@ -116,8 +115,12 @@ final class ApplicationMenuCover {
             return
         }
 
-        let state = currentFocusState()
-        updatePolling(frontmostIsFinder: state != .notFinder)
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        let isFinder = frontmost?.bundleIdentifier == ApplicationMenuCoverPolicy.finderBundleIdentifier
+        let screen = NSScreen.screenWithActiveMenuBar ?? NSScreen.main
+        let snapshot = screen.flatMap { ApplicationMenuGeometryReader.shared.cached(on: $0) }
+        let state = isFinder && snapshot?.pid == frontmost?.processIdentifier ? snapshot?.focus ?? .notFinder : .notFinder
+        updatePolling(frontmostIsFinder: isFinder)
 
         if state != lastState {
             diagLog.debug("focus state \(String(describing: lastState)) -> \(String(describing: state))")
@@ -128,7 +131,7 @@ final class ApplicationMenuCover {
             teardown()
             return
         }
-        guard let cgRect = coverRect() else {
+        guard let snapshot, let cgRect = ApplicationMenuCoverPolicy.coverRect(forOrderedTitles: snapshot.titles) else {
             // The menus are mid-rebuild; leaving the previous cover in place
             // would strand it over titles that have moved.
             teardown()
@@ -151,41 +154,6 @@ final class ApplicationMenuCover {
             .sink { [weak self] _ in
                 self?.update()
             }
-    }
-
-    private func currentFocusState() -> DesktopFocusState {
-        let frontmost = NSWorkspace.shared.frontmostApplication
-        guard frontmost?.bundleIdentifier == ApplicationMenuCoverPolicy.finderBundleIdentifier,
-              let frontmost,
-              let app = AXHelpers.application(for: frontmost)
-        else {
-            return .notFinder
-        }
-        let focused = app.value(kAXFocusedWindowAttribute) as? AXElement
-        let subrole = focused?.value(kAXSubroleAttribute) as? String
-        return DesktopFocusState.classify(
-            frontmostBundleIdentifier: frontmost.bundleIdentifier,
-            hasFocusedWindow: focused != nil,
-            focusedWindowSubrole: subrole
-        )
-    }
-
-    /// In CG-global coordinates, the space the capture uses; the panel flips
-    /// it to Cocoa.
-    private func coverRect() -> CGRect? {
-        guard let frontmost = NSWorkspace.shared.frontmostApplication,
-              let app = AXHelpers.application(for: frontmost),
-              let menuBar = AXHelpers.menuBar(for: app)
-        else {
-            return nil
-        }
-        let titles = AXHelpers.children(for: menuBar).map { child in
-            MenuBarTitleFrame(
-                role: AXHelpers.roleString(for: child),
-                frame: AXHelpers.frame(for: child) ?? .null
-            )
-        }
-        return ApplicationMenuCoverPolicy.coverRect(forOrderedTitles: titles)
     }
 
     // MARK: The panel
@@ -234,12 +202,7 @@ final class ApplicationMenuCover {
         captureTask = Task { @MainActor [weak self] in
             // A window-server composite, so the recording indicator never lights.
             let image = await self?.appState?.menuBarManager.backdrop.capture(cgRect)
-            guard !Task.isCancelled,
-                  let self,
-                  let image,
-                  capturedRect == cgRect,
-                  let panel,
-                  let layer = panel.contentView?.layer
+            guard !Task.isCancelled, let self, let image, capturedRect == cgRect, let panel, let layer = panel.contentView?.layer
             else {
                 return
             }
@@ -253,9 +216,7 @@ final class ApplicationMenuCover {
     /// The stand-in fill. On a blurred, non-transparent bar the average is
     /// indistinguishable from the bar itself.
     private func fillColor() -> NSColor {
-        guard let displayID = NSScreen.screenWithActiveMenuBar?.displayID ?? NSScreen.main?.displayID,
-              let info = appState?.menuBarManager.averageColors[displayID],
-              let color = NSColor(cgColor: info.color)
+        guard let displayID = NSScreen.screenWithActiveMenuBar?.displayID ?? NSScreen.main?.displayID, let info = appState?.menuBarManager.averageColors[displayID], let color = NSColor(cgColor: info.color)
         else {
             // Without a sample, the window background still adapts to the
             // appearance; a black slab over a light bar reads as a fault.

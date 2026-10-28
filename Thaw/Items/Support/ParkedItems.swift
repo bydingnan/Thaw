@@ -13,22 +13,16 @@ nonisolated enum ParkedItems {
     /// The bar's vertical centre, read from a seated control item, and the windows of the
     /// items that sit off it: empty frames, frames below the bar band, and frames too far
     /// from that centre. Without a seated control only the first two can be told.
-    static func parkedSetAndBarMidY(in items: [MenuBarItem]) -> (barMidY: CGFloat?, parkedIDs: Set<CGWindowID>) {
+    static func parkedSetAndBarMidY(
+        in items: [MenuBarItem],
+        displays: [CGRect] = MenuBarBandClassifier.displayFrames
+    ) -> (barMidY: CGFloat?, parkedIDs: Set<CGWindowID>) {
         let barMidY = items.first(where: {
-            $0.tag.matchesVisibleControlItem && $0.bounds.midY <= MenuBarItemGeometry.maxOnBarMidY
+            $0.isControlItem && !MenuBarBandClassifier.isParked($0.bounds, displays: displays)
         })?.bounds.midY
-            ?? items.first(where: {
-                $0.isControlItem && $0.bounds.width > 8 && $0.bounds.midY <= MenuBarItemGeometry.maxOnBarMidY
-            })?.bounds.midY
-
-        let parkedIDs = Set(items.compactMap { item -> CGWindowID? in
-            guard item.bounds.width > 0, item.bounds.height > 0 else { return item.windowID }
-            if item.bounds.midY > MenuBarItemGeometry.maxOnBarMidY {
-                return item.windowID
-            }
-            guard let barMidY else { return nil }
-            return abs(item.bounds.midY - barMidY) > MenuBarItemGeometry.maxDistanceFromBarMidY ? item.windowID : nil
-        })
+        let parkedIDs = Set(items.filter {
+            MenuBarBandClassifier.isParked($0.bounds, displays: displays)
+        }.map(\.windowID))
 
         return (barMidY, parkedIDs)
     }

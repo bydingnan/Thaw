@@ -31,6 +31,38 @@ final class LayoutBarFeedbackCenter {
     }
 
     private(set) var refusal: Refusal?
+    private(set) var layoutOutcome: LayoutApplyOutcome?
+    var retryAction: (() -> Void)?
+    var showItemsAction: (() -> Void)?
+
+    func retry() {
+        retryAction?()
+    }
+
+    func showItems() {
+        showItemsAction?()
+    }
+
+    func authoredLayoutFailed(outcome: LayoutApplyOutcome, retry: @escaping () -> Void, showItems: @escaping () -> Void) {
+        let message: String
+        switch outcome {
+        case .restored:
+            message = String(localized: "The menu bar order was restored.")
+        case .rollbackIncomplete:
+            message = String(localized: "macOS also prevented restoring every item. Retry or show the items to adjust them.")
+        case .applied:
+            clear()
+            return
+        }
+        post(Refusal(
+            title: String(localized: "Some items couldn’t be placed"),
+            message: message
+        ))
+        layoutOutcome = outcome
+        clearTask?.cancel()
+        retryAction = retry
+        showItemsAction = showItems
+    }
 
     /// How long a refusal stays on screen before clearing itself. Long enough to
     /// read a sentence, short enough that a stale message never explains an
@@ -40,6 +72,9 @@ final class LayoutBarFeedbackCenter {
     private var clearTask: Task<Void, Never>?
 
     func post(_ refusal: Refusal) {
+        retryAction = nil
+        showItemsAction = nil
+        layoutOutcome = nil
         self.refusal = refusal
         // VoiceOver users never see the pill appear, so announce it. Mirrors
         // LayoutResetControls, which announces its inline status the same way.
@@ -63,6 +98,9 @@ final class LayoutBarFeedbackCenter {
         clearTask?.cancel()
         clearTask = nil
         refusal = nil
+        retryAction = nil
+        showItemsAction = nil
+        layoutOutcome = nil
     }
 
     // MARK: Message builders

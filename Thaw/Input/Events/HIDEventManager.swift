@@ -17,16 +17,18 @@ import ThawCapture
 /// hover, or a scroll, rehiding them again, dragging items around, and putting
 /// up tooltips and context menus.
 ///
-/// The manager owns a handful of EventMonitors and EventTaps. They are all
-/// installed and torn down together through startAll() and stopAll(),
-/// which nest, so overlapping callers cannot switch each other off.
+/// The manager installs and tears down monitors together. Pause leases keep
+/// overlapping synthetic operations from resuming each other's input.
 @MainActor
 @Observable
 final class HIDEventManager {
     static nonisolated let diagLog = DiagLog(category: "HIDEventManager")
 
     /// Whether a command-drag of a menu bar item is in progress.
-    var isDraggingMenuBarItem = false
+    let dragSession = MenuBarDragSession()
+    var isDraggingMenuBarItem: Bool {
+        dragSession.isActive
+    }
 
     /// The app-wide state this manager reads settings and sections from.
     /// Weak, because the app state owns the manager.
@@ -95,6 +97,7 @@ final class HIDEventManager {
     var notificationCenterInput = NotificationCenterInputState()
     var clockMenuBarBands: [CGRect] = []
     var notificationCenterHotkeys: [SystemNotificationCenterHotkey] = []
+    let notificationCenterShortcutProvider = NotificationCenterShortcutProvider()
 
     @ObservationIgnored
     lazy var notificationCenterActivation = makeNotificationCenterActivation()
@@ -135,23 +138,8 @@ final class HIDEventManager {
 
     var guardMouseUpState: GuardMouseUpState = .idle
 
-    /// The number of times the manager has been told to stop.
-    private var disableCount = 0
-
-    /// Timestamp of the last stopAll() call, used by the health check
-    /// to detect a stuck disabled state.
-    private var lastStopTimestamp: ContinuousClock.Instant?
-
-    /// Thread-safe lookup table mapping menu bar window IDs to their bounds.
-    /// Rebuilt from itemCache whenever it changes, eliminating
-    /// per-event Window Server IPC calls during mouse movement.
-    ///
-    /// The CGEventTap callback reads this on the main run loop and Combine
-    /// writes it on the main thread. That guarantee is implicit, so a lock
-    /// makes the safety explicit.
-    nonisolated let windowBoundsLock = OSAllocatedUnfairLock(
-        initialState: [(windowID: CGWindowID, bounds: CGRect)]()
-    )
+    private var inputPauses = InputPauseCoordinator()
+    nonisolated let pointerBoundsCache = PointerBoundsCache()
 
     /// The window ID of the menu bar item the mouse is currently hovering over,
     /// used to detect when the cursor moves to a different item.
@@ -194,8 +182,8 @@ final class HIDEventManager {
 
     /// Whether the monitors are meant to be listening right now.
     ///
-    /// Flipping this installs or removes all of them in one go; startAll()
-    /// and stopAll() own the nesting that decides when it flips.
+    /// Flipping this installs or removes all monitors. Pause leases decide
+    /// when input can resume.
     private(set) var isEnabled = false {
         didSet {
             guard isEnabled != oldValue else {
@@ -206,6 +194,7 @@ final class HIDEventManager {
                     monitor.stop()
                 }
                 mouseMovedTap.stop()
+                dragSession.cancel()
                 // A press that armed a control-item menu will never get its
                 // release once the monitors are down; drop it.
                 pendingControlItemContextMenu = nil
@@ -300,9 +289,7 @@ final class HIDEventManager {
     private func activeMenuBarDisplayDidChange(rateLimited: Bool) -> Bool {
         let now = ContinuousClock.now
         if
-            rateLimited,
-            let lastActiveMenuBarCheck,
-            now - lastActiveMenuBarCheck < Self.activeMenuBarCheckInterval
+            rateLimited, let lastActiveMenuBarCheck, now - lastActiveMenuBarCheck < Self.activeMenuBarCheckInterval
         {
             return false
         }
@@ -327,8 +314,7 @@ final class HIDEventManager {
         recordControlItemPressModifiers(event, appState: appState)
         let clickLocation = NSEvent.mouseLocation
         if
-            event.modifierFlags.contains(.control),
-            armControlItemContextMenu(appState: appState, clickLocation: clickLocation)
+            event.modifierFlags.contains(.control), armControlItemContextMenu(appState: appState, clickLocation: clickLocation)
         {
             return
         }
@@ -443,7 +429,12 @@ final class HIDEventManager {
         }
 
         if let appState {
-            guard let screen = NSScreen.screenWithMouse ?? NSScreen.main else {
+            let routing = PointerInteractionRouting(
+                pointerDisplay: NSScreen.screenWithMouse?.displayID,
+                activeMenuBarDisplay: NSScreen.screenWithActiveMenuBar?.displayID,
+                fallbackDisplay: NSScreen.main?.displayID
+            )
+            guard let screen = routing.bookkeepingDisplay.flatMap({ NSScreen.screen(for: $0) }) else {
                 return event
             }
             let screenID = screen.displayID
@@ -457,13 +448,13 @@ final class HIDEventManager {
                 appState.menuBarManager.updateControlItemStates(for: screen)
             }
 
-            if isMouseInsideMenuBar(appState: appState, screen: screen),
-               let mouseLocation = MouseHelpers.locationCoreGraphics
-            {
+            if isMouseInsideMenuBar(appState: appState, screen: screen), let mouseLocation = MouseHelpers.locationCoreGraphics {
                 pointerAXCache.refreshForeignWidget(at: mouseLocation)
                 pointerAXCache.refreshDrawnBarIfStale()
             }
-            handleShowOnHover(appState: appState, screen: screen)
+            if let revealScreen = routing.revealDisplay.flatMap({ NSScreen.screen(for: $0) }) {
+                handleShowOnHover(appState: appState, screen: revealScreen)
+            }
             handleMenuBarTooltip(appState: appState, screen: screen)
         }
         return event
@@ -519,33 +510,18 @@ final class HIDEventManager {
             return nil
         }
 
-        guard isEnabled, let appState, isShowOnClickGuardActive else {
-            return event
-        }
-
-        guard event.type == .leftMouseDown else {
-            return event
-        }
-
-        guard isPointInsideShowOnClickGuardRegion(NSEvent.mouseLocation) else {
+        guard isEnabled, let appState, isShowOnClickGuardActive, event.type == .leftMouseDown, isPointInsideShowOnClickGuardRegion(NSEvent.mouseLocation) else {
             return event
         }
 
         let clickState = event.getIntegerValueField(.mouseEventClickState)
         // Only click state 2 is the gesture; a higher state is the user still
         // clicking, not another double-click.
-        if clickState == 2,
-           configuration.showOnClick,
-           let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden),
-           alwaysHiddenSection.isEnabled
-        {
+        if clickState == 2, configuration.showOnClick, let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden), alwaysHiddenSection.isEnabled {
             cancelSmartRehide()
             alwaysHiddenSection.show()
             guardMouseUpState = Self.nextGuardState(from: guardMouseUpState, given: .swallowThenDisarm)
-        } else if event.flags.contains(.maskAlternate),
-                  let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden),
-                  alwaysHiddenSection.isEnabled
-        {
+        } else if event.flags.contains(.maskAlternate), let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden), alwaysHiddenSection.isEnabled {
             cancelSmartRehide()
             alwaysHiddenSection.toggle()
             guardMouseUpState = Self.nextGuardState(from: guardMouseUpState, given: .swallowThenDisarm)
@@ -611,7 +587,7 @@ final class HIDEventManager {
         configuration = appState.settings
         menuOpenMonitor = appState.itemManager.menuOpenMonitor
         onScreenItems = appState.itemManager.onScreenItemSnapshot
-        startAll()
+        isEnabled = !inputPauses.isPaused
         synchronizeClockActivationTap()
         synchronizeNotificationCenterHotkeyTap()
         configureCancellables()
@@ -647,9 +623,8 @@ final class HIDEventManager {
     /// Brings the Clock activation tap in line with whether bridging is
     /// possible at all: up when the section engine is real, down otherwise.
     ///
-    /// Deliberately independent of isEnabled. The tap stays live across a
-    /// stopAll() because it may still owe the system the mouse-up matching
-    /// a physical Clock press it swallowed before the pause began.
+    /// Deliberately independent of isEnabled. A pause may still owe the system
+    /// the mouse-up matching a physical Clock press swallowed before the pause.
     func synchronizeClockActivationTap() {
         if canBridgeClockActivation || notificationCenterInput.hasClockPress {
             if clockActivationTap.ensureValid(), !clockActivationTap.isEnabled {
@@ -666,12 +641,16 @@ final class HIDEventManager {
     /// A disabled shortcut leaves the tap down. Otherwise it handles the
     /// configured chord, including the system's default Fn-N.
     func synchronizeNotificationCenterHotkeyTap() {
-        let hotkeys = SystemNotificationCenterHotkey.shortcuts()
-        if hotkeys != notificationCenterHotkeys {
-            Self.diagLog.info("Notification Center shortcut bindings updated: \(hotkeys.count) enabled")
+        notificationCenterShortcutProvider.refresh { [weak self] hotkeys in
+            guard let self else { return }
+            notificationCenterHotkeys = hotkeys
+            reconcileNotificationCenterHotkeyTap()
         }
-        notificationCenterHotkeys = hotkeys
-        if (canBridgeClockActivation && !hotkeys.isEmpty) || notificationCenterInput.hasHeldKeys {
+        reconcileNotificationCenterHotkeyTap()
+    }
+
+    private func reconcileNotificationCenterHotkeyTap() {
+        if (canBridgeClockActivation && !notificationCenterHotkeys.isEmpty) || notificationCenterInput.hasHeldKeys {
             if notificationCenterHotkeyTap.ensureValid(), !notificationCenterHotkeyTap.isEnabled {
                 notificationCenterHotkeyTap.start()
             }
@@ -690,29 +669,7 @@ final class HIDEventManager {
     /// Checks the health of event monitors and taps, and attempts
     /// recovery if needed.
     func performHealthCheck() {
-        // Detect a stuck disabled state. If disableCount > 0 and we've
-        // been disabled for longer than any legitimate operation would
-        // take (e.g. a move or click), the count is likely imbalanced
-        // due to a cancelled Task or unexpected error. Force recovery.
-        if !isEnabled, disableCount > 1, let lastStop = lastStopTimestamp {
-            let elapsed = ContinuousClock.now - lastStop
-            // Nested stopAll (count > 1) held past the settle window is almost
-            // certainly a leaked pause. A single in-flight move (count == 1)
-            // is left alone.
-            if elapsed > .seconds(10) {
-                Self.diagLog.error(
-                    """
-                    Event manager stuck in disabled state for \
-                    \(elapsed) with disableCount=\
-                    \(self.disableCount), forcing recovery
-                    """
-                )
-                disableCount = 0
-                isEnabled = true
-                lastStopTimestamp = nil
-            }
-        }
-
+        dragSession.reconcile(isButtonDown: CGEventSource.buttonState(.combinedSessionState, button: .left))
         // Keep this tap alive while ordinary HID monitors are paused by a
         // synthetic click/move. It may still owe the system a swallowed mouse-up
         // from the physical Clock click that started the bridge. The same
@@ -729,11 +686,7 @@ final class HIDEventManager {
             monitor.ensureRunning()
         }
 
-        if let appState,
-           needsMouseMovedTap(appState: appState),
-           mouseMovedTap.ensureValid(),
-           !mouseMovedTap.isEnabled
-        {
+        if let appState, needsMouseMovedTap(appState: appState), mouseMovedTap.ensureValid(), !mouseMovedTap.isEnabled {
             Self.diagLog.warning("mouseMovedTap was valid but not enabled, re-enabling")
             mouseMovedTap.start()
         }
@@ -741,29 +694,15 @@ final class HIDEventManager {
 
     // MARK: Start/Stop
 
-    /// Undoes one stopAll().
-    ///
-    /// Stops nest: the monitors only come back once every outstanding stop has
-    /// been matched, so two callers suppressing the manager at the same time
-    /// cannot re-enable it behind each other's backs.
-    func startAll() {
-        if disableCount > 0 {
-            disableCount -= 1
-        }
-        if disableCount == 0 {
-            isEnabled = true
-            lastStopTimestamp = nil
-        }
+    func resumeInput(_ lease: InputPauseCoordinator.Lease) {
+        inputPauses.release(lease)
+        isEnabled = !inputPauses.isPaused
     }
 
-    /// Suppresses the manager until a matching startAll() arrives, and
-    /// abandons whatever hover, guard, or tooltip work was in flight.
-    func stopAll() {
-        if disableCount == 0 {
-            isEnabled = false
-        }
-        disableCount += 1
-        lastStopTimestamp = .now
+    /// Suppresses physical input until this owner releases its lease.
+    func pauseInput() -> InputPauseCoordinator.Lease {
+        let lease = inputPauses.acquire()
+        isEnabled = false
         hoverRearmTask?.cancel()
         hoverRearmTask = nil
         hoverRearmTaskToken = nil
@@ -774,6 +713,7 @@ final class HIDEventManager {
         cancelPendingMenuBarClick()
         disarmShowOnClickGuard()
         dismissMenuBarTooltip()
+        return lease
     }
 
     isolated deinit {

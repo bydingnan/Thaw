@@ -30,31 +30,34 @@ struct ParkedOffMenuBarBandTests {
         )
     }
 
-    private var control: MenuBarItem {
-        item(CGRect(x: 1400, y: 4, width: 31, height: 24), tag: .visibleControlItem)
+    private func isParked(_ item: MenuBarItem) -> Bool {
+        MenuBarBandClassifier.isParked(
+            item.bounds,
+            displays: [CGRect(x: 0, y: 0, width: 1920, height: 1080)]
+        )
     }
 
     @Test("The leading-edge sentinel is parked")
     func sentinelIsParked() {
         let parked = item(CGRect(x: -1, y: 4, width: 31, height: 24))
-        #expect(parked.isParkedOffMenuBarBand(among: [control, parked]))
+        #expect(isParked(parked))
     }
 
     @Test("A real seat beside the bar is not parked")
     func realSeatIsNotParked() {
         let live = item(CGRect(x: 1200, y: 4, width: 24, height: 22))
-        #expect(!live.isParkedOffMenuBarBand(among: [control, live]))
+        #expect(!isParked(live))
     }
 
     @Test("A zero-size frame is parked")
     func zeroSizeIsParked() {
         let empty = item(CGRect(x: 1400, y: 0, width: 0, height: 0))
-        #expect(empty.isParkedOffMenuBarBand(among: [control, empty]))
+        #expect(isParked(empty))
     }
 
     @Test("The Y-band collateral park is still detected")
     func yBandIsParked() {
         let collateral = item(CGRect(x: 1200, y: 1400, width: 24, height: 22))
-        #expect(collateral.isParkedOffMenuBarBand(among: [control, collateral]))
+        #expect(isParked(collateral))
     }
 }

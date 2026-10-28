@@ -165,49 +165,91 @@ struct MenuBarAgentIdentityReconcilerTests {
         #expect(result.items[1].tag.title == "Item-9")
     }
 
+    @Test func olderReconciliationCannotOverwriteNewerWalk() {
+        let store = MenuBarAgentIdentityStore()
+        let older = store.begin()
+        let newer = store.begin()
+        let newest = [Self.extra("new", x: 2006, width: 16)]
+        _ = store.reconcile(items: newest, freshItems: [], token: newer)
+        _ = store.reconcile(items: Self.identifiedBar, freshItems: [], token: older)
+        let result = store.reconcile(items: [Self.unnamed(index: 0, x: 2006, width: 16)], freshItems: [], token: store.begin())
+        #expect(result.items.first?.tag.title == "new")
+    }
+
+    @Test func concurrentWalksUseOneConsistentPreviousSnapshot() {
+        let store = MenuBarAgentIdentityStore()
+        _ = store.reconcile(items: Self.identifiedBar, freshItems: [], token: store.begin())
+        let first = store.begin()
+        let second = store.begin()
+        let fresh = [Self.unnamed(index: 0, x: 2006, width: 16)]
+        _ = store.reconcile(items: [Self.extra("changed", x: 2006, width: 16)], freshItems: [], token: first)
+        let result = store.reconcile(items: fresh, freshItems: [], token: second)
+        #expect(result.items.first?.tag.title == "com.apple.menuextra.bluetooth")
+    }
+
+    @Test func freshSubsetDoesNotEvictRetainedIdentityMemory() {
+        let store = MenuBarAgentIdentityStore()
+        _ = store.reconcile(items: Self.identifiedBar, freshItems: [Self.identifiedBar[0]], token: store.begin())
+        let fresh = [Self.unnamed(index: 0, x: 2038, width: 22)]
+        let result = store.reconcile(items: fresh, freshItems: fresh, token: store.begin())
+        #expect(result.items.first?.tag.title == "com.apple.menuextra.wifi")
+        #expect(result.freshItems == result.items)
+    }
+
+    @Test func unnamedExtrasNeverRestoreAcrossIndependentPipelines() {
+        let first = MenuBarAgentIdentityStore()
+        let second = MenuBarAgentIdentityStore()
+        _ = first.reconcile(items: Self.identifiedBar, freshItems: [], token: first.begin())
+        let fresh = [Self.unnamed(index: 0, x: 2006, width: 16)]
+        let result = second.reconcile(items: fresh, freshItems: [], token: second.begin())
+        #expect(result.items == fresh)
+    }
+
     // MARK: Stateful front
 
     @Suite(.serialized)
     struct Stateful {
-        init() {
-            MenuBarAgentIdentityReconciler.resetState()
+        private let store = MenuBarAgentIdentityStore()
+
+        private func reconcile(_ items: [MenuBarItem]) -> MenuBarAgentIdentityStore.Snapshot {
+            store.reconcile(items: items, freshItems: items, token: store.begin())
         }
 
         @Test("A degraded walk after an identified one restores identities")
         func degradedAfterIdentifiedRestores() {
-            _ = MenuBarAgentIdentityReconciler.reconciling(MenuBarAgentIdentityReconcilerTests.identifiedBar)
+            _ = reconcile(MenuBarAgentIdentityReconcilerTests.identifiedBar)
             let fresh = [
                 MenuBarAgentIdentityReconcilerTests.unnamed(index: 0, x: 2006, width: 16),
                 MenuBarAgentIdentityReconcilerTests.unnamed(index: 1, x: 2038, width: 22),
             ]
-            let result = MenuBarAgentIdentityReconciler.reconciling(fresh)
-            #expect(result.restoredCount == 2)
+            let result = reconcile(fresh)
+            #expect(result.items.count == 2)
             #expect(result.items[0].tag.title == "com.apple.menuextra.bluetooth")
         }
 
         @Test("A zero-item transition walk does not erase the memory")
         func zeroItemWalkKeepsSnapshot() {
-            _ = MenuBarAgentIdentityReconciler.reconciling(MenuBarAgentIdentityReconcilerTests.identifiedBar)
-            _ = MenuBarAgentIdentityReconciler.reconciling([])
+            _ = reconcile(MenuBarAgentIdentityReconcilerTests.identifiedBar)
+            _ = reconcile([])
             let fresh = [MenuBarAgentIdentityReconcilerTests.unnamed(index: 3, x: 2410, width: 26)]
-            let result = MenuBarAgentIdentityReconciler.reconciling(fresh)
-            #expect(result.restoredCount == 1)
+            let result = reconcile(fresh)
+            #expect(result.items.count == 1)
             #expect(result.items[0].tag.title == "com.apple.menuextra.controlcenter")
         }
 
         @Test("A fully degraded walk does not overwrite the snapshot")
         func degradedWalkDoesNotOverwriteSnapshot() {
-            _ = MenuBarAgentIdentityReconciler.reconciling(MenuBarAgentIdentityReconcilerTests.identifiedBar)
+            _ = reconcile(MenuBarAgentIdentityReconcilerTests.identifiedBar)
             // An identified extra departed and two strangers arrived: nothing
             // merges, so the snapshot must keep the earlier bar.
             let strangers = [
                 MenuBarAgentIdentityReconcilerTests.unnamed(index: 0, x: 100, width: 20),
                 MenuBarAgentIdentityReconcilerTests.unnamed(index: 1, x: 300, width: 20),
             ]
-            _ = MenuBarAgentIdentityReconciler.reconciling(strangers)
+            _ = reconcile(strangers)
             let fresh = [MenuBarAgentIdentityReconcilerTests.unnamed(index: 2, x: 2038, width: 22)]
-            let result = MenuBarAgentIdentityReconciler.reconciling(fresh)
-            #expect(result.restoredCount == 1)
+            let result = reconcile(fresh)
+            #expect(result.items.count == 1)
             #expect(result.items[0].tag.title == "com.apple.menuextra.wifi")
         }
     }

@@ -16,9 +16,13 @@ nonisolated enum AssistedPanelPlacement {
     /// is never covered by the panel that lists it.
     static let pointerGap: CGFloat = 18
 
+    static func fittingRange(minimum: CGFloat, maximum: CGFloat, size: CGFloat) -> ClosedRange<CGFloat> {
+        minimum ... max(minimum, maximum - size)
+    }
+
     static func frame(near pointer: CGPoint, in visibleFrame: CGRect, size: CGSize) -> CGRect {
         let x = (pointer.x - size.width / 2)
-            .clamped(to: visibleFrame.minX ... (visibleFrame.maxX - size.width))
+            .clamped(to: fittingRange(minimum: visibleFrame.minX, maximum: visibleFrame.maxX, size: size.width))
 
         // AppKit Y grows upward, so "below" the pointer is the smaller Y.
         let roomBelow = pointer.y - pointerGap - visibleFrame.minY
@@ -28,10 +32,10 @@ nonisolated enum AssistedPanelPlacement {
         // clamp covers as little of the pointer as it can.
         let originY: CGFloat = if roomBelow >= size.height || roomBelow >= roomAbove {
             (pointer.y - pointerGap - size.height)
-                .clamped(to: visibleFrame.minY ... (visibleFrame.maxY - size.height))
+                .clamped(to: fittingRange(minimum: visibleFrame.minY, maximum: visibleFrame.maxY, size: size.height))
         } else {
             (pointer.y + pointerGap)
-                .clamped(to: visibleFrame.minY ... (visibleFrame.maxY - size.height))
+                .clamped(to: fittingRange(minimum: visibleFrame.minY, maximum: visibleFrame.maxY, size: size.height))
         }
         return CGRect(x: x, y: originY, width: size.width, height: size.height)
     }

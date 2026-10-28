@@ -76,7 +76,7 @@ final class RecordingWatchManager {
                 guard let self else {
                     return
                 }
-                let sample = await Self.sample()
+                let sample = await Self.sample(previous: activity)
                 guard !Task.isCancelled else {
                     return
                 }
@@ -118,7 +118,7 @@ final class RecordingWatchManager {
     /// One reading of both devices.
     ///
     /// Reads off main (synchronous IPC); names on main (NSRunningApplication).
-    private static func sample() async -> RecordingActivity {
+    private static func sample(previous: RecordingActivity) async -> RecordingActivity {
         let reading = await Task.detached(priority: .utility) {
             (
                 inputs: RecordingDeviceProbe.microphoneInputs(),
@@ -126,8 +126,9 @@ final class RecordingWatchManager {
             )
         }.value
 
-        return RecordingActivity(
-            microphoneUsers: reading.inputs.map(named),
+        return RecordingWatchPolicy.merge(
+            previous: previous,
+            microphoneUsers: reading.inputs.map { $0.map(named) },
             isCameraInUse: reading.isCameraInUse
         )
     }
@@ -189,7 +190,7 @@ final class RecordingWatchManager {
             primaryDisplayID: NSScreen.screens.first?.displayID,
             connectedDisplays: connectedDisplays
         )
-        return displayID.flatMap(NSScreen.screen(for:))
+        return displayID.flatMap { NSScreen.screen(for: $0) }
     }
 
     // MARK: Flag

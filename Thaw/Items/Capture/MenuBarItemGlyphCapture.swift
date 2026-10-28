@@ -84,19 +84,15 @@ struct MenuBarItemGlyphCapture: Hashable, @unchecked Sendable {
     ///
     /// Uses pointer equality on CGImage as a fast path, falling back to
     /// dimension and pixel-data comparison when instances differ.
-    static func isVisuallyEqual(_ old: MenuBarItemGlyphCapture?, _ new: MenuBarItemGlyphCapture?) -> Bool {
-        guard let old, let new else { return old == nil && new == nil }
+    static nonisolated func isVisuallyEqual(_ old: MenuBarItemGlyphCapture?, _ new: MenuBarItemGlyphCapture?) -> Bool {
+        if case (nil, nil) = (old, new) {
+            return true
+        }
+        guard let old, let new else { return false }
         if old.cgImage === new.cgImage {
             return true
         }
-        guard old.scale == new.scale,
-              old.cgImage.width == new.cgImage.width,
-              old.cgImage.height == new.cgImage.height
-        else {
-            return false
-        }
-        guard let oldData = old.cgImage.dataProvider?.data,
-              let newData = new.cgImage.dataProvider?.data
+        guard old.scale == new.scale, old.cgImage.width == new.cgImage.width, old.cgImage.height == new.cgImage.height, let oldData = old.cgImage.dataProvider?.data, let newData = new.cgImage.dataProvider?.data
         else {
             return false
         }

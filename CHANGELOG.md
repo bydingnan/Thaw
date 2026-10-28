@@ -20,6 +20,13 @@ and the Sparkle appcast, unless overridden with the `release_notes` input.
 - Reduce layout capture latency by reusing completed overflow observations and overlapping independent post-capture geometry checks. Apply the same near-uniform color tolerance when selecting an inset background, so wide clock text on a lightly graded bar is extracted directly instead of repeatedly falling back to window captures.
 - Update Foldy to Thaw 3.0.0-alpha.9 (build 114), including the unified Control Center replacement switch, safer profile application, crash fixes, and improved icon capture, hiding, and display polling. Keep Foldy's branding, version-only About, updater removal, Dock lifecycle, and local capture optimizations.
 - Keep existing thumbnails when a newer capture supersedes parallel geometry validation, rather than publishing unvalidated crops or discarding the prior image.
+- Keep opted-in icon-change alerts observing hidden items in the background, and preserve user reveals when thumbnail capture finishes. Restore disk-cached glyphs correctly, accept legitimate resizing, and reject overflow geometry observed before the captured pixels.
+- Make launch, deferred windows, Settings activation, restart, and termination follow explicit ownership and completion states. Keep replacement controls available with menu-bar auto-hide enabled.
+- Bound failed capture fallbacks, prevent ambiguous accessibility presses from firing twice, keep expensive foreign-app geometry and protected-file reads off the main thread, and preserve shared work when a requester cancels.
+- Repair deferred and late item discovery, vertically stacked display classification, fullscreen menu detection, physical-seat retry markers, cancellation handling, and spacing relaunch verification.
+- Keep display-specific appearance, notch geometry, hover routing, tooltips, recording indicators, group labels, and accessibility children consistent as their inputs change.
+- Explain failed layout placement with Retry and Show Items actions, support keyboard hints beyond 26 items, and use dominant-axis scroll gestures without momentum-only reveals.
+- Fix numbered release-note steps and the Foldy Debug development runner. Isolate Xcode test-host launch from normal menu-bar setup.
 
 ## [3.0.0-alpha.9] - 2026-10-14
 

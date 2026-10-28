@@ -22,6 +22,56 @@ struct MoveFailureMemoryTests {
         [a, b, c].map(\.uniqueIdentifier)
     }
 
+    @Test func cancelledSectionMoveDoesNotEnterFailureBackoff() {
+        var memory = MoveFailureMemory()
+        let move = MoveFailureMemory.Move(item: a, destination: .rightOfItem(c))
+        memory.recordFailure(of: move, desiredOrder: order, now: start, isCancelled: true)
+        #expect(!memory.isBackingOff(from: move, desiredOrder: order, now: start))
+    }
+
+    @Test func cancelledSectionMoveDoesNotIncrementItemBreaker() {
+        var memory = MoveFailureMemory()
+        let move = MoveFailureMemory.Move(item: a, destination: .rightOfItem(c))
+        memory.recordFailure(of: move, desiredOrder: order, now: start, isCancelled: true)
+        #expect(memory.failureCount(for: move) == 0)
+    }
+
+    @Test func genuineSectionMoveFailureStillBacksOff() {
+        var memory = MoveFailureMemory()
+        let move = MoveFailureMemory.Move(item: a, destination: .rightOfItem(c))
+        memory.recordFailure(of: move, desiredOrder: order, now: start, isCancelled: false)
+        #expect(memory.isBackingOff(from: move, desiredOrder: order, now: start))
+        #expect(memory.failureCount(for: move) == 1)
+    }
+
+    @Test func recordingFailurePrunesExpiredOrderVariants() {
+        var memory = MoveFailureMemory()
+        let move = MoveFailureMemory.Move(item: a, destination: .rightOfItem(c))
+        memory.recordFailure(of: move, desiredOrder: order, now: start)
+        memory.recordFailure(of: move, desiredOrder: order.reversed(), now: start + .seconds(31))
+        #expect(memory.retainedOrderCount == 1)
+    }
+
+    @Test func recordingFailurePrunesExpiredItemRecords() {
+        var memory = MoveFailureMemory()
+        let first = MoveFailureMemory.Move(item: a, destination: .rightOfItem(c))
+        let second = MoveFailureMemory.Move(item: b, destination: .rightOfItem(c))
+        memory.recordFailure(of: first, desiredOrder: order, now: start)
+        memory.recordFailure(of: second, desiredOrder: order, now: start + .seconds(31))
+        #expect(memory.failureCount(for: first) == 0)
+        #expect(memory.retainedItemCount == 1)
+    }
+
+    @Test func activeFailureRecordsSurvivePruning() {
+        var memory = MoveFailureMemory()
+        let first = MoveFailureMemory.Move(item: a, destination: .rightOfItem(c))
+        let second = MoveFailureMemory.Move(item: b, destination: .rightOfItem(c))
+        memory.recordFailure(of: first, desiredOrder: order, now: start)
+        memory.recordFailure(of: second, desiredOrder: order, now: start + .seconds(1))
+        #expect(memory.failureCount(for: first) == 1)
+        #expect(memory.retainedItemCount == 2)
+    }
+
     @Test("The third failure in a row trips the item breaker")
     func thirdFailureTrips() {
         var memory = MoveFailureMemory()

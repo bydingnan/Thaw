@@ -166,9 +166,7 @@ struct HiddenMenuBarItemsSnippet: SnippetIntent {
     /// Prefer a capture, then the owner's app icon to identify concealed items that were never captured.
     @MainActor
     private static func glyph(for item: MenuBarItem, appState: AppState) -> Image? {
-        if let capture = appState.imageCache.image(for: item.tag),
-           let trimmed = capture.horizontallyTrimmedCGImage
-        {
+        if let capture = appState.imageCache.image(for: item.tag), let trimmed = capture.horizontallyTrimmedCGImage {
             return Image(decorative: trimmed, scale: capture.scale)
         }
         guard let icon = OverflowFallbackIcon.preferredImage(for: item, appState: appState) else {
@@ -225,8 +223,11 @@ struct RevealMenuBarItemIntent: AppIntent {
 
         let controller = appState.menuBarManager.sectionController
         if controller.isOperational {
-            controller.revealItemTemporarily(itemIdentifier)
-            controller.scheduleTemporaryItemConceal(itemIdentifier)
+            controller.revealForInteraction(
+                itemIdentifier,
+                duration: appState.settings.general.tempShowInterval,
+                menuMonitor: appState.itemManager.menuOpenMonitor
+            )
         } else {
             // Fall back to whole-section reveal when per-item reveal is unavailable.
             appState.menuBarManager.section(withName: .hidden)?.show()

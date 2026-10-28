@@ -70,10 +70,7 @@ public final class MenuOpenMonitor {
     }
 
     public func isAnyMenuOpen() async -> Bool {
-        if let cachedAt,
-           let cachedResult,
-           cachedAt.duration(to: .now) <= cacheFreshness
-        {
+        if let cachedAt, let cachedResult, cachedAt.duration(to: .now) <= cacheFreshness {
             Self.diagLog.debug("Menu open check: using cached result \(cachedResult)")
             return cachedResult
         }
@@ -128,14 +125,11 @@ public final class MenuOpenMonitor {
             else {
                 return nil
             }
-            let menuBarHeight = screen.frame.maxY - screen.visibleFrame.maxY
-            guard menuBarHeight > 0 else { return nil }
             let displayFrame = CGDisplayBounds(CGDirectDisplayID(number.uint32Value))
-            return CGRect(
-                x: displayFrame.minX,
-                y: displayFrame.minY,
-                width: displayFrame.width,
-                height: menuBarHeight
+            return MenuProbeStrip.derive(
+                display: displayFrame,
+                reservedHeight: screen.frame.maxY - screen.visibleFrame.maxY,
+                revealedHeight: max(screen.safeAreaInsets.top, NSStatusBar.system.thickness)
             )
         }
     }
@@ -161,21 +155,16 @@ public final class MenuOpenMonitor {
         guard !overlayWindowIDs.contains(window.windowID) else { return false }
 
         // Exclude unregistered Thaw overlays at menu-bar level; real NSMenus sit at popup level.
-        if window.ownerPID == ProcessInfo.processInfo.processIdentifier,
-           window.layer < Int(CGWindowLevelForKey(.popUpMenuWindow))
-        {
+        if window.ownerPID == ProcessInfo.processInfo.processIdentifier, window.layer < Int(CGWindowLevelForKey(.popUpMenuWindow)) {
             return false
         }
 
-        guard window.isMenuRelated, window.title?.isEmpty ?? true,
-              ownerBundleIdentifier != MenuBarItemTag.Namespace.controlCenter.description
+        guard window.isMenuRelated, window.title?.isEmpty ?? true, ownerBundleIdentifier != MenuBarItemTag.Namespace.controlCenter.description
         else { return false }
 
         // Droppy's persistent notch/HUD surface was captured at layer 100.
         // Keep the standard popup-menu level (101) eligible.
-        if ownerBundleIdentifier == "iordv.Droppy",
-           window.layer == Int(CGWindowLevelForKey(.popUpMenuWindow) - 1)
-        {
+        if ownerBundleIdentifier == "iordv.Droppy", window.layer == Int(CGWindowLevelForKey(.popUpMenuWindow) - 1) {
             return false
         }
 

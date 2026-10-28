@@ -69,6 +69,8 @@ class Permission: Identifiable {
     /// An asynchronous fallback for permissions whose running-process state
     /// can lag behind their synchronous system check.
     private let asyncCheck: (() async -> Bool)?
+    private let backgroundCheck: (() async -> Bool)?
+    private let refreshGate = PermissionRefreshGate()
 
     /// Reports granted, then prompted; back off on declined prompts and fall back to System Settings when no prompt appeared.
     private let request: (@escaping @MainActor @Sendable (Bool, Bool) -> Void) -> Void
@@ -119,6 +121,7 @@ class Permission: Identifiable {
         settingsURL: URL?,
         check: @escaping () -> Bool,
         asyncCheck: (() async -> Bool)? = nil,
+        backgroundCheck: (() async -> Bool)? = nil,
         request: @escaping (@escaping @MainActor @Sendable (Bool, Bool) -> Void) -> Void,
         pollInterval: TimeInterval = 3,
         ungrantedPollBudget: Int = 60
@@ -132,10 +135,11 @@ class Permission: Identifiable {
         self.settingsURL = settingsURL
         self.check = check
         self.asyncCheck = asyncCheck
+        self.backgroundCheck = backgroundCheck
         self.request = request
         self.pollInterval = pollInterval
         self.ungrantedPollBudget = ungrantedPollBudget
-        self.hasPermission = check()
+        self.hasPermission = backgroundCheck == nil ? check() : false
         configureCancellables()
     }
 
@@ -154,7 +158,18 @@ class Permission: Identifiable {
 
     /// Publish only transitions and stop at the ungranted budget; internal access lets tests drive ticks without timers.
     func handlePollTick() {
-        let granted = check()
+        if let backgroundCheck {
+            let token = refreshGate.begin()
+            Task { [weak self] in
+                guard let self else { return }
+                await refreshGate.refresh(token: token, probe: backgroundCheck) { self.applyPollResult($0) }
+            }
+            return
+        }
+        applyPollResult(check())
+    }
+
+    private func applyPollResult(_ granted: Bool) {
         setHasPermissionIfChanged(granted)
         if granted {
             stopCheck()
@@ -198,6 +213,7 @@ class Permission: Identifiable {
         }
         request { [weak self] granted, prompted in
             guard let self else { return }
+            refreshGate.invalidate()
             if granted {
                 setHasPermissionIfChanged(true)
                 stopCheck()
@@ -232,19 +248,32 @@ class Permission: Identifiable {
             .publisher(for: NSApplication.didBecomeActiveNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                // Activation checks must be synchronous and preflight-only; reserve asynchronous probes for explicit user actions.
+                // Protected-file refreshes schedule utility work instead of blocking activation.
                 self?.refreshStatus()
             }
     }
 
-    /// Re-checks current system authorization immediately.
+    /// Re-checks system authorization; protected-file checks publish asynchronously.
     func refreshStatus() {
-        setHasPermissionIfChanged(check())
+        if let backgroundCheck {
+            let token = refreshGate.begin()
+            Task { [weak self] in
+                guard let self else { return }
+                await refreshGate.refresh(token: token, probe: backgroundCheck) { self.setHasPermissionIfChanged($0) }
+            }
+        } else {
+            refreshGate.invalidate()
+            setHasPermissionIfChanged(check())
+        }
     }
 
     /// Re-checks current system authorization, including any asynchronous
     /// system probe needed to observe a grant without relaunching.
     func refreshStatus() async {
+        if let backgroundCheck {
+            await refreshGate.refresh(probe: backgroundCheck) { self.setHasPermissionIfChanged($0) }
+            return
+        }
         let synchronouslyGranted = check()
         guard !synchronouslyGranted, let asyncCheck else {
             setHasPermissionIfChanged(synchronouslyGranted)
@@ -256,6 +285,7 @@ class Permission: Identifiable {
 
     /// Stops running the permission check.
     func stopCheck() {
+        refreshGate.invalidate()
         timerCancellable?.cancel()
         timerCancellable = nil
         settingsReturnCancellable?.cancel()

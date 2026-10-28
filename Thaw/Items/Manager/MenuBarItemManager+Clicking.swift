@@ -40,8 +40,7 @@ extension MenuBarItemManager {
                 source: source,
                 type: phases.down,
                 location: point
-            ),
-            let up = CGEvent.menuBarItemEvent(
+            ), let up = CGEvent.menuBarItemEvent(
                 item: item,
                 source: source,
                 type: phases.up,
@@ -63,9 +62,7 @@ extension MenuBarItemManager {
     /// which keeps hotkey and search activation targeting the item's own bar.
     private static func clickPoint(for bounds: CGRect) -> CGPoint {
         guard
-            let pointer = MouseHelpers.locationCoreGraphics,
-            let screen = NSScreen.screen(containingCGPoint: pointer),
-            let menuBarHeight = screen.getMenuBarHeight()
+            let pointer = MouseHelpers.locationCoreGraphics, let screen = NSScreen.screen(containingCGPoint: pointer), let menuBarHeight = screen.getMenuBarHeight()
         else {
             return bounds.center
         }
@@ -312,9 +309,9 @@ extension MenuBarItemManager {
             }
         }
 
-        appState.hidEventManager.stopAll()
+        let inputPause = appState.hidEventManager.pauseInput()
         defer {
-            appState.hidEventManager.startAll()
+            appState.hidEventManager.resumeInput(inputPause)
         }
 
         // An owner already known to ignore synthetic events gets one attempt
@@ -386,11 +383,15 @@ extension MenuBarItemManager {
         controller: any MenuBarSectionControlling
     ) async -> Bool {
         let identifier = item.uniqueIdentifier
-        controller.revealItemTemporarily(identifier)
+        let revealLease = controller.temporaryReveals.acquire(identifier)
 
         // Same settle the prewarm uses so the AX bounds are valid. Not gated on
         // isWindowOnScreen: macOS 27 status items carry synthetic window IDs.
         await eventSleep(for: Constants.MenuBarTuning.thawBarRevealSettle)
+        guard !Task.isCancelled else {
+            controller.temporaryReveals.release(revealLease)
+            return false
+        }
 
         // Re-fetch live bounds; a transient "Item-N" title can change between
         // enumerations, so fall back to same-owner, then the cached item.
@@ -411,13 +412,17 @@ extension MenuBarItemManager {
         guard reacted else {
             // Nothing opened, so nothing to wait for; the next method starts
             // from a concealed item.
-            controller.concealTemporarilyRevealedItem(identifier)
+            controller.temporaryReveals.release(revealLease)
             return false
         }
 
         // Let the opened menu settle before scheduling the re-conceal.
         await eventSleep(for: Constants.MenuBarTuning.thawBarPostClickSettle)
-        controller.scheduleTemporaryItemConceal(identifier)
+        controller.temporaryReveals.scheduleRelease(
+            revealLease,
+            after: configuration.tempShowInterval,
+            menuOpen: { [menuOpenMonitor] in await menuOpenMonitor.isAnyMenuOpen() }
+        )
         return true
     }
 }

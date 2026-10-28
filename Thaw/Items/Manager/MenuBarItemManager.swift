@@ -281,8 +281,7 @@ final class MenuBarItemManager {
         notificationCenterLayoutHold.settle { token in
             Task { @MainActor [weak self] in
                 do { try await settle() } catch { return }
-                guard let self, !Task.isCancelled,
-                      notificationCenterLayoutHold.release(ifCurrent: token)
+                guard let self, !Task.isCancelled, notificationCenterLayoutHold.release(ifCurrent: token)
                 else { return }
                 layoutPublication.endMutation()
                 noteRestrictionChange()
@@ -398,7 +397,7 @@ final class MenuBarItemManager {
     /// gate (macOS 27). While this is unchanged tick-to-tick the bar is stable,
     /// so the full identity-signature AX walk is skipped entirely. nil until
     /// the first gated tick.
-    var periodicWindowListSignature: [CGWindowID]?
+    var periodicRefreshGate = PeriodicCacheRefreshGate()
 
     /// Persisted identifiers of menu bar items we've already seen.
     var knownItemIdentifiers = Set<String>()
@@ -685,7 +684,7 @@ final class MenuBarItemManager {
     /// neighbours the item is standing among, so it reports the item as
     /// placed and the mix only shows on the next reveal. The strand pass
     /// drags these across the divider unconditionally.
-    var pendingPhysicalSeatIDs = Set<String>()
+    var pendingPhysicalSeatIDs = PendingPhysicalSeatLedger()
 
     /// Consecutive failed passes before an item stops being repaired. Each
     /// pass carries its own multi-attempt drag budget, so a third pass means
@@ -761,10 +760,7 @@ final class MenuBarItemManager {
             authoredVisibleOrderPendingPhysicalApply = true
             noteAuthoredEditCommitted()
         }
-        if section == .visible,
-           !identifiers.isEmpty,
-           let controller = appState?.menuBarManager.sectionController
-        {
+        if section == .visible, !identifiers.isEmpty, let controller = appState?.menuBarManager.sectionController {
             authoredVisibleOrderApplyTask?.cancel()
             repairs.withdraw(.arrivalOrderRestore)
             authoredVisibleOrderApplyTask = Task { @MainActor [weak self] in
@@ -777,6 +773,11 @@ final class MenuBarItemManager {
                         authoredVisibleOrderApplyTask = nil
                     }
                 }
+                let originalItems = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+                guard !Task.isCancelled else { return }
+                let originalOrder = originalItems.filter {
+                    controller.section(for: $0.uniqueIdentifier) == .visible && !$0.isControlItem
+                }.map(\.uniqueIdentifier)
                 // Converge rather than fire once. A single pass can place some
                 // of the order and stall on the rest, an anchor that moved
                 // under it, a write MenuBarAgent had not yet consumed, and the
@@ -812,6 +813,7 @@ final class MenuBarItemManager {
                         items: liveItems
                     ) {
                         authoredVisibleOrderPendingPhysicalApply = false
+                        appState?.layoutFeedback.clear()
                         MenuBarItemManager.diagLog.info(
                             "macOS 27: authored visible order realized on the bar after \(attempt) attempt(s)"
                         )
@@ -821,15 +823,42 @@ final class MenuBarItemManager {
                         try? await Task.sleep(for: .seconds(1))
                     }
                 }
-                // Give up and let the bar win. Holding the edit pending would
-                // keep the pane showing an arrangement that does not exist and
-                // lock the cache mirror out of the real one indefinitely; a
-                // pane that snaps back is at least honest about what happened.
+                guard !Task.isCancelled else { return }
+                if let hold = await repairs.enterForUserEdit() {
+                    await applySectionItemOrder(
+                        sections: [.visible],
+                        controller: controller,
+                        whileRevealing: controller.revealedSection,
+                        visibleOrderOverride: originalOrder,
+                        reason: .userReorder,
+                        permit: StoreWritePermit(hold)
+                    )
+                    repairs.leave(hold)
+                }
+                guard !Task.isCancelled else { return }
+                let rollbackItems = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+                guard !Task.isCancelled else { return }
+                let rollbackSucceeded = liveOrderMatches(
+                    originalOrder, section: .visible, controller: controller, items: rollbackItems
+                )
                 authoredVisibleOrderPendingPhysicalApply = false
                 MenuBarItemManager.diagLog.error(
                     "macOS 27: authored visible order still not on the bar after "
                         + "\(Self.authoredVisibleOrderApplyAttempts) attempt(s); "
                         + "releasing it so the pane reflects the bar"
+                )
+                appState?.layoutFeedback.authoredLayoutFailed(
+                    outcome: rollbackSucceeded
+                        ? .restored(originalOrder: originalOrder, requestedOrder: identifiers)
+                        : .rollbackIncomplete(originalOrder: originalOrder, requestedOrder: identifiers),
+                    retry: { [weak self] in
+                        guard let self else { return }
+                        savedSectionOrder[sectionKey(for: .visible)] = identifiers
+                        scheduleSectionOrderApply(for: .visible)
+                    },
+                    showItems: { [weak self] in
+                        self?.appState?.menuBarManager.sectionController.show(.alwaysHidden)
+                    }
                 )
             }
         }
@@ -838,8 +867,7 @@ final class MenuBarItemManager {
     /// Writes the recorded Visible order back after an arrival disturbed it.
     /// Position writes only and a single attempt; if the bar does not follow, the next mirror records the bar.
     func scheduleArrivalOrderRestore() {
-        guard !arrangementIsManual,
-              let controller = appState?.menuBarManager.sectionController
+        guard !arrangementIsManual, let controller = appState?.menuBarManager.sectionController
         else { return }
         let identifiers = savedSectionOrder[sectionKey(for: .visible)] ?? []
         guard identifiers.count > 1 else { return }
@@ -1055,13 +1083,10 @@ final class MenuBarItemManager {
             return nil
         }
 
-        if sectionName(for: newItemsPlacement.sectionKey) == section,
-           let anchorIdentifier = newItemsPlacement.anchorIdentifier,
-           let anchorIndex = resolvedNewItemsAnchorIndex(
-               for: anchorIdentifier,
-               in: itemIdentifiers
-           )
-        {
+        if sectionName(for: newItemsPlacement.sectionKey) == section, let anchorIdentifier = newItemsPlacement.anchorIdentifier, let anchorIndex = resolvedNewItemsAnchorIndex(
+            for: anchorIdentifier,
+            in: itemIdentifiers
+        ) {
             switch newItemsPlacement.relation {
             case .leftOfAnchor:
                 return anchorIndex
@@ -1095,11 +1120,7 @@ final class MenuBarItemManager {
         in section: MenuBarSection.Name,
         itemIdentifiers: [String]
     ) -> Int? {
-        guard let anchorIdentifier = newItemsPlacement.anchorIdentifier,
-              newItemsPlacement.relation != .sectionDefault,
-              sectionName(for: newItemsPlacement.sectionKey) == section,
-              let profileOrder = activeProfileLayout?.itemOrder[sectionKey(for: section)],
-              let anchorPos = profileOrder.firstIndex(of: anchorIdentifier)
+        guard let anchorIdentifier = newItemsPlacement.anchorIdentifier, newItemsPlacement.relation != .sectionDefault, sectionName(for: newItemsPlacement.sectionKey) == section, let profileOrder = activeProfileLayout?.itemOrder[sectionKey(for: section)], let anchorPos = profileOrder.firstIndex(of: anchorIdentifier)
         else {
             return nil
         }
@@ -1262,13 +1283,10 @@ final class MenuBarItemManager {
             return targetSection == .visible
         }
 
-        if sectionName(for: newItemsPlacement.sectionKey) == targetSection,
-           let anchorIdentifier = newItemsPlacement.anchorIdentifier,
-           let anchorItem = resolvedNewItemsAnchorItem(
-               for: anchorIdentifier,
-               in: liveSectionItems
-           )
-        {
+        if sectionName(for: newItemsPlacement.sectionKey) == targetSection, let anchorIdentifier = newItemsPlacement.anchorIdentifier, let anchorItem = resolvedNewItemsAnchorItem(
+            for: anchorIdentifier,
+            in: liveSectionItems
+        ) {
             switch newItemsPlacement.relation {
             case .leftOfAnchor:
                 return .leftOfItem(anchorItem)
@@ -1518,9 +1536,7 @@ final class MenuBarItemManager {
                 // layout and sweeps hidden items into Visible. Settling ends as
                 // soon as the bundle ID reappears with a resolved PID. Apps with
                 // no tracked item arm nothing.
-                if let launchedBundleID,
-                   MenuBarItemManager.tracksMenuBarItem(bundleID: launchedBundleID, in: self.knownItemIdentifiers)
-                {
+                if let launchedBundleID, MenuBarItemManager.tracksMenuBarItem(bundleID: launchedBundleID, in: self.knownItemIdentifiers) {
                     self.startSettlingPeriod(
                         reason: "appLaunch",
                         expectedBundleIDs: [launchedBundleID],
@@ -1528,17 +1544,18 @@ final class MenuBarItemManager {
                     )
                 }
                 Task { [weak self] in
-                    await self?.cacheItemsRegardless()
-                    // Many apps register their NSStatusItem more than 1s after
-                    // didLaunch fires, so the initial cache pass above sees no
-                    // new window IDs and relocateNewLeftmostItems no-ops. Re-check
-                    // at +2.5s and +5s to catch late arrivals; cacheItemsIfNeeded
-                    // bails when window IDs are unchanged, so this is cheap when
-                    // the item already showed up on the first pass.
-                    try? await Task.sleep(for: .seconds(2.5))
-                    await self?.cacheItemsIfNeeded()
-                    try? await Task.sleep(for: .seconds(2.5))
-                    await self?.cacheItemsIfNeeded()
+                    guard let self else { return }
+                    var recheck = LateItemAttachmentRecheck(
+                        initialIdentifiers: managedItems.map(\.uniqueIdentifier)
+                    )
+                    await cacheItemsRegardless()
+                    recheck.observed(managedItems.map(\.uniqueIdentifier))
+                    for _ in 0 ..< 2 where recheck.shouldForceAXRead {
+                        try? await Task.sleep(for: .seconds(2.5))
+                        guard !Task.isCancelled else { return }
+                        await cacheItemsRegardless()
+                        recheck.observed(managedItems.map(\.uniqueIdentifier))
+                    }
                 }
             }
         }
@@ -1596,10 +1613,7 @@ final class MenuBarItemManager {
             }
             for await (identifier, isPresented) in changes {
                 guard let self else { return }
-                guard identifier == .menuBarLayout, isPresented else {
-                    continue
-                }
-                guard let imageCache = self.appState?.imageCache else { continue }
+                guard identifier == .menuBarLayout, isPresented, let imageCache = self.appState?.imageCache else { continue }
                 await imageCache.prewarmConcealedImages(
                     sections: MenuBarSection.Name.allCases,
                     onlyMissingImages: true
@@ -1660,7 +1674,8 @@ final class MenuBarItemManager {
                     // extra after the notification fired, the same shape as
                     // the launch path's +2.5s recheck.
                     try? await Task.sleep(for: .seconds(2.5))
-                    await manager.cacheItemsIfNeeded()
+                    guard !Task.isCancelled else { return }
+                    await manager.cacheItemsRegardless()
                 }
             },
             "com.apple.controlcenter.bentoBoxDidChange" as CFString,

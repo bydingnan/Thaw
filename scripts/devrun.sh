@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Builds Thaw and installs it as /Applications/Thaw Debug.app
-# (com.stonerl.Thaw.debug), next to any released Thaw.
+# Builds Foldy and installs it as /Applications/Foldy Debug.app
+# (com.stonerl.Thaw.debug), next to any released Foldy.
 #
 # macOS 27 attributes a status item to its app only when the app runs from
-# /Applications. Run from DerivedData, Thaw's own icon vanishes on hide.
+# /Applications. Run from DerivedData, Foldy's own icon vanishes on hide.
 #
 # Full output is saved in a temporary directory outside the checkout.
 # Diagnostic logging uses the saved preference, or the build's default.
@@ -21,7 +21,7 @@ cd "$SCRIPT_DIR/.."
 PROJECT="Thaw.xcodeproj"
 SCHEME="Thaw"
 CONFIG="Release"
-APP_NAME="Thaw Debug"
+APP_NAME="Foldy Debug"
 DEST="/Applications/$APP_NAME.app"
 BUNDLE_ID="com.stonerl.Thaw.debug"
 PROCESS_PATTERN="^${DEST//./\\.}/Contents/MacOS/$APP_NAME( |$)"

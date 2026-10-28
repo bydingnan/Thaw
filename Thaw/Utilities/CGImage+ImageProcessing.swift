@@ -449,7 +449,8 @@ extension CGImage {
                height: height,
                bytesPerRow: bytesPerRow,
                bytesPerPixel: bytesPerPixel,
-               outerShare: ringShare, maxColorDistance: maxColorDistance / 2
+               outerShare: ringShare,
+               maxColorDistance: maxColorDistance / 2
            ),
            let inner = cropping(to: CGRect(x: inset, y: inset, width: width - 2 * inset, height: height - 2 * inset))
         {
@@ -827,7 +828,8 @@ extension CGImage {
         height: Int,
         bytesPerRow: Int,
         bytesPerPixel: Int,
-        outerShare: Double, maxColorDistance: CGFloat
+        outerShare: Double,
+        maxColorDistance: CGFloat
     ) -> Int? {
         let maximumInset = min(8, min(width, height) / 6)
         guard maximumInset >= 1 else { return nil }

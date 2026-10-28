@@ -74,10 +74,7 @@ nonisolated enum MoveTargeting {
         hiddenControlItemWindowNumber: Int?,
         section: (MenuBarItem) -> MenuBarSection.Name?
     ) -> MenuBarItem? {
-        if let hiddenControlItemWindowNumber,
-           let windowID = CGWindowID(exactly: hiddenControlItemWindowNumber),
-           let seated = items.first(where: { $0.windowID == windowID })
-        {
+        if let hiddenControlItemWindowNumber, let windowID = CGWindowID(exactly: hiddenControlItemWindowNumber), let seated = items.first(where: { $0.windowID == windowID }), !MenuBarBandClassifier.isParked(seated.bounds) {
             return seated
         }
         return items
@@ -88,6 +85,7 @@ nonisolated enum MoveTargeting {
                     && section(candidate) == .visible
                     && candidate.bounds.minX >= 0
                     && candidate.bounds.width > 0
+                    && !MenuBarBandClassifier.isParked(candidate.bounds)
             }
             .max { $0.bounds.maxX < $1.bounds.maxX }
     }

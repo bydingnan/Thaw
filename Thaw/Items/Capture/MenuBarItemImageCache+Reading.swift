@@ -22,9 +22,7 @@ extension MenuBarItemImageCache {
         among items: [MenuBarItem],
         displayID: CGDirectDisplayID
     ) async -> Set<MenuBarItemTag> {
-        guard !items.isEmpty else { return [] }
-
-        guard let capture = await ScreenCapture.captureMenuBarHostingWindowAsync(displayID: displayID) else {
+        guard !items.isEmpty, let capture = await ScreenCapture.captureMenuBarHostingWindowAsync(displayID: displayID) else {
             return []
         }
         return Self.blankTags(in: items, from: capture)
@@ -38,10 +36,7 @@ extension MenuBarItemImageCache {
 
         var blankTags = Set<MenuBarItemTag>()
         for item in items {
-            guard capture.windowFrame.intersects(item.bounds),
-                  let mapping = capture.cropMapping(forItemBounds: item.bounds),
-                  !mapping.clamped.isNull, !mapping.clamped.isEmpty,
-                  let croppedImage = composite.cropping(to: mapping.clamped)
+            guard capture.windowFrame.intersects(item.bounds), let mapping = capture.cropMapping(forItemBounds: item.bounds), !mapping.clamped.isNull, !mapping.clamped.isEmpty, let croppedImage = composite.cropping(to: mapping.clamped)
             else {
                 continue
             }
@@ -88,10 +83,7 @@ extension MenuBarItemImageCache {
         for item in items {
             // Containment, not intersection: a clipped frame renders short and
             // the shortfall looks like absence.
-            guard capture.windowFrame.contains(item.bounds),
-                  let mapping = capture.cropMapping(forItemBounds: item.bounds),
-                  !mapping.clamped.isNull, !mapping.clamped.isEmpty,
-                  let rawCrop = composite.cropping(to: mapping.clamped)
+            guard capture.windowFrame.contains(item.bounds), let mapping = capture.cropMapping(forItemBounds: item.bounds), !mapping.clamped.isNull, !mapping.clamped.isEmpty, let rawCrop = composite.cropping(to: mapping.clamped)
             else {
                 continue
             }
@@ -212,9 +204,11 @@ extension MenuBarItemImageCache {
     /// off the band crops someone else's pixels; skip it rather than fail.
     static nonisolated func hasUnusableCaptureGeometry(
         _ item: MenuBarItem,
-        among peers: [MenuBarItem]
+        among peers: [MenuBarItem],
+        displayBounds: [CGRect]
     ) -> Bool {
-        item.hasPhantomFrame(among: peers) || item.isParkedOffMenuBarBand(among: peers)
+        item.hasPhantomFrame(among: peers)
+            || MenuBarBandClassifier.isParked(item.bounds, displays: displayBounds)
     }
 
     /// Rejects hosting-window screenshots whose pixel size does not match
@@ -227,10 +221,7 @@ extension MenuBarItemImageCache {
         scale: CGFloat,
         tolerance: CGFloat = 2
     ) -> Bool {
-        guard scale > 0, scale.isFinite,
-              windowFrame.width > 0, windowFrame.height > 0,
-              windowFrame.width.isFinite, windowFrame.height.isFinite,
-              imageWidth > 0, imageHeight > 0
+        guard scale > 0, scale.isFinite, windowFrame.width > 0, windowFrame.height > 0, windowFrame.width.isFinite, windowFrame.height.isFinite, imageWidth > 0, imageHeight > 0
         else {
             return false
         }
@@ -247,9 +238,7 @@ extension MenuBarItemImageCache {
         _ bounds: CGRect,
         maxWidthPoints: CGFloat = 200
     ) -> Bool {
-        guard !bounds.isNull, !bounds.isEmpty,
-              bounds.width.isFinite, bounds.height.isFinite,
-              bounds.width > 0, bounds.height > 0
+        guard !bounds.isNull, !bounds.isEmpty, bounds.width.isFinite, bounds.height.isFinite, bounds.width > 0, bounds.height > 0
         else {
             return false
         }
@@ -267,9 +256,7 @@ extension MenuBarItemImageCache {
         scale: CGFloat,
         tolerancePoints: CGFloat = 2
     ) -> Bool {
-        guard scale > 0, scale.isFinite,
-              !itemBounds.isNull, !itemBounds.isEmpty,
-              itemBounds.width > 0, itemBounds.height > 0
+        guard scale > 0, scale.isFinite, !itemBounds.isNull, !itemBounds.isEmpty, itemBounds.width > 0, itemBounds.height > 0
         else {
             return false
         }
@@ -434,9 +421,7 @@ extension MenuBarItemImageCache {
                 }
             }
 
-            if !windowFrame.intersects(bounds),
-               Self.liesOnAMenuBar(bounds, barHeight: windowFrame.height, displayBounds: Self.activeDisplayBounds())
-            {
+            if !windowFrame.intersects(bounds), Self.liesOnAMenuBar(bounds, barHeight: windowFrame.height, displayBounds: Self.activeDisplayBounds()) {
                 MenuBarItemImageCache.diagLog.debug(
                     "axBoundsCapture: \(item.logString) bounds \(bounds) are on another display's bar; keeping prior image"
                 )
@@ -518,8 +503,7 @@ extension MenuBarItemImageCache {
                 // Opaque means SkyLight's blank slab or a glyph on a solid bar;
                 // the knock-out tells them apart, the strip takes the rest.
                 let separated = rawCroppedImage.separatedFromNearUniformBackground()
-                guard separated.presence == .present,
-                      let cleaned = separated.image
+                guard separated.presence == .present, let cleaned = separated.image
                 else {
                     MenuBarItemImageCache.diagLog.debug(
                         "axBoundsCapture: opaque \(sourceLabel) crop for \(item.logString) reads " +

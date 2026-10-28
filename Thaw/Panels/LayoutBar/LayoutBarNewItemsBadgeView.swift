@@ -17,7 +17,7 @@ final class LayoutBarNewItemsBadgeView: LayoutBarArrangedView {
     }
 
     private var textAttributes: [NSAttributedString.Key: Any] {
-        let isBright = isBrightForActiveScreen()
+        let isBright = isBrightForOwningScreen()
         let foregroundColor: NSColor = isBright ? .black : .white
         return [
             .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
@@ -75,7 +75,7 @@ final class LayoutBarNewItemsBadgeView: LayoutBarArrangedView {
             return
         }
 
-        let isBright = isBrightForActiveScreen()
+        let isBright = isBrightForOwningScreen()
         let pillPath = NSBezierPath(roundedRect: bounds, xRadius: Metrics.cornerRadius, yRadius: Metrics.cornerRadius)
 
         let fillColor: NSColor = isBright ? .black : .white
@@ -100,10 +100,10 @@ final class LayoutBarNewItemsBadgeView: LayoutBarArrangedView {
         title.draw(at: titleOrigin)
     }
 
-    /// Use the active screen for notch-aware brightness.
-    private func isBrightForActiveScreen() -> Bool {
+    /// Uses the owning window's screen for notch-aware brightness.
+    private func isBrightForOwningScreen() -> Bool {
         guard let colorInfo = averageColorInfo else { return false }
-        return colorInfo.isBright(for: nil)
+        return colorInfo.isBright(for: LayoutBarDisplayGeometry.screen(for: self))
     }
 
     override func mouseDragged(with event: NSEvent) {

@@ -12,7 +12,7 @@ let package = Package(
         .macOS(.v27),
     ],
     products: [
-        .library(name: "ThawConcurrency", targets: ["ThawConcurrency"]),
+        .library(name: "ThawConcurrency", type: .dynamic, targets: ["ThawConcurrency"]),
     ],
     targets: [
         .target(

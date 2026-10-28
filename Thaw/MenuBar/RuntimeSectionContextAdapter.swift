@@ -89,7 +89,7 @@ final class RuntimeSectionContextAdapter: RuntimeSectionContext {
 
     /// The last walk that ran to completion, served when a later one runs out
     /// of time.
-    private var lastCompleteMenuBarItems: [MenuBarItem]?
+    private let freshInventory = FreshMenuBarInventory()
 
     func freshMenuBarItems() -> [MenuBarItem] {
         let result = MenuBarItemAXProvider.enumerateMenuBarItems(
@@ -97,29 +97,22 @@ final class RuntimeSectionContextAdapter: RuntimeSectionContext {
             deadline: .now + Self.freshItemsBudget
         )
 
-        // Position-store items are recovered here too, or the controller would
-        // read them as having left the bar.
-        guard result.completed else {
-            // The controller reads absence as departure, so never publish a
-            // truncated walk; the last complete answer is the safe reading.
-            if let lastCompleteMenuBarItems {
-                diagLog.warning("freshMenuBarItems: walk incomplete, serving the last complete answer")
-                return lastCompleteMenuBarItems
+        freshInventory.accept(
+            PositionStoreItemSource.recovering(result.items),
+            completed: result.completed
+        )
+        if !result.completed {
+            freshInventory.accept(currentLiveItems(), completed: false)
+            freshInventory.scheduleCompletion {
+                await Task.detached(priority: .utility) {
+                    let answer = MenuBarItemAXProvider.enumerateMenuBarItems(
+                        option: [], deadline: .now + .seconds(2)
+                    )
+                    return await (PositionStoreItemSource.recovering(answer.items), answer.completed)
+                }.value
             }
-            // No complete answer yet: pay the unbounded walk once.
-            diagLog.warning("freshMenuBarItems: no complete answer yet, walking without a budget")
-            let full = PositionStoreItemSource.recovering(
-                MenuBarItemAXProvider.menuBarItems(option: [])
-            )
-            lastCompleteMenuBarItems = full
-            return full
         }
-
-        // A mid-reveal walk can mint positional ids for MenuBarAgent extras; the
-        // provider already restored them, so these are the identities the store resolves.
-        let items = PositionStoreItemSource.recovering(result.items)
-        lastCompleteMenuBarItems = items
-        return items
+        return freshInventory.items
     }
 
     func shouldDeferMenuBarMutation() -> Bool {
@@ -138,8 +131,7 @@ final class RuntimeSectionContextAdapter: RuntimeSectionContext {
         // Ask the window server: AppKit is wrong with "Displays have separate
         // Spaces" off and lags after a topology change. The bridge falls back
         // to the main display, so an unbacked id means mid-change.
-        guard let displayID = Bridging.getActiveMenuBarDisplayID(),
-              connectedDisplayIDs().contains(displayID)
+        guard let displayID = Bridging.getActiveMenuBarDisplayID(), connectedDisplayIDs().contains(displayID)
         else {
             return nil
         }
@@ -294,9 +286,7 @@ final class RuntimeSectionContextAdapter: RuntimeSectionContext {
                 height: item.bounds.height * capture.scale
             ).integral
             let clippedCropRect = cropRect.intersection(imageBounds)
-            guard !clippedCropRect.isNull,
-                  !clippedCropRect.isEmpty,
-                  let cropped = capture.image.cropping(to: clippedCropRect)
+            guard !clippedCropRect.isNull, !clippedCropRect.isEmpty, let cropped = capture.image.cropping(to: clippedCropRect)
             else {
                 diagLog.warning("controlCrop[\(reason)] id=\(identifier.rawValue) crop unavailable")
                 continue
@@ -340,9 +330,7 @@ final class RuntimeSectionContextAdapter: RuntimeSectionContext {
     private func controlAXElement(matching identifier: ControlItemIdentifier) -> AXElement? {
         guard let runningApp = NSWorkspace.shared.runningApplications.first(where: {
             Constants.isThawOwnedBundleIdentifier($0.bundleIdentifier)
-        }),
-            let app = AXHelpers.application(for: runningApp),
-            let extrasMenuBar = AXHelpers.extrasMenuBar(for: app)
+        }), let app = AXHelpers.application(for: runningApp), let extrasMenuBar = AXHelpers.extrasMenuBar(for: app)
         else {
             return nil
         }

@@ -7,6 +7,7 @@
 
 import CoreGraphics
 import Foundation
+import ThawAXCore
 
 // MARK: - MenuBarTitleFrame
 
@@ -18,6 +19,7 @@ import Foundation
 nonisolated struct MenuBarTitleFrame: Equatable, Sendable {
     let role: String?
     let frame: CGRect
+    var isEnabled = true
 }
 
 // MARK: - DesktopFocusState
@@ -77,11 +79,6 @@ nonisolated enum ApplicationMenuCoverPolicy {
     /// The subrole Finder gives the desktop's AX window.
     static let desktopSubrole = "AXDesktop"
 
-    /// Menu bar children that are actually menu titles. On macOS 27 the menu
-    /// bar's AX children can also include status-item hosts, which are not
-    /// menus and must not be covered.
-    static let titleRoles: Set<String> = ["AXMenuBarItem", "AXMenuItem"]
-
     static func shouldCover(_ state: DesktopFocusState) -> Bool {
         state == .desktop
     }
@@ -100,7 +97,7 @@ nonisolated enum ApplicationMenuCoverPolicy {
     /// Apple menu, which is what a menu bar mid-transition looks like.
     static func coverRect(forOrderedTitles titles: [MenuBarTitleFrame]) -> CGRect? {
         let menuTitles = titles.filter { title in
-            title.role.map(titleRoles.contains) ?? false
+            AXMenuTitle.includes(role: title.role, isEnabled: title.isEnabled)
         }
         guard let apple = menuTitles.first, menuTitles.count > 1 else {
             return nil

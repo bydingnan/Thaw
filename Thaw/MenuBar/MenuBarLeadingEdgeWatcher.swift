@@ -100,6 +100,11 @@ final class MenuBarLeadingEdgeWatcher {
     }
 
     private func poll() async {
+        let connectedScreens = NSScreen.screens.map(\.cgFrame)
+        leadingEdge = leadingEdge?.retained(among: connectedScreens, hasSeatedAnchor: anchor != nil)
+        if let anchor, !connectedScreens.contains(anchor.screen) {
+            self.anchor = nil
+        }
         guard let anchor else {
             refindAnchor()
             return
@@ -107,8 +112,7 @@ final class MenuBarLeadingEdgeWatcher {
         let edge = anchor.isOwnProcess
             ? Self.position(of: anchor.element, within: anchor.screen, timeout: 0.25)
             : await Self.read(anchor)
-        guard let current = self.anchor,
-              current.screen == anchor.screen, CFEqual(current.element, anchor.element)
+        guard let current = self.anchor, current.screen == anchor.screen, CFEqual(current.element, anchor.element)
         else { return }
         if edge == nil {
             // The anchor left the bar or was re-created: find it again, and
@@ -116,9 +120,7 @@ final class MenuBarLeadingEdgeWatcher {
             refindAnchor()
         }
         let sample = edge.map { MenuBarLeadingEdgeSample(x: $0, screenFrame: anchor.screen) }
-        if let sample, let previous = leadingEdge,
-           sample.screenFrame == previous.screenFrame, abs(sample.x - previous.x) < 1
-        {
+        if let sample, let previous = leadingEdge, sample.screenFrame == previous.screenFrame, abs(sample.x - previous.x) < 1 {
             return
         }
         guard sample != leadingEdge else { return }
@@ -144,11 +146,13 @@ final class MenuBarLeadingEdgeWatcher {
         // x == -1 sentinel would sort first, sit on no screen and leave the
         // edge unwatched.
         let screenFrames = NSScreen.screens.map(\.cgFrame)
+        leadingEdge = leadingEdge?.retained(among: screenFrames, hasSeatedAnchor: true)
         let seated = visible.compactMap { item in
             MenuBarItemGeometry.barScreen(holding: item.bounds, among: screenFrames).map { (item: item, screen: $0) }
         }
         guard let first = seated.min(by: { $0.item.bounds.minX < $1.item.bounds.minX }) else {
             anchor = nil
+            leadingEdge = leadingEdge?.retained(among: screenFrames, hasSeatedAnchor: false)
             return
         }
         let screen = first.screen
@@ -197,10 +201,7 @@ final class MenuBarLeadingEdgeWatcher {
     /// The element's left edge, when it is on screen within screen.
     /// Concealed items report a position at or left of the screen's edge.
     static nonisolated func position(of element: AXUIElement, within screen: CGRect, timeout: Float) -> CGFloat? {
-        guard let point = AXPrimitives.position(of: element, messagingTimeout: timeout),
-              point.x != MenuBarItemGeometry.transientSentinelX,
-              point.x > screen.minX, screen.contains(point),
-              point.y - screen.minY <= MenuBarItemGeometry.maxOnBarMidY
+        guard let point = AXPrimitives.position(of: element, messagingTimeout: timeout), point.x != MenuBarItemGeometry.transientSentinelX, point.x > screen.minX, screen.contains(point), point.y - screen.minY <= MenuBarItemGeometry.maxOnBarMidY
         else {
             return nil
         }
@@ -212,6 +213,23 @@ final class MenuBarLeadingEdgeWatcher {
 nonisolated struct MenuBarLeadingEdgeSample: Equatable, Sendable {
     let x: CGFloat
     let screenFrame: CGRect
+
+    func retained(among connectedScreens: [CGRect], hasSeatedAnchor: Bool) -> Self? {
+        hasSeatedAnchor && connectedScreens.contains(screenFrame) ? self : nil
+    }
+}
+
+nonisolated struct MenuBarLeadingEdgeObservation {
+    private var seen: (sample: MenuBarLeadingEdgeSample, at: ContinuousClock.Instant)?
+
+    mutating func update(_ sample: MenuBarLeadingEdgeSample?, at time: ContinuousClock.Instant) {
+        seen = sample.map { ($0, time) }
+    }
+
+    func sample(newerThan time: ContinuousClock.Instant) -> MenuBarLeadingEdgeSample? {
+        guard let seen, seen.at > time else { return nil }
+        return seen.sample
+    }
 }
 
 /// The watched element and the screen it sits on.
@@ -240,6 +258,10 @@ extension NSScreen {
     /// its height.
     static func cocoaRect(fromCG cgRect: CGRect) -> CGRect? {
         guard let primaryMaxY = screens.first?.frame.maxY else { return nil }
-        return CGRect(x: cgRect.minX, y: primaryMaxY - cgRect.maxY, width: cgRect.width, height: cgRect.height)
+        return cocoaRect(fromCG: cgRect, primaryMaxY: primaryMaxY)
+    }
+
+    static nonisolated func cocoaRect(fromCG cgRect: CGRect, primaryMaxY: CGFloat) -> CGRect {
+        CGRect(x: cgRect.minX, y: primaryMaxY - cgRect.maxY, width: cgRect.width, height: cgRect.height)
     }
 }

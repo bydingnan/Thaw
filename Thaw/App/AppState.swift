@@ -120,11 +120,11 @@ final class AppState {
 
     // MARK: - Window bookkeeping
 
-    /// Track open windows to prevent duplicates
-    private var openWindows = Set<ThawWindowIdentifier>()
+    private var windowState = WindowPresentationState<ThawWindowIdentifier>()
+    private var activationGate = ActivationRequestGate()
 
     /// Live windows keyed by scene identifier.
-    /// - Note: onWindowChange supplies these because unreliable NSApp.windows KVO would leave openWindows stuck after closing.
+    /// onWindowChange supplies these because NSApp.windows KVO does not reliably report closing.
     private var trackedWindows = [ThawWindowIdentifier: NSWindow]()
 
     /// Per-window visibility observers, keyed by identifier.
@@ -133,7 +133,6 @@ final class AppState {
     /// Fresh EnvironmentValues have inert window actions; scenes register live actions without eagerly creating windows.
     private var openWindowAction: OpenWindowAction?
     private var dismissWindowAction: DismissWindowAction?
-    private var pendingOpenWindows = Set<ThawWindowIdentifier>()
 
     // MARK: - Private state
 
@@ -144,8 +143,8 @@ final class AppState {
     /// Watches navigationState's observable focus and Settings visibility.
     private var navigationStateObservationTask: Task<Void, Never>?
 
-    /// Track last known screen count to detect disconnects.
-    private var lastKnownScreenCount = NSScreen.managedScreens.count
+    private var displayTopology = DisplayTopologyChange(identities: Set(NSScreen.managedScreens.map(\.displayID)))
+    private var displayTopologyTask: Task<Void, Never>?
 
     /// Prevent repeated restart attempts.
     private var isRestarting = false
@@ -192,8 +191,12 @@ final class AppState {
         imageCache.activate(with: self)
         alertRevealWatcher.performSetup(with: self)
         appRunningTriggers.start(
-            reveal: { [weak self] in self?.menuBarManager.sectionController.revealItemTemporarily($0) },
-            release: { [weak self] in self?.menuBarManager.sectionController.concealTemporarilyRevealedItem($0) }
+            reveal: { [weak self] in
+                self?.menuBarManager.sectionController.temporaryReveals.retain($0, owner: "app-running")
+            },
+            release: { [weak self] in
+                self?.menuBarManager.sectionController.temporaryReveals.release($0, owner: "app-running")
+            }
         )
         presentationMonitor.performSetup(with: self)
         spacerManager.performSetup(with: self)
@@ -317,25 +320,19 @@ final class AppState {
         guard !isRestarting else { return }
         isRestarting = true
 
-        // Save image cache to disk before restarting so new instance can load it
-        imageCache.saveToDisk()
-
-        let config = NSWorkspace.OpenConfiguration()
-        config.activates = false
-        config.addsToRecentItems = false
-        config.createsNewApplicationInstance = true
-        config.promptsUserIfNeeded = false
-
         Task { @MainActor in
             do {
-                _ = try await NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config)
-                // Restore blocked items before exit so none remain off-screen; this is a no-op on macOS 27.
-                _ = await itemManager.restoreBlockedItemsToVisible()
-                menuBarManager.tearDownControlItemsForTermination()
-                diagLog.info("Restart: tore down control items, waiting for MenuBarAgent to reclaim")
-                try? await Task.sleep(for: .milliseconds(150))
-                try? await Task.sleep(for: .milliseconds(500))
-                exit(0)
+                let coordinator = RestartCoordinator(
+                    requestSave: { self.imageCache.saveToDisk() },
+                    flush: { await self.imageCache.flushDiskPersistence() },
+                    prepareWatcher: { try AppRelauncher.prepareWatcher() },
+                    restore: { _ = await self.itemManager.restoreBlockedItemsToVisible() },
+                    teardown: {
+                        self.menuBarManager.tearDownControlItemsForTermination()
+                    },
+                    exit: { Darwin.exit(0) }
+                )
+                try await coordinator.run()
             } catch {
                 // Report asynchronous relaunch failures here so every triggering control gets visible feedback.
                 diagLog.error("Failed to relaunch app: \(error.localizedDescription)")
@@ -455,42 +452,35 @@ final class AppState {
 
     /// Handles a display topology change once a burst of screen changes goes quiet.
     private func observeDisplayTopology() {
-        let topologyTask = NotificationCenter.default.eventsTask(named: NSApplication.didChangeScreenParametersNotification, debounce: .seconds(0.5)) { [weak self] in
-            guard let self else { return }
-            self.handleDisplayTopologyChange()
-        }
-        cancellables.insert(AnyCancellable { topologyTask.cancel() })
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                displayTopology.observe(Set(NSScreen.managedScreens.map(\.displayID)))
+                displayTopologyTask?.cancel()
+                displayTopologyTask = Task { @MainActor [weak self] in
+                    do {
+                        try await Task.sleep(for: .seconds(0.5))
+                    } catch {
+                        return
+                    }
+                    self?.handleDisplayTopologyChange()
+                }
+            }
+            .store(in: &cancellables)
     }
 
-    /// The debounced body of observeDisplayTopology().
+    /// Rebuild once per identity-changing burst, not for resolution-only notifications.
     private func handleDisplayTopologyChange() {
-        let count = NSScreen.managedScreens.count
-        defer { lastKnownScreenCount = count }
-        if count < lastKnownScreenCount {
-            diagLog.info("Display disconnected: refresh item cache + cleanup image cache")
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                // Wait for disconnect geometry to settle; a stale Control Center edge yields a negative overflow budget and persists hidden items as visible.
-                itemManager.startSettlingPeriod(reason: "displayDisconnect")
-                // Force item cache rebuild so displayID reflects current
-                // display geometry (items moved to remaining display).
-                await itemManager.cacheItemsRegardless(skipRecentMoveCheck: true)
-                // Force image cache: remove entries for items no longer
-                // present, trigger re-capture for current display.
+        let change = displayTopology.consume()
+        guard change.requiresInventoryRefresh else { return }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            itemManager.startSettlingPeriod(reason: "displayTopology")
+            await itemManager.cacheItemsRegardless(skipRecentMoveCheck: true)
+            if change.requiresCaptureCleanup {
                 imageCache.performCacheCleanup()
                 await imageCache.recaptureNow(sections: MenuBarSection.Name.allCases)
-                diagLog.info("Cache refresh complete after display disconnect")
-            }
-        } else if count > lastKnownScreenCount {
-            diagLog.info("Display connected: refresh item cache")
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                // Defer saved-layout restore until attached-display geometry settles, as on disconnect.
-                itemManager.startSettlingPeriod(reason: "displayConnect")
-                // Items keep their windowIDs when moving to new display.
-                // Item cache rebuild picks up new items on the added display.
-                await itemManager.cacheItemsRegardless(skipRecentMoveCheck: true)
-                diagLog.info("Item cache refreshed after display connect")
             }
         }
     }
@@ -530,25 +520,19 @@ extension AppState {
         Task { @MainActor [weak self] in
             guard let self else { return }
 
-            if self.openWindows.contains(id) {
-                self.diagLog.debug("Window \(id) already open (openWindows=\(self.openWindows)), activating existing window")
+            switch self.windowState.request(id, hasAction: self.openWindowAction != nil) {
+            case .activate:
                 self.activate(withPolicy: .regular)
                 return
-            }
-            self.diagLog.debug("openWindow(\(id)) proceeding, openWindows=\(self.openWindows)")
-
-            self.openWindows.insert(id)
-            self.diagLog.debug("Opening window with id: \(id)")
-            guard let openWindowAction = self.openWindowAction else {
-                self.pendingOpenWindows.insert(id)
-                self.diagLog.debug("Deferring window request until SwiftUI scene setup: \(id)")
+            case .deferred, .coalesced:
                 return
+            case .present:
+                self.openWindowAction?(id: id)
             }
-            openWindowAction(id: id)
 
             try? await Task.sleep(for: .milliseconds(100))
             // A close during the presentation delay must not restore the Dock icon.
-            guard self.openWindows.contains(id) else { return }
+            guard self.windowState.contains(id) else { return }
             self.activate(withPolicy: .regular)
         }
     }
@@ -560,23 +544,22 @@ extension AppState {
         }
         Task { @MainActor [weak self] in
             guard let self else { return }
-            self.openWindows.remove(id)
-            self.pendingOpenWindows.remove(id)
+            self.windowState.close(id)
             self.diagLog.debug("Dismissing window with id: \(id)")
             self.dismissWindowAction?(id: id)
         }
     }
 
-    /// onWindowChange supplies the live window, or nil after close and view teardown; mirror visibility into openWindows.
+    /// onWindowChange supplies the live window, or nil after close and view teardown.
     func windowVisibilityChanged(id: ThawWindowIdentifier, window: NSWindow?) {
         guard let window else {
             trackedWindows[id] = nil
             windowVisibilityCancellables[id] = nil
-            openWindows.remove(id)
+            windowState.close(id)
             if id == .settings {
                 navigationState.cancelSettingsPresentation()
                 navigationState.isSettingsPresented = false
-                deactivate(withPolicy: .accessory)
+                restoreAccessoryPolicyIfUnused()
             }
             // The window's whole SwiftUI graph is now unreachable; make the
             // footprint reflect that rather than wait on malloc.
@@ -585,7 +568,7 @@ extension AppState {
         }
 
         trackedWindows[id] = window
-        openWindows.insert(id)
+        windowState.didPresent(id)
         windowVisibilityCancellables[id] = window.publisher(for: \.isVisible)
             .merge(with: NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: window)
                 .map { _ in false })
@@ -598,15 +581,15 @@ extension AppState {
     /// Gates scene content because SwiftUI retains closed NSWindows and would otherwise retain every built view.
     /// Set before ordering the window front so content returns before display.
     func isWindowOpen(_ id: ThawWindowIdentifier) -> Bool {
-        openWindows.contains(id)
+        windowState.contains(id)
     }
 
     /// Applies the side effects of a tracked window's visibility changing.
     private func handleWindowVisibilityChanged(id: ThawWindowIdentifier, isVisible: Bool) {
         if isVisible {
-            openWindows.insert(id)
+            windowState.didPresent(id)
         } else {
-            openWindows.remove(id)
+            windowState.close(id)
             // Removing the id tears down scene content, allowing its memory pages to be reclaimed.
             MemoryReclaimer.scheduleRelief(reason: "\(id) closed")
         }
@@ -620,7 +603,7 @@ extension AppState {
                 navigationState.settingsNavigationIdentifier = .about
             }
         } else {
-            deactivate(withPolicy: .accessory)
+            restoreAccessoryPolicyIfUnused()
         }
     }
 
@@ -630,11 +613,9 @@ extension AppState {
         openWindowAction = openWindow
         dismissWindowAction = dismissWindow
 
-        let pending = pendingOpenWindows
-        pendingOpenWindows.removeAll()
-        for id in pending {
+        for id in windowState.deferred {
             diagLog.debug("Fulfilling pending window request for id: \(id)")
-            openWindow(id: id)
+            self.openWindow(id)
         }
     }
 }
@@ -661,21 +642,22 @@ extension AppState {
         diagLog.debug(
             "focus-trace restoreAccessoryPolicyIfUnused from \(callerFile):\(callerLine) stack=\(Thread.callStackSymbols.prefix(8).joined(separator: " | "))"
         )
-        guard NSApp.activationPolicy() == .regular,
-              openWindows.isEmpty,
-              pendingOpenWindows.isEmpty,
-              !navigationState.isSettingsPresented,
-              !navigationState.isThawBarPresented,
-              !navigationState.isSearchPresented,
-              !menuBarManager.layoutEditorPanel.isShown,
-              !menuBarManager.isHidingApplicationMenus,
-              NSApp.modalWindow == nil,
-              !NSApp.windows.contains(where: {
-                  ($0.isVisible || $0.isMiniaturized) && ($0.canBecomeKey || $0.canBecomeMain)
-              })
-        else { return }
+        let occupancy = ActivationOccupancy(
+            hasWindowRequests: !windowState.isEmpty,
+            settings: navigationState.isSettingsPresented,
+            thawBar: navigationState.isThawBarPresented,
+            search: navigationState.isSearchPresented,
+            layoutEditor: menuBarManager.layoutEditorPanel.isShown,
+            hidesApplicationMenus: menuBarManager.isHidingApplicationMenus,
+            modal: NSApp.modalWindow != nil,
+            visibleWindows: NSApp.windows.contains(where: {
+                ($0.isVisible || $0.isMiniaturized) && ($0.canBecomeKey || $0.canBecomeMain)
+            })
+        )
+        guard NSApp.activationPolicy() == .regular, occupancy.permitsAccessoryPolicy else { return }
 
         diagLog.debug("No windows or panels need activation, switching to accessory policy")
+        activationGate.invalidate()
         applyActivationPolicy(.accessory)
     }
 
@@ -690,6 +672,7 @@ extension AppState {
             "focus-trace activate policy=\(String(describing: policy)) from \(callerFile):\(callerLine) stack=\(Thread.callStackSymbols.prefix(8).joined(separator: " | "))"
         )
 
+        let token = activationGate.begin()
         if let policy {
             applyActivationPolicy(policy)
         }
@@ -698,6 +681,7 @@ extension AppState {
 
         Task {
             try? await Task.sleep(for: .milliseconds(50))
+            guard activationGate.isCurrent(token) else { return }
             let frontmost = NSWorkspace.shared.frontmostApplication
             diagLog.debug(
                 "focus-trace activate re-assert after 50ms frontmost=\(frontmost?.bundleIdentifier ?? "nil") stack=\(Thread.callStackSymbols.prefix(8).joined(separator: " | "))"
@@ -721,6 +705,7 @@ extension AppState {
             "focus-trace deactivate policy=\(String(describing: policy)) from \(callerFile):\(callerLine) stack=\(Thread.callStackSymbols.prefix(8).joined(separator: " | "))"
         )
 
+        activationGate.invalidate()
         if let policy {
             applyActivationPolicy(policy)
         }

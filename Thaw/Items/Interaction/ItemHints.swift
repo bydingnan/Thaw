@@ -8,16 +8,15 @@
 import AppKit
 import MenuBarModel
 
-/// Type an item's hint letter after the shortcut to open it as if clicked.
+/// Type an item's hint after the shortcut to open it as if clicked.
 /// Concealed frames are stale, so reveal the section or use search for those items.
 @MainActor
 final class ItemHints {
-    /// Home row first, so the most common letters are the easiest to type.
-    private static let letters = Array("asdfghjklqwertyuiopzxcvbnm")
     private static let hintHeight: CGFloat = 22
 
     private weak var appState: AppState?
     private var panel: HintPanel?
+    private var previousLabels: [String: String] = [:]
     private let diagLog = DiagLog(category: "ItemHints")
 
     func performSetup(with appState: AppState) {
@@ -45,12 +44,16 @@ final class ItemHints {
 
     private func show() {
         guard let appState, let screen = NSScreen.screenWithActiveMenuBar ?? NSScreen.main else { return }
-        let targets = Array(Self.itemsOnBar(appState: appState, screen: screen).prefix(Self.letters.count))
+        let targets = Self.itemsOnBar(appState: appState, screen: screen)
         guard !targets.isEmpty else {
             diagLog.info("No menu bar items to hint on display \(screen.displayID)")
             return
         }
-        let hints = zip(Self.letters, targets).map { Hint(letter: $0, item: $1) }
+        let labels = HintLabelAllocator.labels(for: targets.map(\.uniqueIdentifier), previous: previousLabels)
+        previousLabels = labels
+        let hints = targets.compactMap { item in
+            labels[item.uniqueIdentifier].map { Hint(label: $0, item: item) }
+        }
 
         let barHeight = screen.getMenuBarHeight() ?? screen.getMenuBarHeightEstimate()
         let frame = CGRect(
@@ -75,7 +78,7 @@ final class ItemHints {
     private func choose(_ hint: Hint, on displayID: CGDirectDisplayID) {
         close()
         guard let appState else { return }
-        diagLog.info("Hint \(hint.letter) opens \(hint.item.logString)")
+        diagLog.info("Hint \(hint.label) opens \(hint.item.logString)")
         Task {
             await appState.itemManager.clickConcealedItem(item: hint.item, with: .left, on: displayID)
         }
@@ -91,14 +94,14 @@ final class ItemHints {
             .filter { item in
                 !item.isControlItem
                     && item.bounds.width > 0
-                    && screen.frame.contains(CGPoint(x: item.bounds.midX, y: screen.frame.maxY - item.bounds.midY))
+                    && NSScreen.cocoaRect(fromCG: item.bounds).map { screen.frame.contains(CGPoint(x: $0.midX, y: $0.midY)) } == true
                     && !appState.itemManager.isThawBarOnly(item)
             }
             .sorted { $0.bounds.minX < $1.bounds.minX }
     }
 
     fileprivate struct Hint {
-        let letter: Character
+        let label: String
         let item: MenuBarItem
     }
 
@@ -134,15 +137,17 @@ final class ItemHints {
         }
     }
 
-    /// Escape or any non-hint key closes the badges.
+    /// Escape cancels; backspace edits a partial multi-character hint.
     private final class HintView: NSView {
         private let hints: [Hint]
+        private var input: HintInputSession
         private let screenFrame: CGRect
         private let onChoose: (Hint) -> Void
         private let onCancel: () -> Void
 
         init(hints: [Hint], screenFrame: CGRect, onChoose: @escaping (Hint) -> Void, onCancel: @escaping () -> Void) {
             self.hints = hints
+            self.input = HintInputSession(labels: Set(hints.map(\.label)))
             self.screenFrame = screenFrame
             self.onChoose = onChoose
             self.onCancel = onCancel
@@ -164,10 +169,19 @@ final class ItemHints {
         }
 
         override func keyDown(with event: NSEvent) {
-            let typed = event.charactersIgnoringModifiers?.lowercased().first
-            if let typed, let hint = hints.first(where: { $0.letter == typed }) {
-                onChoose(hint)
-            } else {
+            let key: HintInputSession.Key = switch event.keyCode {
+            case 53: .escape
+            case 51, 117: .backspace
+            default: .text(event.charactersIgnoringModifiers ?? "")
+            }
+            switch input.receive(key) {
+            case .pending:
+                needsDisplay = true
+            case let .choose(label):
+                if let hint = hints.first(where: { $0.label == label }) {
+                    onChoose(hint)
+                }
+            case .cancelled:
                 onCancel()
             }
         }
@@ -176,7 +190,8 @@ final class ItemHints {
             let font = NSFont.systemFont(ofSize: 12, weight: .bold)
             let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.black]
             for hint in hints {
-                let text = String(hint.letter).uppercased() as NSString
+                guard hint.label.hasPrefix(input.prefix) else { continue }
+                let text = hint.label.uppercased() as NSString
                 let size = text.size(withAttributes: attributes)
                 let badgeWidth = max(size.width + 10, ItemHints.hintHeight - 2)
                 // Bounds use top-left global coordinates; view x starts at the screen's left edge.

@@ -71,7 +71,10 @@ struct MenuBarLayoutSettingsPane: View {
     var body: some View {
         let hasScreenRecordingPermission = ScreenCapture.hasCachedScreenRecordingPermission
         // Accessibility alone supports arrangement; without Screen Recording, use app icons as for failed crops.
-        let canArrangeLayout = !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults
+        let presentation = LayoutSettingsPresentation(
+            isMenuBarAutoHidden: appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults
+        )
+        let canArrangeLayout = presentation.canArrangeLayout
 
         // Full width on purpose: the item rows are the pane.
         ThawForm(readingWidth: .full) {
@@ -143,10 +146,8 @@ struct MenuBarLayoutSettingsPane: View {
 
             HidingMethodSection(settings: appState.settings.advanced, offersAppleItems: canArrangeLayout)
 
-            // Thaw Bar Only is unplugged; its switch returns to this section with its gate.
-            if canArrangeLayout {
-                ControlCenterReplacementsSection(settings: appState.settings.advanced)
-            }
+            ControlCenterReplacementsSection(settings: appState.settings.advanced)
+                .disabled(!presentation.canConfigureReplacements)
 
             LayoutMoreOptionsSection(
                 spacerManager: appState.spacerManager,
@@ -409,10 +410,12 @@ struct LayoutBarsSection: View {
     private var layoutRefusalNotice: some View {
         if let refusal = appState.layoutFeedback.refusal {
             VStack(alignment: .leading, spacing: 12) {
-                Text("macOS 27 does not let \(Constants.displayName) hide some system items.")
-                    .font(ThawType.footnote)
-                    .foregroundStyle(ThawInk.supporting)
-                    .fixedSize(horizontal: false, vertical: true)
+                if appState.layoutFeedback.layoutOutcome == nil {
+                    Text("macOS 27 does not let \(Constants.displayName) hide some system items.")
+                        .font(ThawType.footnote)
+                        .foregroundStyle(ThawInk.supporting)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 SettingsWarningPill(
                     title: LocalizedStringKey(refusal.title),
                     message: LocalizedStringKey(refusal.message),
@@ -421,6 +424,13 @@ struct LayoutBarsSection: View {
                     actionTitle: "Dismiss"
                 ) {
                     appState.layoutFeedback.clear()
+                }
+                if appState.layoutFeedback.retryAction != nil {
+                    HStack {
+                        Button("Retry") { appState.layoutFeedback.retry() }
+                        Button("Show Items") { appState.layoutFeedback.showItems() }
+                    }
+                    .buttonStyle(.settingsGlass)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

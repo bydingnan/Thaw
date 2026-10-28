@@ -103,8 +103,11 @@ extension MenuBarItemManager {
         MenuBarItemManager.diagLog.warning(
             "clickConcealedItem: no method opened \(item.logString); leaving it shown in the menu bar"
         )
-        controller.revealItemTemporarily(item.uniqueIdentifier)
-        controller.scheduleTemporaryItemConceal(item.uniqueIdentifier)
+        controller.revealForInteraction(
+            item.uniqueIdentifier,
+            duration: configuration.tempShowInterval,
+            menuMonitor: menuOpenMonitor
+        )
         return .activationFailed
     }
 

@@ -54,129 +54,20 @@ private enum MenuBarCaptureServiceMain {
     /// parked send inside its one-retry budget.
     static let captureWatchdogInterval: TimeInterval = 8
 
-    static let lifecycle = LifecycleState()
+    static let lifecycle = CaptureServiceLifecycleState()
 
     /// Keeps the listener alive for the life of the process.
     static nonisolated(unsafe) var listener: XPCListener?
 
     // MARK: Lifecycle
 
-    /// Counters that decide when the helper retires. Lock-based because
-    /// XPC handlers arrive on dispatch queues, not actors.
-    final class LifecycleState: Sendable {
-        private struct State {
-            var successfulCaptures = 0
-            var activeSessions = 0
-            var inFlightRequests = 0
-            var exitWhenIdle = false
-            var exitScheduled = false
-            /// IDs of the running captures. Each session has its own queue, so
-            /// a session the client dropped can still be capturing when the
-            /// next one starts; a watchdog checks for its own ID rather than
-            /// for "the" capture.
-            var inFlightCaptureIDs: Set<Int> = []
-            var captureCounter = 0
-            /// Bumped whenever a session opens, so a delayed idle exit can
-            /// tell that it has been superseded.
-            var idleGeneration = 0
-        }
-
-        private let state = OSAllocatedUnfairLock(initialState: State())
-
-        var captureCount: Int {
-            state.withLock(\.successfulCaptures)
-        }
-
-        func sessionOpened() {
-            let count = state.withLock { state in
-                state.activeSessions += 1
-                state.idleGeneration += 1
-                state.exitWhenIdle = false
-                return state.activeSessions
-            }
-            diagLog.debug("Session opened (\(count) active)")
-        }
-
-        /// The current idle generation; an exit armed under an older one is stale.
-        var idleGeneration: Int {
-            state.withLock(\.idleGeneration)
-        }
-
-        /// Whether the idle exit armed under generation may still fire.
-        func isIdle(since generation: Int) -> Bool {
-            state.withLock {
-                $0.idleGeneration == generation && $0.activeSessions == 0 && $0.inFlightRequests == 0
-            }
-        }
-
-        /// Returns whether the helper should exit now that this session
-        /// is gone. When a request is still in flight the exit is
-        /// deferred to requestFinished() instead.
-        func sessionClosed() -> Bool {
-            state.withLock { state in
-                state.activeSessions = max(0, state.activeSessions - 1)
-                guard state.activeSessions == 0 else {
-                    return false
-                }
-                guard state.inFlightRequests == 0 else {
-                    state.exitWhenIdle = true
-                    return false
-                }
-                return true
-            }
-        }
-
-        /// Marks a capture in flight and returns its watchdog ID.
-        func requestStarted() -> Int {
-            state.withLock { state in
-                state.inFlightRequests += 1
-                state.captureCounter += 1
-                state.inFlightCaptureIDs.insert(state.captureCounter)
-                return state.captureCounter
-            }
-        }
-
-        /// Returns whether a deferred last-session exit should run now.
-        func requestFinished(_ captureID: Int) -> Bool {
-            state.withLock { state in
-                state.inFlightCaptureIDs.remove(captureID)
-                state.inFlightRequests = max(0, state.inFlightRequests - 1)
-                return state.exitWhenIdle && state.inFlightRequests == 0
-            }
-        }
-
-        /// Whether the capture armed under id is still running.
-        func isCaptureInFlight(_ id: Int) -> Bool {
-            state.withLock { $0.inFlightCaptureIDs.contains(id) }
-        }
-
-        /// Counts one successful capture, returning the new generation.
-        func recordSuccess() -> Int {
-            state.withLock { state in
-                state.successfulCaptures += 1
-                return state.successfulCaptures
-            }
-        }
-
-        /// One-shot gate so the exit path runs exactly once.
-        func claimExit() -> Bool {
-            state.withLock { state in
-                guard !state.exitScheduled else {
-                    return false
-                }
-                state.exitScheduled = true
-                return true
-            }
-        }
-    }
-
     /// Retires the process once it has been idle for idleExitGrace; a
     /// session that opens in the meantime cancels it.
     static func scheduleIdleExit(reason: String) {
         let generation = lifecycle.idleGeneration
         DispatchQueue.global().asyncAfter(deadline: .now() + idleExitGrace) {
-            guard lifecycle.isIdle(since: generation) else { return }
-            scheduleExit(reason: reason)
+            guard lifecycle.claimIdleExit(since: generation) else { return }
+            finishScheduledExit(reason: reason)
         }
     }
 
@@ -185,6 +76,10 @@ private enum MenuBarCaptureServiceMain {
         guard lifecycle.claimExit() else {
             return
         }
+        finishScheduledExit(reason: reason)
+    }
+
+    private static func finishScheduledExit(reason: String) {
         diagLog.notice("MenuBarCaptureService exiting: \(reason)")
         DispatchQueue.global().asyncAfter(deadline: .now() + exitFlushDelay) {
             exit(0)
@@ -285,8 +180,7 @@ private enum MenuBarCaptureServiceMain {
             var seenIDs = Set<CGWindowID>()
             seenIDs.reserveCapacity(ids.count)
             let accepted = ids.filter { id in
-                guard id != 0, !seenIDs.contains(id), allowed.contains(id),
-                      seenIDs.count < Self.maxWindowCount
+                guard id != 0, !seenIDs.contains(id), allowed.contains(id), seenIDs.count < Self.maxWindowCount
                 else { return false }
                 seenIDs.insert(id)
                 return true
@@ -392,8 +286,7 @@ private enum MenuBarCaptureServiceMain {
     /// which is how the app's defaults domain is found.
     static func enableDiagnosticLoggingIfRequested() {
         guard
-            let helperIdentifier = Bundle.main.bundleIdentifier,
-            let serviceComponent = helperIdentifier.range(
+            let helperIdentifier = Bundle.main.bundleIdentifier, let serviceComponent = helperIdentifier.range(
                 of: ".MenuBarCaptureService",
                 options: .backwards
             )
@@ -405,10 +298,7 @@ private enum MenuBarCaptureServiceMain {
 
         // XPC relaunches this helper every few seconds, so it appends to the app's
         // session log instead of minting its own, but never reopens a stale one.
-        if let sessionLog = DiagnosticLogger.shared.latestLogFile,
-           let modified = try? sessionLog.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
-           Date().timeIntervalSince(modified) < Self.sessionLogAttachWindow
-        {
+        if let sessionLog = DiagnosticLogger.shared.latestLogFile, let modified = try? sessionLog.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate, Date().timeIntervalSince(modified) < Self.sessionLogAttachWindow {
             DiagnosticLogger.shared.attachToFile(at: sessionLog)
         } else {
             DiagnosticLogger.shared.isEnabled = true

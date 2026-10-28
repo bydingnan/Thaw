@@ -23,8 +23,7 @@ public enum CaptureService {
     /// Appending the suffix after the service component causes XPC's "No such process" failure.
     public static func serviceName(forAppBundleIdentifier appBundleIdentifier: String?) -> String {
         guard
-            let appBundleIdentifier,
-            appBundleIdentifier.hasPrefix(baseAppBundleIdentifier)
+            let appBundleIdentifier, appBundleIdentifier.hasPrefix(baseAppBundleIdentifier)
         else {
             return baseServiceBundleIdentifier
         }
@@ -141,12 +140,10 @@ public extension CaptureServiceFrame {
         CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
     }
 
-    /// Redraw into BGRA for the wire format because crop and normalization paths may change SCK's bitmap layout.
+    /// Redraw into canonical sRGB BGRA, converting wide-gamut pixels to the decoder's color space.
     init?(image: CGImage, windowFrame: CGRect, scale: Double) {
         guard
-            image.width > 0, image.height > 0,
-            let colorSpace = image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB),
-            let context = CGContext(
+            image.width > 0, image.height > 0, let colorSpace = CGColorSpace(name: CGColorSpace.sRGB), let context = CGContext(
                 data: nil,
                 width: image.width,
                 height: image.height,
@@ -176,11 +173,7 @@ public extension CaptureServiceFrame {
     /// Reconstructs the captured image from wire form.
     func makeImage() -> CGImage? {
         guard
-            pixelWidth > 0, pixelHeight > 0,
-            bytesPerRow >= pixelWidth * 4,
-            pixelData.count >= bytesPerRow * pixelHeight,
-            let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-            let provider = CGDataProvider(data: pixelData as CFData)
+            pixelWidth > 0, pixelHeight > 0, bytesPerRow >= pixelWidth * 4, pixelData.count >= bytesPerRow * pixelHeight, let colorSpace = CGColorSpace(name: CGColorSpace.sRGB), let provider = CGDataProvider(data: pixelData as CFData)
         else {
             return nil
         }

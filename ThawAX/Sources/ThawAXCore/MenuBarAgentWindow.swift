@@ -36,8 +36,7 @@ public enum MenuBarAgentWindow {
     /// The entries as given when they describe a bar at rest, or nil when the read was empty or
     /// taken mid-change. Two settled reads that are equal describe a bar that has not moved.
     public static func settled(_ entries: [Entry]) -> [Entry]? {
-        guard !entries.isEmpty,
-              entries.allSatisfy({ $0.frame.width > 0 && $0.frame.height > 0 })
+        guard !entries.isEmpty, entries.allSatisfy({ $0.frame.width > 0 && $0.frame.height > 0 })
         else { return nil }
         return entries
     }
@@ -72,12 +71,12 @@ public extension AXPrimitives {
         guard let agentPID = menuBarAgentPID() else { return nil }
         let agent = AXUIElementCreateApplication(agentPID)
         AXUIElementSetMessagingTimeout(agent, messagingTimeout)
-        guard let window = (copyAttribute(agent, kAXWindowsAttribute) as? [AXUIElement])?.first else {
+        guard let window = elementArrayAttribute(agent, kAXWindowsAttribute).first else {
             return nil
         }
         return children(of: window).map { child in
             MenuBarAgentWindow.Entry(
-                ownerPID: MenuBarAgentWindow.ownerPID(of: child, agentPID: agentPID, pid: pid(of:), children: children(of:)),
+                ownerPID: MenuBarAgentWindow.ownerPID(of: child, agentPID: agentPID, pid: pid(of:), children: { children(of: $0) }),
                 frame: frame(of: child) ?? .zero
             )
         }

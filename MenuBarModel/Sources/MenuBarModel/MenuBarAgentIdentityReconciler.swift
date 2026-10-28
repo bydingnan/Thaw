@@ -6,7 +6,6 @@
 //  Licensed under the GNU GPLv3
 
 import CoreGraphics
-import os
 
 /// Restores stable identities to MenuBarAgent extras that a transition walk
 /// saw unnamed.
@@ -82,41 +81,5 @@ public enum MenuBarAgentIdentityReconciler {
     /// when the transition deprived it of every naming attribute.
     private static func isUnnamedHostExtra(_ tag: MenuBarItemTag) -> Bool {
         tag.isUnnamedMenuBarAgentExtra
-    }
-
-    // MARK: Stateful front for walk call sites
-
-    /// The last walk whose MenuBarAgent extras were identified. Walk call
-    /// sites with no memory of their previous answer reconcile against this.
-    private static let lastIdentified = OSAllocatedUnfairLock<[MenuBarItem]>(
-        initialState: []
-    )
-
-    private static let diagLog = DiagLog(category: "MenuBarAgentIdentityReconciler")
-
-    /// Reconciles fresh against the last identified walk and remembers it.
-    ///
-    /// Degraded and empty walks leave the snapshot standing, so a transition
-    /// cannot erase the memory the next degraded walk needs.
-    public static func reconciling(_ fresh: [MenuBarItem]) -> Result {
-        let previous = lastIdentified.withLock { $0 }
-        let result = reconcile(fresh: fresh, previous: previous)
-        let carriesIdentity = result.items.contains { item in
-            item.tag.namespace == .menuBarAgent && !item.tag.isControlCenterGenericItem
-        }
-        if carriesIdentity {
-            lastIdentified.withLock { $0 = result.items }
-        }
-        if result.restoredCount > 0 {
-            diagLog.warning(
-                "\(result.restoredCount) MenuBarAgent extra(s) arrived unnamed; identity restored from the previous walk"
-            )
-        }
-        return result
-    }
-
-    /// Forgets the snapshot. Tests only.
-    static func resetState() {
-        lastIdentified.withLock { $0 = [] }
     }
 }

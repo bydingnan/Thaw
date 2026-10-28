@@ -153,15 +153,9 @@ nonisolated enum AXHelpers {
     /// status-item hosts, which would make the leading pill swallow them.
     static func applicationMenuChildFrameUnion(for menuBar: AXElement) -> CGRect {
         children(for: menuBar).reduce(into: CGRect.null) { result, child in
-            guard isEnabled(child), let childFrame = frame(for: child) else {
-                return
-            }
-            switch roleString(for: child) {
-            case kAXMenuBarItemRole, kAXMenuItemRole:
-                result = result.union(childFrame)
-            default:
-                break
-            }
+            guard AXMenuTitle.includes(role: roleString(for: child), isEnabled: enabledAttribute(child)), let childFrame = frame(for: child)
+            else { return }
+            result = result.union(childFrame)
         }
     }
 

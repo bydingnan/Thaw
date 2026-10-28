@@ -24,6 +24,9 @@ final class LayoutBarPaddingView: NSView {
     private var containerLeadingAfterNotchConstraint: NSLayoutConstraint?
     private var containerLeadingInsetConstraint: NSLayoutConstraint?
     private var notchObservers = Set<AnyCancellable>()
+    var orderedAccessibilityChildren: [NSView] {
+        container.orderedAccessibilityChildren
+    }
 
     /// Whether an item may be used as a layout-bar drag source on macOS 27.
     /// The visible Thaw control is a real movable status item; the zero-width
@@ -239,8 +242,7 @@ final class LayoutBarPaddingView: NSView {
     /// when the seat finishes, because the drop is the gesture the user made
     /// and the acknowledgment belongs to it.
     private func noteDropIntoHiddenSection(from sourceSection: MenuBarSection.Name) {
-        guard sourceSection != container.section,
-              container.section == .hidden || container.section == .alwaysHidden
+        guard sourceSection != container.section, container.section == .hidden || container.section == .alwaysHidden
         else {
             return
         }
@@ -271,10 +273,7 @@ final class LayoutBarPaddingView: NSView {
             }
         }
 
-        if case let .item(draggingItem) = draggingSource.kind,
-           draggingItem.tag.matchesVisibleControlItem,
-           container.section != .visible
-        {
+        if case let .item(draggingItem) = draggingSource.kind, draggingItem.tag.matchesVisibleControlItem, container.section != .visible {
             container.appState?.layoutFeedback.post(
                 LayoutBarFeedbackCenter.Refusal(
                     title: String(
@@ -312,8 +311,7 @@ final class LayoutBarPaddingView: NSView {
             return true
         }
 
-        guard case let .item(item) = draggingSource.kind,
-              Self.acceptsLayoutDrag(of: item)
+        guard case let .item(item) = draggingSource.kind, Self.acceptsLayoutDrag(of: item)
         else {
             return false
         }
@@ -330,8 +328,7 @@ final class LayoutBarPaddingView: NSView {
                 item,
                 to: container.section,
                 experimentalSystemItemHiding: experimentalSystemItemHiding
-            ),
-                sourceSection != container.section || container.section != .visible
+            ), sourceSection != container.section || container.section != .visible
             else {
                 Self.diagLog.warning("Ignoring drag for anchored system item \(item.logString)")
                 postAssignmentRefusal(
@@ -445,9 +442,7 @@ final class LayoutBarPaddingView: NSView {
 
         if let index = arrangedViews.firstIndex(of: draggingSource) {
             if sectionIsPhysicallyLive(container.section, controller: controller) {
-                if container.section == .visible,
-                   let appState = container.appState
-                {
+                if container.section == .visible, let appState = container.appState {
                     // Concealed occupants of visible slots (parked
                     // hiding-unsupported apps) are not draggable anchors;
                     // planning against them strands the move.
@@ -584,11 +579,9 @@ final class LayoutBarPaddingView: NSView {
         }
 
         // Then the right neighbour, naming the same slot from the other side.
-        if anchorIndex + 1 < ordered.count,
-           let right = ordered[(anchorIndex + 1)...].first(where: {
-               Self.isUsableAnchor($0, experimentalSystemItemHiding: experimentalSystemItemHiding)
-           })
-        {
+        if anchorIndex + 1 < ordered.count, let right = ordered[(anchorIndex + 1)...].first(where: {
+            Self.isUsableAnchor($0, experimentalSystemItemHiding: experimentalSystemItemHiding)
+        }) {
             chain.append(.leftOfItem(right))
         }
 
@@ -658,7 +651,7 @@ final class LayoutBarPaddingView: NSView {
             }
             do {
                 let recoveringStrandedVisibleControl = item.tag.matchesVisibleControlItem
-                    && (item.bounds.origin.x == MenuBarItemGeometry.transientSentinelX || item.bounds.midY > MenuBarItemGeometry.maxOnBarMidY)
+                    && MenuBarBandClassifier.isParked(item.bounds)
                 let attemptMove = { () async throws -> Bool in
                     try await appState.itemManager.move(
                         item: item,
@@ -759,9 +752,7 @@ final class LayoutBarPaddingView: NSView {
                 await appState.itemManager.cacheItemsRegardless(skipRecentMoveCheck: true)
             }
             await MainActor.run {
-                if let appState = self.container.appState,
-                   self.container.arrangedViews.contains(where: \.isNewItemsBadge)
-                {
+                if let appState = self.container.appState, self.container.arrangedViews.contains(where: \.isNewItemsBadge) {
                     appState.itemManager.updateNewItemsPlacement(
                         section: self.container.section,
                         arrangedViews: self.container.arrangedViews
@@ -865,8 +856,7 @@ final class LayoutBarPaddingView: NSView {
         // against the rows the user is dragging, so a group has to be resolved
         // over the same sequence the layout editor is showing.
         let sourceItems = controller?.displayOrdered(managed, in: sourceSection) ?? managed
-        guard let group = appState.itemGroupManager.resolvedGroup(containing: item, in: sourceItems),
-              group.count >= 2
+        guard let group = appState.itemGroupManager.resolvedGroup(containing: item, in: sourceItems), group.count >= 2
         else {
             return nil
         }
@@ -1169,8 +1159,7 @@ final class LayoutBarPaddingView: NSView {
         in sourceItems: [MenuBarItem],
         appState: AppState
     ) -> String {
-        guard let first = members.first,
-              let group = appState.itemGroupManager.resolvedGroup(containing: first, in: sourceItems)
+        guard let first = members.first, let group = appState.itemGroupManager.resolvedGroup(containing: first, in: sourceItems)
         else {
             return members.first?.displayName ?? ""
         }
@@ -1179,8 +1168,7 @@ final class LayoutBarPaddingView: NSView {
 
     private func orderedLayoutItemsForSectionOrder() -> [MenuBarItem] {
         let orderedItems = orderedLayoutItems()
-        guard container.section != .visible,
-              !Self.allowsAnchoredSystemItemReordering(appState: container.appState)
+        guard container.section != .visible, !Self.allowsAnchoredSystemItemReordering(appState: container.appState)
         else {
             return orderedItems
         }
@@ -1222,9 +1210,8 @@ final class LayoutBarPaddingView: NSView {
         }
         for candidateIndex in (index + 1) ..< arrangedViews.count {
             if case let .item(item) = arrangedViews[candidateIndex].kind {
-                if requiringMovable,
-                   item.isControlItem ||
-                   !item.isPhysicallyOrderable(experimentalSystemItemHiding: experimentalSystemItemHiding)
+                if requiringMovable, item.isControlItem ||
+                    !item.isPhysicallyOrderable(experimentalSystemItemHiding: experimentalSystemItemHiding)
                 {
                     continue
                 }
@@ -1244,9 +1231,8 @@ final class LayoutBarPaddingView: NSView {
         }
         for candidateIndex in stride(from: index - 1, through: 0, by: -1) {
             if case let .item(item) = arrangedViews[candidateIndex].kind {
-                if requiringMovable,
-                   item.isControlItem ||
-                   !item.isPhysicallyOrderable(experimentalSystemItemHiding: experimentalSystemItemHiding)
+                if requiringMovable, item.isControlItem ||
+                    !item.isPhysicallyOrderable(experimentalSystemItemHiding: experimentalSystemItemHiding)
                 {
                     continue
                 }
@@ -1275,7 +1261,7 @@ final class LayoutBarPaddingView: NSView {
             try? await Task.sleep(for: .milliseconds(120))
             do {
                 let recoveringStrandedVisibleControl = item.tag.matchesVisibleControlItem
-                    && (item.bounds.origin.x == MenuBarItemGeometry.transientSentinelX || item.bounds.midY > MenuBarItemGeometry.maxOnBarMidY)
+                    && MenuBarBandClassifier.isParked(item.bounds)
                 try await appState.itemManager.move(
                     item: item,
                     to: destination,
@@ -1331,9 +1317,7 @@ final class LayoutBarPaddingView: NSView {
             .publisher(for: NSWindow.didChangeScreenNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
-                guard let self,
-                      let notifyingWindow = notification.object as? NSWindow,
-                      notifyingWindow === self.window
+                guard let self, let notifyingWindow = notification.object as? NSWindow, notifyingWindow === self.window
                 else { return }
                 self.updateNotchPresentation()
             }
@@ -1359,27 +1343,25 @@ final class LayoutBarPaddingView: NSView {
 
     private func updateNotchPresentation() {
         guard
-            container.section == .visible,
-            let screen = NSScreen.screenWithActiveMenuBar ?? NSScreen.main,
-            screen.hasNotch,
-            let notch = screen.frameOfNotch
+            container.section == .visible, let screen = LayoutBarDisplayGeometry.screen(for: self), screen.hasNotch, let notch = screen.frameOfNotch
         else {
             tearDownNotchPresentation()
             return
         }
 
-        let notchIndicatorWidth = notch.width + MenuBarSection.notchGap
+        let geometry = LayoutBarDisplayGeometry(screenFrame: screen.frame, notchFrame: notch, notchGap: MenuBarSection.notchGap)
+        let notchIndicatorWidth = geometry.notchWidth
         // Distance from the bar's trailing edge to the notch indicator's
         // trailing edge, equals the real-world items area (everything
         // right of notch.maxX + notchGap in the menu bar) plus the 7.5pt
         // cosmetic inset that sits between items and the rounded edge.
-        let notchTrailingOffset = max(0, screen.frame.maxX - notch.maxX - MenuBarSection.notchGap) + 7.5
+        let notchTrailingOffset = geometry.trailingOffset
         // Bar must always be wide enough to represent the real-world span
         // from notch.minX to screen.maxX, with no inset on the left
         // (the notch itself sits flush) and 7.5pt cosmetic inset on the
         // right. When the Settings pane is wider, the bar grows past this
         // and the empty area is shown to the LEFT of the notch.
-        let barMinWidth = max(0, screen.frame.maxX - notch.minX) + 7.5
+        let barMinWidth = geometry.minimumWidth
         let colorInfo = container.appState.flatMap { MenuBarStyleTint.currentBackground(appState: $0) }
 
         if let notchView {

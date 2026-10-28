@@ -66,20 +66,18 @@ nonisolated enum MenuBarItemAXProvider {
         enumerateMenuBarItems(on: display, option: option, deadline: nil).items
     }
 
-    /// Restores identities a transition walk left unnamed before the items
-    /// leave the provider.
-    ///
-    /// Every consumer must see the same identities, or the position store
-    /// resolves a positional name like Item-3 against an unrelated row.
-    /// See MenuBarAgentIdentityReconciler.
-    private static func restoredIdentities(_ items: [MenuBarItem]) -> [MenuBarItem] {
-        MenuBarAgentIdentityReconciler.reconciling(items).items
-    }
+    private static let synchronousIdentities = MenuBarAgentIdentityStore()
+    private static let helperIdentities = MenuBarAgentIdentityStore()
+    private static let inventoryIdentities = MenuBarAgentIdentityStore()
 
-    private static func restoredIdentities(_ snapshot: InventorySnapshot) -> InventorySnapshot {
-        InventorySnapshot(
-            items: restoredIdentities(snapshot.items),
-            freshItems: restoredIdentities(snapshot.freshItems),
+    private static func restoredIdentities(
+        _ snapshot: InventorySnapshot,
+        token: MenuBarAgentIdentityStore.Token
+    ) -> InventorySnapshot {
+        let restored = inventoryIdentities.reconcile(items: snapshot.items, freshItems: snapshot.freshItems, token: token)
+        return InventorySnapshot(
+            items: restored.items,
+            freshItems: restored.freshItems,
             completed: snapshot.completed,
             hasFreshKnownInventory: snapshot.hasFreshKnownInventory,
             hasFreshMoveInventory: snapshot.hasFreshMoveInventory
@@ -100,6 +98,7 @@ nonisolated enum MenuBarItemAXProvider {
         option _: MenuBarItem.ListOption,
         deadline: ContinuousClock.Instant?
     ) -> (items: [MenuBarItem], completed: Bool) {
+        let identityToken = synchronousIdentities.begin()
         guard AXHelpers.isProcessTrusted() else {
             diagLog.warning("menuBarItems: accessibility permission missing; cannot enumerate")
             return ([], false)
@@ -118,7 +117,7 @@ nonisolated enum MenuBarItemAXProvider {
                 diagLog.warning(
                     "menuBarItems: walk exceeded its budget before \(runningApp.bundleIdentifier ?? "(unnamed)"); returning incomplete"
                 )
-                return (restoredIdentities(assemble(raw)), false)
+                return (synchronousIdentities.reconcile(items: assemble(raw), freshItems: [], token: identityToken, publish: false).items, false)
             }
             let appBundleID = runningApp.bundleIdentifier ?? runningApp.localizedName ?? "(pid \(runningApp.processIdentifier))"
             let collected = collectApp(
@@ -133,13 +132,13 @@ nonisolated enum MenuBarItemAXProvider {
             raw += collected.raw
             guard collected.completed else {
                 diagLog.warning("menuBarItems: walk exceeded its budget inside \(appBundleID); returning incomplete")
-                return (restoredIdentities(assemble(raw)), false)
+                return (synchronousIdentities.reconcile(items: assemble(raw), freshItems: [], token: identityToken, publish: false).items, false)
             }
         }
 
         let items = assemble(raw)
         diagLog.debug("menuBarItems: enumerated \(items.count) items via AX (display=\(display.map { "\($0)" } ?? "all"))")
-        return (restoredIdentities(items), true)
+        return (synchronousIdentities.reconcile(items: items, freshItems: [], token: identityToken).items, true)
     }
 
     /// Owners that missed their per-app deadline. Cooldowns expire, so an app
@@ -335,6 +334,11 @@ nonisolated enum MenuBarItemAXProvider {
                 state.record(own, owner: ownerPID, generation: pass.generation)
                 continue
             }
+            guard slowResponders.withLock({ $0.beginProbe(ownerPID) }) else {
+                truncated = true
+                slowOwners[ownerPID] = appBundleID
+                continue
+            }
             let collected = Task.detached(priority: .userInitiated) {
                 Self.collectApp(
                     runningApp: runningApp,
@@ -366,6 +370,7 @@ nonisolated enum MenuBarItemAXProvider {
                 truncated = true
                 Task {
                     let late = await collected.value
+                    slowResponders.withLock { $0.lateAnswerArrived(ownerPID) }
                     await Self.lateAnswers.send(LateAnswer(ownerPID: ownerPID, generation: pass.generation, raw: late))
                 }
             case .none:
@@ -634,10 +639,11 @@ nonisolated enum MenuBarItemAXProvider {
         freshOnly: Bool = false,
         priorityPIDs: Set<pid_t> = []
     ) async -> [MenuBarItem] {
+        let identityToken = helperIdentities.begin()
         // Out-of-process walk when enabled. The move/settle hot path calls
         // menuBarItemsForMoveConcurrent, which this does not touch.
         if let subprocessItems = await MenuBarAXSubprocess.items(displayID: display) {
-            return restoredIdentities(subprocessItems)
+            return helperIdentities.reconcile(items: subprocessItems, freshItems: [], token: identityToken).items
         }
         let snapshot = await menuBarInventoryConcurrent(freshOnly: freshOnly, priorityPIDs: priorityPIDs)
         return freshOnly ? snapshot.freshItems : snapshot.items
@@ -667,10 +673,9 @@ nonisolated enum MenuBarItemAXProvider {
     static func menuBarItemsForMoveConcurrent(priorityPIDs: Set<pid_t>) async -> [MenuBarItem]? {
         // Item owners first: re-probing every app whose empty answer has expired can spend the whole budget.
         for scope in [MenuBarScanScope.itemOwners, .knownOwners] {
-            if let snapshot = await inventoryGate.snapshot(freshOnly: true, scope: scope, priorityOwners: priorityPIDs),
-               snapshot.hasFreshMoveInventory
-            {
-                return restoredIdentities(snapshot).freshItems
+            let token = inventoryIdentities.begin()
+            if let snapshot = await inventoryGate.snapshot(freshOnly: true, scope: scope, priorityOwners: priorityPIDs), snapshot.hasFreshMoveInventory {
+                return restoredIdentities(snapshot, token: token).freshItems
             }
         }
         return nil
@@ -686,20 +691,22 @@ nonisolated enum MenuBarItemAXProvider {
     /// probes of expired empty apps.
     @concurrent
     static func menuBarItemsForAppearanceConcurrent(knownOwners: Set<pid_t>) async -> [MenuBarItem]? {
+        let token = inventoryIdentities.begin()
         guard let snapshot = await inventoryGate.snapshot(
             freshOnly: true, scope: .requestedOwners, priorityOwners: knownOwners
         ), snapshot.hasFreshMoveInventory else { return nil }
-        return restoredIdentities(snapshot).freshItems
+        return restoredIdentities(snapshot, token: token).freshItems
     }
 
     /// Re-reads the owners a thumbnail pass names. It runs every refresh tick,
     /// so it waits out a discovery walk in flight rather than cancelling it.
     @concurrent
     static func menuBarItemsForCaptureConcurrent(knownOwners: Set<pid_t>) async -> [MenuBarItem]? {
+        let token = inventoryIdentities.begin()
         guard let snapshot = await inventoryGate.snapshot(
             freshOnly: true, scope: .requestedOwners, priorityOwners: knownOwners, preemptsDiscovery: false
         ), snapshot.hasFreshMoveInventory else { return nil }
-        return restoredIdentities(snapshot).freshItems
+        return restoredIdentities(snapshot, token: token).freshItems
     }
 
     @concurrent
@@ -707,6 +714,7 @@ nonisolated enum MenuBarItemAXProvider {
         freshOnly: Bool = false,
         priorityPIDs: Set<pid_t> = []
     ) async -> InventorySnapshot {
+        let token = inventoryIdentities.begin()
         let plan = InventoryWalkPlan.make(
             requested: priorityPIDs,
             drawnOwners: AXPrimitives.menuBarAgentDrawnOwners(),
@@ -722,7 +730,7 @@ nonisolated enum MenuBarItemAXProvider {
         if plan.scope == .discovery, snapshot.completed || snapshot.hasFreshKnownInventory {
             fullWalks.noteFullWalk()
         }
-        return restoredIdentities(snapshot)
+        return restoredIdentities(snapshot, token: token)
     }
 
     /// See InventoryWalkPlan.
@@ -731,11 +739,12 @@ nonisolated enum MenuBarItemAXProvider {
     /// See nativeOverflowControlBounds(on:).
     @concurrent
     static func nativeOverflowControlBoundsConcurrent(
-        on display: CGDirectDisplayID
+        on display: CGDirectDisplayID,
+        newerThan: ContinuousClock.Instant? = nil
     ) async -> [CGRect] {
         // Warms the memo for the main-thread reader. Must not call the sync
         // nativeOverflowControlBounds, which is cached-only and never walks.
-        guard case let .present(bounds) = await OverflowWalkGate.shared.observation(on: display) else {
+        guard case let .present(bounds) = await overflowWalks.observation(on: display, newerThan: newerThan) else {
             return []
         }
         return bounds
@@ -746,36 +755,11 @@ nonisolated enum MenuBarItemAXProvider {
     static func nativeOverflowObservationConcurrent(
         on display: CGDirectDisplayID
     ) async -> NativeOverflowObservation {
-        await OverflowWalkGate.shared.observation(on: display)
+        await overflowWalks.observation(on: display)
     }
 
-    /// Keeps one overflow walk in flight per display.
-    ///
-    /// Callers tend to miss the 250 ms memo together (capture and refresh wake
-    /// on the same event), so a late caller waits on the walk in flight.
-    ///
-    /// Detached, so a cancelled waiter leaves only itself; others still get
-    /// their answer.
-    private actor OverflowWalkGate {
-        static let shared = OverflowWalkGate()
-
-        private var inFlight: [CGDirectDisplayID: Task<NativeOverflowObservation, Never>] = [:]
-
-        func observation(on display: CGDirectDisplayID) async -> NativeOverflowObservation {
-            if let existing = inFlight[display] {
-                return await existing.value
-            }
-            // Detached tasks inherit no priority, so the first caller's is
-            // passed explicitly; later waiters escalate by awaiting.
-            let walk = Task.detached(priority: Task.currentPriority) {
-                MenuBarItemAXProvider.nativeOverflowObservation(on: display)
-            }
-            inFlight[display] = walk
-            let observation = await walk.value
-            // Only the installer clears the slot, so a successor's walk is safe.
-            inFlight[display] = nil
-            return observation
-        }
+    private static let overflowWalks = OverflowWalkGate<NativeOverflowObservation> { display in
+        nativeOverflowObservation(on: display, forceFresh: true)
     }
 
     /// One all-display inventory prevents simultaneous display/capture callers
@@ -853,9 +837,7 @@ nonisolated enum MenuBarItemAXProvider {
             case .absent:
                 break
             }
-        } else if let lastAbsentAt = memo.lastAbsentAt,
-                  ContinuousClock.now - lastAbsentAt < cooldown
-        {
+        } else if let lastAbsentAt = memo.lastAbsentAt, ContinuousClock.now - lastAbsentAt < cooldown {
             return .absent
         }
 
@@ -953,16 +935,18 @@ nonisolated enum MenuBarItemAXProvider {
 
     /// The memoized sync walk, for off-main one-offs like a diagnostic dump.
     /// Everything else uses nativeOverflowObservationConcurrent(on:).
-    static func nativeOverflowObservation(on display: CGDirectDisplayID) -> NativeOverflowObservation {
+    static func nativeOverflowObservation(
+        on display: CGDirectDisplayID,
+        forceFresh: Bool = false
+    ) -> NativeOverflowObservation {
         let now = ContinuousClock.now
-        if let memo = overflowObservationMemo.withLock({ $0[display] }),
-           now - memo.readAt < overflowObservationLifetime
-        {
+        if !forceFresh, let memo = overflowObservationMemo.withLock({ $0[display] }), now - memo.readAt < overflowObservationLifetime {
             return memo.observation
         }
         let observation = nativeOverflowObservationUncached(on: display)
-        overflowObservationMemo.withLock {
-            $0[display] = OverflowObservationMemo(observation: observation, readAt: .now)
+        overflowObservationMemo.withLock { memo in
+            guard memo[display].map({ $0.readAt <= now }) ?? true else { return }
+            memo[display] = OverflowObservationMemo(observation: observation, readAt: now)
         }
         return observation
     }
@@ -995,8 +979,7 @@ nonisolated enum MenuBarItemAXProvider {
 
     /// The tree walk itself; see nativeOverflowObservation(on:) for the memo.
     private static func nativeOverflowObservationUncached(on display: CGDirectDisplayID) -> NativeOverflowObservation {
-        guard AXHelpers.isProcessTrusted(),
-              let bar = AXHelpers.menuBarAgentExtrasBar()
+        guard AXHelpers.isProcessTrusted(), let bar = AXHelpers.menuBarAgentExtrasBar()
         else {
             return .unavailable
         }
@@ -1044,11 +1027,7 @@ nonisolated enum MenuBarItemAXProvider {
 
         var seenFrames = Set<CGRect>()
         let frames: [CGRect] = (attributedControls + AXHelpers.overflowButtons(among: children) + labeledControls).compactMap { control -> CGRect? in
-            guard let frame = AXHelpers.frame(for: control),
-                  !frame.isNull,
-                  !frame.isEmpty,
-                  displayBounds.contains(frame.center),
-                  seenFrames.insert(frame).inserted
+            guard let frame = AXHelpers.frame(for: control), !frame.isNull, !frame.isEmpty, displayBounds.contains(frame.center), seenFrames.insert(frame).inserted
             else {
                 return nil
             }
@@ -1190,8 +1169,7 @@ nonisolated enum MenuBarItemAXProvider {
     /// AppKit's _NS:<number> placeholders change every launch and would orphan
     /// the persisted entry, so they return nil and callers fall back.
     static func stableAXIdentifier(_ identifier: String?) -> String? {
-        guard let identifier, !identifier.isEmpty else { return nil }
-        guard isStableAXIdentifier(identifier) else { return nil }
+        guard let identifier, !identifier.isEmpty, isStableAXIdentifier(identifier) else { return nil }
         return identifier
     }
 
@@ -1227,17 +1205,13 @@ nonisolated enum MenuBarItemAXProvider {
     ) -> String {
         // Control Center controls end in an instance UUID re-minted on every
         // placement; drop it so identity survives a remove and re-add.
-        if namespace == .menuBarAgent,
-           let identifier = identifier?.nonEmpty,
-           let stableIdentity = ChronoControlIdentity.stableIdentity(forAXIdentifier: identifier)
-        {
+        if namespace == .menuBarAgent, let identifier = identifier?.nonEmpty, let stableIdentity = ChronoControlIdentity.stableIdentity(forAXIdentifier: identifier) {
             return stableIdentity
         }
 
         // For apps with stable titles AXIdentifier is stable by convention;
         // return raw.
-        guard case let .string(bundleID) = namespace,
-              MenuBarItemTag.hasCanonicalizableTitles(bundleID)
+        guard case let .string(bundleID) = namespace, MenuBarItemTag.hasCanonicalizableTitles(bundleID)
         else {
             return identifier?.nonEmpty ?? displayTitle
         }

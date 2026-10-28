@@ -20,30 +20,27 @@ nonisolated enum MenuBarAXQueries {
     /// A pointer read that takes longer than this is no use to the pointer.
     private static let timeoutSeconds = 1.0
 
-    private static let diagLog = DiagLog(category: "MenuBarAXQueries")
+    private static func viaHelper(_ request: AXHelperRequest) async -> AXSubmissionOutcome {
+        guard !Task.isCancelled else { return .cancelledOrUnknownAfterSubmission }
+        guard let client = MenuBarAXSubprocess.client else { return .unavailableBeforeSubmission }
+        return await client.sendOutcome(request, timeoutSeconds: timeoutSeconds)
+    }
 
-    /// Sends request to the helper, or returns nil so the caller reads
-    /// in-process: helper off, unusable, or never granted Accessibility.
-    ///
-    /// Hit-tests are latest-wins in the helper, so a superseded one is retried
-    /// once.
-    private static func viaHelper(_ request: AXHelperRequest) async -> AXHelperReply? {
-        guard let client = MenuBarAXSubprocess.client else { return nil }
-        for attempt in 1 ... 2 {
-            do {
-                let reply = try await client.send(request, timeoutSeconds: timeoutSeconds)
-                guard reply.accessibilityTrusted else { return nil }
-                return reply
-            } catch AXSubprocessError.superseded where attempt == 1 {
-                continue
-            } catch is CancellationError {
-                return nil
-            } catch {
-                diagLog.error("helper request failed, reading in-process: \(error)\(client.lastExitDescription.map { " (\($0))" } ?? "")")
-                return nil
-            }
+    static func perform(
+        _ request: AXHelperRequest,
+        helper: @Sendable (AXHelperRequest) async -> AXSubmissionOutcome,
+        fallback: @Sendable () async -> AXHelperReply?
+    ) async -> AXHelperReply? {
+        guard !Task.isCancelled else { return nil }
+        switch await helper(request) {
+        case let .answered(reply):
+            return Task.isCancelled ? nil : reply
+        case .unavailableBeforeSubmission:
+            guard !Task.isCancelled else { return nil }
+            return await fallback()
+        case .cancelledOrUnknownAfterSubmission:
+            return nil
         }
-        return nil
     }
 
     // MARK: Application menu
@@ -51,10 +48,18 @@ nonisolated enum MenuBarAXQueries {
     /// Frames of the app's menu bar titles, or nil when they could not be read.
     @concurrent
     static func applicationMenuFrames(pid: pid_t) async -> [CGRect]? {
-        if case let .applicationMenuFrames(frames, _) = await viaHelper(.applicationMenuFrames(pid: pid)) {
-            return frames
-        }
-        return AXPrimitives.applicationMenuFrames(pid: pid)
+        guard case let .applicationMenuFrames(frames, _) = await perform(
+            .applicationMenuFrames(pid: pid),
+            helper: viaHelper,
+            fallback: {
+                guard let frames = await ApplicationMenuGeometryExecution.read(
+                    pid: pid,
+                    operation: { AXPrimitives.applicationMenuFrames(pid: pid) }
+                ) else { return nil }
+                return .applicationMenuFrames(frames: frames, accessibilityTrusted: true)
+            }
+        ) else { return nil }
+        return frames
     }
 
     // MARK: Foreign widget hit-test
@@ -64,18 +69,15 @@ nonisolated enum MenuBarAXQueries {
     /// space, Thaw itself, or the front app's own menu bar.
     @concurrent
     static func isForeignWidget(at point: CGPoint) async -> Bool {
-        let hit: AXHitTestResult? = if case let .hitTest(result, _) = await viaHelper(.hitTest(x: point.x, y: point.y)) {
-            result
-        } else if let element = AXHelpers.element(at: point),
-                  let pid = AXHelpers.pid(for: element)
-        {
-            AXHitTestResult(pid: pid, role: AXHelpers.roleString(for: element))
-        } else {
-            nil
-        }
-        guard let hit, hit.pid > 0, hit.pid != getpid() else {
-            return false
-        }
+        let reply = await perform(
+            .hitTest(x: point.x, y: point.y),
+            helper: viaHelper,
+            fallback: {
+                guard let element = AXHelpers.element(at: point), let pid = AXHelpers.pid(for: element) else { return nil }
+                return .hitTest(AXHitTestResult(pid: pid, role: AXHelpers.roleString(for: element)), accessibilityTrusted: true)
+            }
+        )
+        guard case let .hitTest(hit?, _) = reply, hit.pid > 0, hit.pid != getpid() else { return false }
         // SystemUIServer, and on macOS 27 MenuBarAgent, render the menu bar
         // background, so a hit on them is empty menu bar space. WindowServer
         // renders menu bar surfaces too but has no bundle identifier.
@@ -116,24 +118,26 @@ nonisolated enum MenuBarAXQueries {
     @concurrent
     static func pressStatusItem(pid: pid_t, target: CGPoint) async -> Bool {
         let tolerance = 10.0
-        if case let .press(pressed, _) = await viaHelper(
-            .pressStatusItem(pid: pid, targetX: target.x, targetY: target.y, tolerance: tolerance)
-        ) {
-            return pressed
-        }
-        return AXPrimitives.pressNearestStatusItem(
-            pid: pid,
-            target: target,
-            tolerance: tolerance
-        )
+        guard case let .press(pressed, _) = await perform(
+            .pressStatusItem(pid: pid, targetX: target.x, targetY: target.y, tolerance: tolerance),
+            helper: viaHelper,
+            fallback: {
+                .press(pressed: AXPrimitives.pressNearestStatusItem(pid: pid, target: target, tolerance: tolerance), accessibilityTrusted: true)
+            }
+        ) else { return false }
+        return pressed
     }
 
     /// Presses a status item MenuBarAgent hosts on behalf of sourcePID.
     @concurrent
     static func pressHostedItem(sourcePID: pid_t) async -> Bool {
-        if case let .press(pressed, _) = await viaHelper(.pressHostedItem(sourcePID: sourcePID)) {
-            return pressed
-        }
-        return MenuBarItemAXProvider.pressHostedItem(sourcePID: sourcePID)
+        guard case let .press(pressed, _) = await perform(
+            .pressHostedItem(sourcePID: sourcePID),
+            helper: viaHelper,
+            fallback: {
+                .press(pressed: MenuBarItemAXProvider.pressHostedItem(sourcePID: sourcePID), accessibilityTrusted: true)
+            }
+        ) else { return false }
+        return pressed
     }
 }

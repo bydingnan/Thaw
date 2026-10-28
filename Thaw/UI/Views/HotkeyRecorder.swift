@@ -58,6 +58,7 @@ struct HotkeyRecorder<Label: View>: View {
         } label: {
             label
         }
+        .onDisappear { capture.cancel() }
         .alert(
             "macOS already uses this shortcut",
             isPresented: $capture.isShowingReservedWarning
@@ -153,7 +154,9 @@ struct HotkeyRecorder<Label: View>: View {
 @Observable
 private final class KeyCapture {
     /// Whether key presses are currently being intercepted.
-    private(set) var isListening = false
+    var isListening: Bool {
+        session.isListening
+    }
 
     /// Whether to warn that the combination just typed belongs to the system.
     var isShowingReservedWarning = false
@@ -172,6 +175,14 @@ private final class KeyCapture {
         return nil
     }
 
+    @ObservationIgnored
+    private lazy var session = HotkeyRecordingSession(
+        disableBinding: { [weak self] in self?.hotkey.disable() },
+        enableBinding: { [weak self] in self?.hotkey.enable() },
+        startMonitor: { [weak self] in self?.monitor.start() },
+        stopMonitor: { [weak self] in self?.monitor.stop() }
+    )
+
     init(hotkey: Hotkey) {
         self.hotkey = hotkey
     }
@@ -181,22 +192,17 @@ private final class KeyCapture {
     /// The hotkey stands down for the duration, so the combination being
     /// replaced cannot fire while the replacement is being typed.
     func start() {
-        guard !isListening else {
-            return
-        }
-        hotkey.disable()
-        monitor.start()
-        isListening = true
+        session.start()
+    }
+
+    func cancel() {
+        session.cancel()
+        isShowingReservedWarning = false
     }
 
     /// Stops intercepting key presses and puts the hotkey back to work.
     func stop() {
-        guard isListening else {
-            return
-        }
-        monitor.stop()
-        hotkey.enable()
-        isListening = false
+        session.stop()
     }
 
     /// Works out what an intercepted key press means.
@@ -226,6 +232,46 @@ private final class KeyCapture {
 
         hotkey.keyCombination = keyCombination
         stop()
+    }
+}
+
+@MainActor
+@Observable
+final class HotkeyRecordingSession {
+    private(set) var isListening = false
+    private let disableBinding: () -> Void
+    private let enableBinding: () -> Void
+    private let startMonitor: () -> Void
+    private let stopMonitor: () -> Void
+
+    init(
+        disableBinding: @escaping () -> Void,
+        enableBinding: @escaping () -> Void,
+        startMonitor: @escaping () -> Void,
+        stopMonitor: @escaping () -> Void
+    ) {
+        self.disableBinding = disableBinding
+        self.enableBinding = enableBinding
+        self.startMonitor = startMonitor
+        self.stopMonitor = stopMonitor
+    }
+
+    func start() {
+        guard !isListening else { return }
+        disableBinding()
+        startMonitor()
+        isListening = true
+    }
+
+    func cancel() {
+        stop()
+    }
+
+    func stop() {
+        guard isListening else { return }
+        stopMonitor()
+        enableBinding()
+        isListening = false
     }
 }
 

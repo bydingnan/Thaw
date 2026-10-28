@@ -14,6 +14,26 @@ import Testing
 struct BoundaryRepairBreakerTests {
     private let start = Date(timeIntervalSince1970: 1000)
 
+    @Test func unchangedFrameFailureCountsOneTripPerPass() {
+        var breaker = BoundaryRepairBreaker<String>()
+        let outcome = breaker.record(repaired: false, for: "item", tripLimit: 2, now: start)
+        #expect(outcome.trips == 1)
+    }
+
+    @Test func firstFailedBoundaryPassDoesNotPersistStrandedVerdict() {
+        var breaker = BoundaryRepairBreaker<String>()
+        let outcome = breaker.record(repaired: false, for: "item", tripLimit: 2, now: start)
+        #expect(!outcome.suppressed)
+    }
+
+    @Test func secondFailedBoundaryPassSuppressesAndPersistsStrand() {
+        var breaker = BoundaryRepairBreaker<String>()
+        breaker.record(repaired: false, for: "item", tripLimit: 2, now: start)
+        let outcome = breaker.record(repaired: false, for: "item", tripLimit: 2, now: start)
+        #expect(outcome.suppressed)
+        #expect(outcome.trips == 2)
+    }
+
     @Test("Failures count up, and the one that reaches the limit suppresses the item")
     func failuresReachTheLimit() {
         var breaker = BoundaryRepairBreaker<String>()

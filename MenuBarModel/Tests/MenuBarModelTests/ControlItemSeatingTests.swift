@@ -13,6 +13,18 @@ import Testing
 /// Full-ladder writes would reject user moves while rewriting the table on every reveal.
 @Suite("Seating a control item between fixed members")
 struct ControlItemSeatingTests {
+    @Test func allTiedWeightsDoNotGuessAxis() {
+        #expect(ControlItemSeating.axisAscends(members: [(0, 1), (10, 1)]) == nil)
+    }
+
+    @Test func balancedDirectionVotesDoNotGuessAxis() {
+        #expect(ControlItemSeating.axisAscends(members: [(0, 1), (10, 2), (20, 2), (30, 1)]) == nil)
+    }
+
+    @Test func clearMajorityStillSelectsObservedAxis() {
+        #expect(ControlItemSeating.axisAscends(members: [(0, 1), (10, 2), (20, 3)]) == true)
+    }
+
     // MARK: Axis
 
     @Test("Two members are enough to read the axis")

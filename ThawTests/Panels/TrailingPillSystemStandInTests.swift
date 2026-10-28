@@ -64,6 +64,7 @@ struct TrailingPillSystemStandInTests {
         let bounds = MenuBarSplitPillGeometry.trailingPillBounds(
             from: items,
             screenFrame: screenFrame,
+            displayBounds: [screenFrame],
             context: context
         )
 
@@ -82,6 +83,7 @@ struct TrailingPillSystemStandInTests {
         let bounds = MenuBarSplitPillGeometry.trailingPillBounds(
             from: items,
             screenFrame: screenFrame,
+            displayBounds: [screenFrame],
             context: context
         )
 
@@ -103,6 +105,7 @@ struct TrailingPillSystemStandInTests {
         let bounds = MenuBarSplitPillGeometry.trailingPillBounds(
             from: items,
             screenFrame: screenFrame,
+            displayBounds: [screenFrame],
             context: hiddenContext
         )
 
@@ -118,6 +121,7 @@ struct TrailingPillSystemStandInTests {
         let bounds = MenuBarSplitPillGeometry.trailingPillBounds(
             from: items,
             screenFrame: screenFrame,
+            displayBounds: [screenFrame],
             context: context
         )
         let pill = MenuBarSplitPillGeometry.trailingBounds(

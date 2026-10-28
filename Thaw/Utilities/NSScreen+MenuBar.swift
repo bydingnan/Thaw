@@ -101,22 +101,10 @@ extension NSScreen {
     }
 
     private nonisolated struct DisplayCache {
-        var menuFrames = [CGDirectDisplayID: CGRect]()
-        var menuFramePID: pid_t?
         var menuBarHeights = [CGDirectDisplayID: CGFloat]()
     }
 
     private static nonisolated let displayCache = OSAllocatedUnfairLock(initialState: DisplayCache())
-
-    private static func invalidateApplicationMenuFrameCacheIfNeeded() {
-        let currentPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        displayCache.withLock { cache in
-            if currentPID != cache.menuFramePID {
-                cache.menuFrames.removeAll()
-                cache.menuFramePID = currentPID
-            }
-        }
-    }
 
     /// The tallest live menu bar height cached for any display, readable off the
     /// main actor. Nil until getMenuBarHeight() has read one.
@@ -133,8 +121,8 @@ extension NSScreen {
         let connectedDisplayIDs = Set(NSScreen.managedScreens.map(\.displayID))
         displayCache.withLock { cache in
             cache.menuBarHeights = cache.menuBarHeights.filter { connectedDisplayIDs.contains($0.key) }
-            cache.menuFrames = cache.menuFrames.filter { connectedDisplayIDs.contains($0.key) }
         }
+        ApplicationMenuGeometryReader.shared.removeDisconnectedDisplays(keeping: connectedDisplayIDs)
         pendingRetryDisplays.withLock { $0 = $0.filter { connectedDisplayIDs.contains($0) } }
     }
 
@@ -227,64 +215,9 @@ extension NSScreen {
         return !Bridging.getMenuBarWindowList(option: [.onScreen]).isEmpty
     }
 
-    /// The application menu frame from AX, not notch-capped. Cached per display
-    /// until the frontmost app changes.
-    ///
-    /// - Parameter bypassCache: Always query AX; use when polling for changes.
+    /// Returns the last good immutable snapshot and schedules a coalesced refresh.
+    /// No AX messages are sent from the caller's actor.
     func getApplicationMenuFrame(bypassCache: Bool = false) -> CGRect? {
-        NSScreen.invalidateApplicationMenuFrameCacheIfNeeded()
-        let id = displayID
-        if !bypassCache, let cached = NSScreen.displayCache.withLock({ $0.menuFrames[id] }) {
-            return cached
-        }
-
-        let result = computeApplicationMenuFrame()
-        if !bypassCache, let result {
-            NSScreen.displayCache.withLock { $0.menuFrames[id] = result }
-        }
-        return result
-    }
-
-    private func computeApplicationMenuFrame() -> CGRect? {
-        // Treat the degenerate no-main-screen case like the main screen.
-        let isMainScreen = NSScreen.main.map { self == $0 } ?? true
-
-        if let menuFrame = axApplicationMenuFrame(allowOwnerFallback: isMainScreen) {
-            // AX may report display-local coordinates; anchor to this screen's
-            // global origin to match status-item bounds.
-            return CGRect(x: frame.minX, y: menuFrame.minY, width: menuFrame.width, height: menuFrame.height)
-        }
-
-        // AX often reports nothing for secondary screens; borrow the main
-        // screen's menu width.
-        guard !isMainScreen, let mainFrame = NSScreen.main?.getApplicationMenuFrame() else {
-            return nil
-        }
-        return CGRect(x: frame.minX, y: mainFrame.minY, width: mainFrame.width, height: mainFrame.height)
-    }
-
-    /// The frame union of the menu bar's app-menu children on this screen,
-    /// found through an AX hit test at the display origin.
-    ///
-    /// - Parameter allowOwnerFallback: Whether a failed hit test may fall back
-    ///   to the menu bar owner's AX tree, which only describes the main display.
-    private func axApplicationMenuFrame(allowOwnerFallback: Bool) -> CGRect? {
-        var menuBar = AXHelpers.element(at: CGDisplayBounds(displayID).origin).flatMap { element in
-            AXHelpers.roleString(for: element) == kAXMenuBarRole ? element : nil
-        }
-        if menuBar == nil, allowOwnerFallback {
-            menuBar = NSWorkspace.shared.menuBarOwningApplication
-                .flatMap(AXHelpers.application(for:))
-                .flatMap(AXHelpers.menuBar(for:))
-        }
-        guard let menuBar else {
-            return nil
-        }
-
-        let menuFrame = AXHelpers.applicationMenuChildFrameUnion(for: menuBar)
-        guard !menuFrame.isNull, menuFrame.width > 0 else {
-            return nil
-        }
-        return menuFrame
+        ApplicationMenuGeometryReader.shared.cached(on: self, refresh: bypassCache)?.frame
     }
 }

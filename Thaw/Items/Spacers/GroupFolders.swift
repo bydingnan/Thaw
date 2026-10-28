@@ -77,8 +77,10 @@ final class GroupFolders {
 
     func performSetup(with appState: AppState) {
         self.appState = appState
-        observationTask = Task { @MainActor [weak self, groupManager = appState.itemGroupManager] in
-            for await _ in Observations({ groupManager.groupSet }) {
+        observationTask = Task { @MainActor [weak self, groupManager = appState.itemGroupManager, itemManager = appState.itemManager] in
+            for await _ in Observations({
+                (groupManager.groupSet, itemManager.managedItems.map { ($0.uniqueIdentifier, $0.displayName) })
+            }) {
                 self?.reconcile()
             }
         }
@@ -98,8 +100,7 @@ final class GroupFolders {
     /// Turns a group into a folder, moving its items to Hidden, or back into
     /// a plain group, moving them to Visible.
     func setFolder(_ isFolder: Bool, for origin: MenuBarItemGroupOrigin, members: [MenuBarItem]) {
-        guard let appState,
-              let id = appState.itemGroupManager.userGroupID(for: origin, members: members)
+        guard let appState, let id = appState.itemGroupManager.userGroupID(for: origin, members: members)
         else { return }
         if isFolder {
             folderIDs.insert(id)
@@ -173,20 +174,30 @@ final class GroupFolders {
             statusItem.button?.setAccessibilityLabel(name)
             labels[Self.autosaveName(for: group.id)] = name
         }
-        UserDefaults.standard.set(labels, forKey: Self.labelsKey)
+        Self.persistLabelsIfChanged(labels, defaults: .standard)
+    }
+
+    static func persistLabelsIfChanged(_ labels: [String: String], defaults: UserDefaults) {
+        let stored = defaults.dictionary(forKey: labelsKey) as? [String: String] ?? [:]
+        guard stored != labels else { return }
+        defaults.set(labels, forKey: labelsKey)
     }
 
     private func folderName(for group: MenuBarItemGroup) -> String {
-        if let name = group.name {
-            return name
-        }
         let items = appState?.itemManager.managedItems ?? []
         let names = group.memberIdentifiers.compactMap { identifier in
             items.first { MenuBarItemTag.canonicalPersistentIdentifier($0.uniqueIdentifier) == identifier }?.displayName
         }
-        return names.isEmpty
+        return Self.folderName(explicitName: group.name, memberNames: names)
+    }
+
+    static func folderName(explicitName: String?, memberNames: [String]) -> String {
+        if let explicitName {
+            return explicitName
+        }
+        return memberNames.isEmpty
             ? String(localized: "Folder")
-            : ListFormatter.localizedString(byJoining: Array(names.prefix(3)))
+            : ListFormatter.localizedString(byJoining: Array(memberNames.prefix(3)))
     }
 
     private static func autosaveName(for id: UUID) -> String {
@@ -225,10 +236,7 @@ final class GroupFolders {
     }
 
     @objc private func iconClicked(_ sender: NSStatusBarButton) {
-        guard let appState,
-              let raw = sender.identifier?.rawValue,
-              let id = UUID(uuidString: raw),
-              let group = appState.itemGroupManager.groupSet.groups.first(where: { $0.id == id })
+        guard let appState, let raw = sender.identifier?.rawValue, let id = UUID(uuidString: raw), let group = appState.itemGroupManager.groupSet.groups.first(where: { $0.id == id })
         else { return }
         let panel = appState.menuBarManager.thawBarPanel
         if panel.isVisible, panel.presentation == .folder, panel.folderMemberIdentifiers == group.memberIdentifiers {

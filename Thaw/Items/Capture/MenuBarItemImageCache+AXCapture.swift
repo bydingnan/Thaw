@@ -37,7 +37,7 @@ extension MenuBarItemImageCache {
         guard !screenIsLocked(), !itemsWithBounds.isEmpty else { return CapturePass() }
         let band = await reader.captureBand(displayID: displayID)
         guard !screenIsLocked() else { return CapturePass() }
-        let overflowBounds = await reader.overflowBounds(displayID: displayID)
+        let overflowBounds = await reader.overflowBounds(displayID: displayID, newerThan: nil)
         guard !screenIsLocked() else { return CapturePass() }
         var result = CapturePass()
         // Staged, not applied: the ledger is read-only until the pass commits.
@@ -69,8 +69,7 @@ extension MenuBarItemImageCache {
             // A different pixel source cannot repair an unidentified or moved item.
             guard context.hasStripGeometry else { return true }
             let identifier = candidate.item.uniqueIdentifier
-            guard !context.ambiguousIdentifiers.contains(identifier),
-                  let bounds = context.postCaptureBounds[identifier]
+            guard !context.ambiguousIdentifiers.contains(identifier), let bounds = context.postCaptureBounds[identifier]
             else { return false }
             return Self.hasStableCaptureBounds(before: candidate.bounds, after: bounds)
         }
@@ -87,10 +86,11 @@ extension MenuBarItemImageCache {
         into result: inout CapturePass
     ) -> [(item: MenuBarItem, bounds: CGRect)] {
         let peers = candidates.map(\.item)
+        let displayBounds = [band.frame]
         return candidates.filter { item, bounds in
             // Parked/overlapping frames cannot identify this item's pixels.
             // Skip without invalidating the glyph captured while it was seated.
-            if Self.hasUnusableCaptureGeometry(item, among: peers) {
+            if Self.hasUnusableCaptureGeometry(item, among: peers, displayBounds: displayBounds) {
                 Self.diagLog.debug("axBoundsCapture: \(item.logString) frame is parked or phantom; keeping its prior capture")
                 return false
             }
@@ -165,12 +165,13 @@ extension MenuBarItemImageCache {
         using reader: any MenuBarCaptureReading
     ) async -> AXCropContext? {
         var refreshed = context
+        let pixelsCompletedAt = ContinuousClock.now
         if context.validateFreshBounds {
             // Both reads validate this source after its pixels arrived. Neither
             // depends on the other; an overflow sweep must not wait for a full
             // ownership walk (or vice versa) before it can start.
             async let itemsRead = reader.menuBarItems(displayID: context.displayID)
-            async let overflowRead = reader.overflowBounds(displayID: context.displayID)
+            async let overflowRead = reader.overflowBounds(displayID: context.displayID, newerThan: pixelsCompletedAt)
             let (items, overflow) = await (itemsRead, overflowRead)
             guard !screenIsLocked(), !Task.isCancelled else { return nil }
             refreshed.postCaptureBounds = Dictionary(
@@ -178,7 +179,7 @@ extension MenuBarItemImageCache {
             )
             refreshed.overflowBounds += overflow
         } else {
-            refreshed.overflowBounds += await reader.overflowBounds(displayID: context.displayID)
+            refreshed.overflowBounds += await reader.overflowBounds(displayID: context.displayID, newerThan: pixelsCompletedAt)
         }
         guard !screenIsLocked(), !Task.isCancelled else { return nil }
         return refreshed
@@ -198,8 +199,7 @@ extension MenuBarItemImageCache {
             return capture
         }
         // Cancellation makes every source answer nil; that is not a failed read.
-        guard !Task.isCancelled else { return nil }
-        guard result.noteMissingCapture(of: candidates.map(\.item), captureWasAllowed: captureIsAllowed()) else {
+        guard !Task.isCancelled, result.noteMissingCapture(of: candidates.map(\.item), captureWasAllowed: captureIsAllowed()) else {
             return nil
         }
         let firstFailure = hostingFailureWarnedDisplays.withLock { $0.insert(displayID).inserted }
@@ -239,8 +239,9 @@ extension MenuBarItemImageCache {
         // Keep just these two reads in flight, and join both before accepting
         // any crop; no geometry is shared with a later capture source.
         let displayID = context.displayID
+        let pixelsCompletedAt = ContinuousClock.now
         async let liveRead = reader.liveBounds(for: candidates)
-        async let overflowRead = reader.overflowBounds(displayID: displayID)
+        async let overflowRead = reader.overflowBounds(displayID: displayID, newerThan: pixelsCompletedAt)
         let (live, overflow) = await (liveRead, overflowRead)
         guard !screenIsLocked(), !Task.isCancelled else { return }
         context.hasStripGeometry = true

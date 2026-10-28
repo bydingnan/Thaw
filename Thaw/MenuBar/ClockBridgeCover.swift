@@ -195,8 +195,7 @@ final class ClockBridgeCover {
         var leadingEdges: [CGDirectDisplayID: CGFloat] = [:]
         var home: (screen: ScreenBar, x: CGFloat)?
         for frame in visibleFrames {
-            guard let seat = MenuBarItemGeometry.barScreen(holding: frame, among: screenFrames),
-                  let screen = screens.first(where: { $0.frame == seat })
+            guard let seat = MenuBarItemGeometry.barScreen(holding: frame, among: screenFrames), let screen = screens.first(where: { $0.frame == seat })
             else {
                 continue
             }
@@ -252,7 +251,7 @@ final class ClockBridgeCover {
         layer.sublayers?.removeAll()
         layer.filters = nil
         guard let appState else { return }
-        let configuration = appState.appearanceManager.effectiveConfiguration
+        let configuration = appState.appearanceManager.effectiveConfiguration(for: displayID)
         let style = ClockBridgeCoverStyle.style(
             for: configuration.current,
             shapeKind: configuration.shapeKind,

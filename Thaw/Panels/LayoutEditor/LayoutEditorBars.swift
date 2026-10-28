@@ -52,6 +52,12 @@ struct LayoutEditorBars: View {
                 ) {
                     appState.layoutFeedback.clear()
                 }
+                if appState.layoutFeedback.retryAction != nil {
+                    HStack {
+                        Button("Retry") { appState.layoutFeedback.retry() }
+                        Button("Show Items") { appState.layoutFeedback.showItems() }
+                    }
+                }
             }
         }
         .reorderContainer(for: LayoutEditorOrder.Unit.self, in: MenuBarSection.Name.self) { difference in

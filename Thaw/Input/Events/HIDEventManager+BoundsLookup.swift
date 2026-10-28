@@ -14,10 +14,6 @@ extension HIDEventManager {
     /// Anything wider is an expanded section divider and is excluded.
     static nonisolated let maxReasonableItemWidth: CGFloat = 500
 
-    /// macOS 27 concealed items can keep phantom AX frames far below the bar;
-    /// those must not count as items in hit-testing.
-    static nonisolated let maxMenuBarItemMidY: CGFloat = MenuBarItemGeometry.maxOnBarMidY
-
     /// On macOS 27 synthetic window IDs have no live CG window, so cached AX
     /// bounds are trusted. Item frames are reported against one bar, so each
     /// entry is rebased onto destinationDisplay first (see MirroredBarGeometry).
@@ -40,13 +36,11 @@ extension HIDEventManager {
             if trustCachedBoundsWithoutLiveWindowVerification {
                 return true
             }
-            if let currentBounds = liveWindowBounds(entry.windowID),
-               MirroredBarGeometry.frame(
-                   currentBounds,
-                   on: destinationDisplay,
-                   displayBounds: displayBounds
-               ).contains(location)
-            {
+            if let currentBounds = liveWindowBounds(entry.windowID), MirroredBarGeometry.frame(
+                currentBounds,
+                on: destinationDisplay,
+                displayBounds: displayBounds
+            ).contains(location) {
                 return true
             }
         }
@@ -109,12 +103,11 @@ extension HIDEventManager {
     static nonisolated func shouldIncludeItemInMenuBarBoundsLookup(
         _ item: MenuBarItem,
         section: MenuBarSection.Name?,
-        effectivelyConcealed: Set<String> = []
+        effectivelyConcealed: Set<String> = [],
+        displays: [CGRect] = MenuBarBandClassifier.displayFrames
     ) -> Bool {
-        guard item.bounds.width > 0, item.bounds.width <= maxReasonableItemWidth else {
-            return false
-        }
-        guard item.bounds.midY <= maxMenuBarItemMidY else {
+        guard item.bounds.width > 0, item.bounds.width <= maxReasonableItemWidth, !MenuBarBandClassifier.isParked(item.bounds, displays: displays)
+        else {
             return false
         }
         if item.tag.isNativeOverflowControl {
@@ -204,17 +197,13 @@ extension HIDEventManager {
             excluding: knownWindowIDs,
             shouldInclude: shouldInclude
         )
-        buffer.append(contentsOf: recentEntries)
-        knownWindowIDs.formUnion(recentEntries.map(\.windowID))
 
         let managedEntries = Self.menuBarItemBoundsLookupEntries(
             from: cache.managedItems,
             excluding: knownWindowIDs,
             shouldInclude: shouldInclude
         )
-        buffer.append(contentsOf: managedEntries)
-        let entries = buffer
-        windowBoundsLock.withLock { $0 = entries }
+        pointerBoundsCache.refresh(live: buffer, onScreen: recentEntries, managed: managedEntries)
     }
 
     /// Whether displayID is showing a fullscreen Space.
@@ -238,7 +227,7 @@ extension HIDEventManager {
     /// no CG windows, so the snapshot is empty and the cache is used.
     func rebuildWindowBoundsLookupFromCurrentLayout() {
         guard let appState else {
-            windowBoundsLock.withLock { $0 = [] }
+            pointerBoundsCache.refresh(live: [], onScreen: [], managed: [])
             return
         }
         rebuildWindowBoundsLookup(

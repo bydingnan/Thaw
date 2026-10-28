@@ -15,12 +15,7 @@ extension HIDEventManager {
     /// Ends an item drag, and arranges for the cache to catch up with wherever
     /// the user dropped things.
     func handleMenuBarItemDragStop() {
-        guard isDraggingMenuBarItem else {
-            return
-        }
-        isDraggingMenuBarItem = false
-
-        guard let appState else {
+        guard dragSession.end(), let appState else {
             return
         }
         // Suppresses caching for 1 s and order restoration for 2 s, then
@@ -44,14 +39,12 @@ extension HIDEventManager {
         screen: NSScreen
     ) {
         guard
-            !isDraggingMenuBarItem,
-            event.modifierFlags.contains(.command),
-            isMouseInsideMenuBarItem(appState: appState, screen: screen)
+            !isDraggingMenuBarItem, event.modifierFlags.contains(.command), isMouseInsideMenuBarItem(appState: appState, screen: screen)
         else {
             return
         }
 
-        isDraggingMenuBarItem = true
+        dragSession.begin()
 
         // Optionally bring every section out for the duration of the drag, so
         // the user can drop an item into one that is currently put away.

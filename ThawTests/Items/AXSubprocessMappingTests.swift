@@ -14,6 +14,34 @@ import ThawAXCore
 /// Subprocess walks return raw observations; app-side identity and assembly must match the in-process path.
 @Suite("AX subprocess observation mapping")
 struct AXSubprocessMappingTests {
+    @Test
+    func namelessItemsFromDistinctBundleLessApplicationsRestartFallbackIndices() {
+        let items = publisherItems(bundleID: nil, publishers: [101, 102])
+        #expect(items.map(\.tag.title) == ["Item-0", "Item-0"])
+    }
+
+    @Test
+    func namelessItemsFromTwoInstancesOfOneBundleRestartFallbackIndices() {
+        let items = publisherItems(bundleID: "com.example.app", publishers: [101, 102])
+        #expect(items.map(\.tag.title) == ["Item-0", "Item-0"])
+    }
+
+    @Test
+    func hostedChildrenUsePublisherPIDRatherThanElementOwnerForFallbackIndices() {
+        let items = publisherItems(bundleID: "com.example.host", publishers: [101, 101])
+        #expect(items.map(\.tag.title) == ["Item-0", "Item-1"])
+    }
+
+    private func publisherItems(bundleID: String?, publishers: [Int32]) -> [MenuBarItem] {
+        let observations = publishers.enumerated().map { index, publisher in
+            var item = observation(bundleID: bundleID, x: CGFloat(index * 30))
+            item.publisherPID = publisher
+            item.ownerPID = Int32(index + 201)
+            return item
+        }
+        return MenuBarItemAXProvider.items(fromSubprocess: observations)
+    }
+
     private func observation(
         bundleID: String?,
         title: String? = nil,

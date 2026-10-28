@@ -13,6 +13,15 @@ import Testing
 /// Screenshots cannot verify these focus and geometry decisions after the fact.
 @Suite("Application menu cover policy")
 struct ApplicationMenuCoverPolicyTests {
+    @Test
+    func coverExcludesDisabledApplicationMenuTitles() {
+        var disabled = Self.title(x: 137, width: 500)
+        disabled.isEnabled = false
+        #expect(ApplicationMenuCoverPolicy.coverRect(
+            forOrderedTitles: [Self.apple, Self.finder, disabled]
+        ) == ApplicationMenuCoverPolicy.coverRect(forOrderedTitles: [Self.apple, Self.finder]))
+    }
+
     // MARK: Fixtures
 
     /// Live frame shape: top-left origin, 30 pt height, with adjacent titles overlapping by 1 pt.

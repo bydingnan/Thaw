@@ -67,6 +67,23 @@ final class MenuBarAppearanceManager {
     /// The most recently observed active Space.
     private(set) var activeSpaceID = SpaceInfo.activeSpace().spaceID
 
+    private let displaySpaces = DisplaySpaceSnapshot()
+
+    func effectiveConfiguration(for displayID: CGDirectDisplayID) -> MenuBarAppearanceConfigurationV2 {
+        SpaceAppearanceResolver.configuration(
+            for: displayID,
+            spaces: displaySpaces.spaces,
+            shared: configuration,
+            overrides: spaceOverrides
+        )
+    }
+
+    private var displayConfigurations: [CGDirectDisplayID: MenuBarAppearanceConfigurationV2] {
+        Dictionary(uniqueKeysWithValues: NSScreen.managedScreens.map {
+            ($0.displayID, effectiveConfiguration(for: $0.displayID))
+        })
+    }
+
     /// Render the active Space's override, falling back to shared settings.
     /// Observation tracks all three inputs through this computed property.
     var effectiveConfiguration: MenuBarAppearanceConfigurationV2 {
@@ -113,6 +130,7 @@ final class MenuBarAppearanceManager {
     func performSetup(with appState: AppState) {
         self.appState = appState
         loadInitialState()
+        displaySpaces.refresh()
         configureCancellables()
     }
 
@@ -175,10 +193,10 @@ final class MenuBarAppearanceManager {
 
         panelRequirementsTask?.cancel()
         panelRequirementsTask = Task { [weak self] in
-            let changes = Observations { [weak self] in self?.effectiveConfiguration }
-            for await configuration in changes._throttle(for: .milliseconds(100), latest: true) {
-                guard let self, let configuration else { return }
-                updateOverlayPanels(for: configuration)
+            let changes = Observations { [weak self] in self?.displayConfigurations }
+            for await configurations in changes._throttle(for: .milliseconds(100), latest: true) {
+                guard let self, let configurations else { return }
+                updateOverlayPanels(needsPanels: configurations.values.contains(where: needsOverlayPanels))
                 // Partner apps mirror the look; they fetch it again on this.
                 DistributedNotificationCenter.default().postNotificationName(
                     SharedAppearance.didChangeNotification,
@@ -204,9 +222,7 @@ final class MenuBarAppearanceManager {
 
     private func rebuildOverlayPanelsIfScreensMoved() {
         // Unchanged geometry needs no rebuild, avoiding overlay blinks and composite-appearance leaks.
-        if !overlayPanels.isEmpty,
-           Self.currentScreenLayout() == lastConfiguredScreenLayout
-        {
+        if !overlayPanels.isEmpty, Self.currentScreenLayout() == lastConfiguredScreenLayout {
             return
         }
         closeOverlayPanels()
@@ -223,6 +239,7 @@ final class MenuBarAppearanceManager {
     private func observeScreenParameters() -> AnyCancellable {
         let task = NotificationCenter.default.eventsTask(named: NSApplication.didChangeScreenParametersNotification, debounce: .seconds(0.1)) { [weak self] in
             guard let self else { return }
+            self.displaySpaces.refresh()
             self.rebuildOverlayPanelsIfScreensMoved()
         }
         return AnyCancellable { task.cancel() }
@@ -257,15 +274,16 @@ final class MenuBarAppearanceManager {
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.activeSpaceID = SpaceInfo.activeSpace().spaceID
+                guard let self else { return }
+                activeSpaceID = SpaceInfo.activeSpace().spaceID
+                displaySpaces.refresh()
             }
     }
 
-    private func updateOverlayPanels(for configuration: MenuBarAppearanceConfigurationV2) {
-        // Build panels lazily when effects first need them.
-        if overlayPanels.isEmpty {
-            configureOverlayPanels(with: configuration)
-        } else if !needsOverlayPanels(for: configuration) {
+    private func updateOverlayPanels(needsPanels: Bool) {
+        if overlayPanels.isEmpty, needsPanels {
+            configureOverlayPanels(with: configuration, force: true)
+        } else if !needsPanels, previewConfiguration == nil {
             closeOverlayPanels()
         }
     }
@@ -282,7 +300,7 @@ final class MenuBarAppearanceManager {
                 configureOverlayPanels(with: configuration, force: true)
             }
         } else {
-            if !needsOverlayPanels(for: configuration) {
+            if !displayConfigurations.values.contains(where: needsOverlayPanels) {
                 closeOverlayPanels()
             }
         }
@@ -301,15 +319,14 @@ final class MenuBarAppearanceManager {
     /// Always rebuilds; when no effects are needed, clear the layout signature so future notifications retry.
     /// - Parameter force: Build even when stored settings need no panels, as for a live preview.
     private func configureOverlayPanels(
-        with configuration: MenuBarAppearanceConfigurationV2,
+        with _: MenuBarAppearanceConfigurationV2,
         force: Bool = false
     ) {
         // Close existing panels to prevent memory leaks and duplicate windows
         closeOverlayPanels()
 
         guard
-            let appState,
-            force || needsOverlayPanels(for: configuration)
+            let appState, force || displayConfigurations.values.contains(where: needsOverlayPanels)
         else {
             lastConfiguredScreenLayout = [:]
             return

@@ -28,9 +28,12 @@
 		A1A1A1A1A1A1A1A1A1A1A106 /* ThawAXClient in Frameworks */ = {isa = PBXBuildFile; productRef = A1A1A1A1A1A1A1A1A1A1A103 /* ThawAXClient */; };
 		A1A1A1A1A1A1A1A1A1A1A107 /* ThawAXHelper in Embed AX Helper */ = {isa = PBXBuildFile; productRef = A1A1A1A1A1A1A1A1A1A1A104 /* ThawAXHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E1E1E1E1E1E1E1E1E1E1E103 /* ThawExtraHelper in Embed Extra Helper */ = {isa = PBXBuildFile; productRef = E1E1E1E1E1E1E1E1E1E1E102 /* ThawExtraHelper */; };
-		A1A1A1A1A1A1A1A1A1A1A10A /* ThawAXCore in Frameworks */ = {isa = PBXBuildFile; productRef = A1A1A1A1A1A1A1A1A1A1A109 /* ThawAXCore */; };
 		B1B1B1B1B1B1B1B1B1B1B104 /* ThawLayout in Frameworks */ = {isa = PBXBuildFile; productRef = B1B1B1B1B1B1B1B1B1B1B102 /* ThawLayout */; };
 		B1B1B1B1B1B1B1B1B1B1B105 /* ThawLayout in Frameworks */ = {isa = PBXBuildFile; productRef = B1B1B1B1B1B1B1B1B1B1B103 /* ThawLayout */; };
+		F01D10000000000000000001 /* ThawConcurrency in Frameworks */ = {isa = PBXBuildFile; productRef = F01D10000000000000000010 /* ThawConcurrency */; };
+		F01D10000000000000000002 /* ThawConcurrency in Frameworks */ = {isa = PBXBuildFile; productRef = F01D10000000000000000011 /* ThawConcurrency */; };
+		F01D10000000000000000003 /* ThawConcurrency in Embed Frameworks */ = {isa = PBXBuildFile; productRef = F01D10000000000000000010 /* ThawConcurrency */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		F01D10000000000000000004 /* ThawConcurrency in Embed Frameworks */ = {isa = PBXBuildFile; productRef = F01D10000000000000000011 /* ThawConcurrency */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,6 +76,7 @@
 			dstSubfolder = Frameworks;
 			files = (
 				F1A2B3C42F50000000000001 /* MenuBarModel in Embed Frameworks */,
+				F01D10000000000000000003 /* ThawConcurrency in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 		};
@@ -82,6 +86,7 @@
 			dstSubfolder = Frameworks;
 			files = (
 				F1A2B3C42F50000000000002 /* MenuBarModel in Embed Frameworks */,
+				F01D10000000000000000004 /* ThawConcurrency in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 		};
@@ -199,6 +204,7 @@
 				A1A1A1A1A1A1A1A1A1A1A105 /* ThawAXCore in Frameworks */,
 				A1A1A1A1A1A1A1A1A1A1A106 /* ThawAXClient in Frameworks */,
 				B1B1B1B1B1B1B1B1B1B1B104 /* ThawLayout in Frameworks */,
+				F01D10000000000000000001 /* ThawConcurrency in Frameworks */,
 			);
 		};
 		7188A6802E27F9ED008F131D /* Frameworks */ = {
@@ -206,6 +212,7 @@
 			files = (
 				F3B1A2C4D5E6F7A8B9C0D1E3 /* MenuBarModel in Frameworks */,
 				7188A6882E27F9ED008F131D /* ThawCapture in Frameworks */,
+				F01D10000000000000000002 /* ThawConcurrency in Frameworks */,
 			);
 		};
 		E2TESTS0012F2C000000004 /* Frameworks */ = {
@@ -213,7 +220,6 @@
 			files = (
 				E2C0FFEE2F2C000000000001 /* MenuBarModel in Frameworks */,
 				A7C4F0022F60000000000002 /* ThawCapture in Frameworks */,
-				A1A1A1A1A1A1A1A1A1A1A10A /* ThawAXCore in Frameworks */,
 				B1B1B1B1B1B1B1B1B1B1B105 /* ThawLayout in Frameworks */,
 				D27A00022F40000000000002 /* PlatformRuntimeKit in Frameworks */,
 			);
@@ -293,6 +299,7 @@
 				A1A1A1A1A1A1A1A1A1A1A104 /* ThawAXHelper */,
 				B1B1B1B1B1B1B1B1B1B1B102 /* ThawLayout */,
 				E1E1E1E1E1E1E1E1E1E1E102 /* ThawExtraHelper */,
+				F01D10000000000000000010 /* ThawConcurrency */,
 			);
 			productName = Thaw;
 			productReference = 7166832A2A767E6A006ABF84 /* Thaw.app */;
@@ -319,6 +326,7 @@
 			packageProductDependencies = (
 				C2D4E6A8B0C2D4E6A8B0C2D4 /* MenuBarModel */,
 				7188A6872E27F9ED008F131D /* ThawCapture */,
+				F01D10000000000000000011 /* ThawConcurrency */,
 			);
 			productName = MenuBarCaptureService;
 			productReference = 7188A6842E27F9ED008F131D /* MenuBarCaptureService.xpc */;
@@ -344,7 +352,6 @@
 			packageProductDependencies = (
 				E2C0FFEE2F2C000000000003 /* MenuBarModel */,
 				A7C4F0042F60000000000004 /* ThawCapture */,
-				A1A1A1A1A1A1A1A1A1A1A109 /* ThawAXCore */,
 				B1B1B1B1B1B1B1B1B1B1B103 /* ThawLayout */,
 				D27A00042F40000000000004 /* PlatformRuntimeKit */,
 			);
@@ -436,6 +443,7 @@
 				A1A1A1A1A1A1A1A1A1A1A101 /* XCLocalSwiftPackageReference "ThawAX" */,
 				B1B1B1B1B1B1B1B1B1B1B101 /* XCLocalSwiftPackageReference "ThawLayout" */,
 				E1E1E1E1E1E1E1E1E1E1E101 /* XCLocalSwiftPackageReference "ThawExtras" */,
+				F01D10000000000000000012 /* XCLocalSwiftPackageReference "ThawConcurrency" */,
 			);
 			preferredProjectObjectVersion = 100;
 			productRefGroup = 7166832B2A767E6A006ABF84 /* Products */;
@@ -1042,6 +1050,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		F01D10000000000000000012 /* XCLocalSwiftPackageReference "ThawConcurrency" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ThawConcurrency;
+		};
 		A4E38A6A423944089D70B9BB /* XCLocalSwiftPackageReference "MenuBarModel" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = MenuBarModel;
@@ -1112,6 +1124,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		F01D10000000000000000010 /* ThawConcurrency */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F01D10000000000000000012 /* XCLocalSwiftPackageReference "ThawConcurrency" */;
+			productName = ThawConcurrency;
+		};
+		F01D10000000000000000011 /* ThawConcurrency */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F01D10000000000000000012 /* XCLocalSwiftPackageReference "ThawConcurrency" */;
+			productName = ThawConcurrency;
+		};
 		17F71BB42B880B4500905CBA /* CompactSlider */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 17F71BB32B880B4500905CBA /* XCRemoteSwiftPackageReference "CompactSlider" */;
@@ -1196,11 +1218,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E1E1E1E1E1E1E1E1E1E1E101 /* XCLocalSwiftPackageReference "ThawExtras" */;
 			productName = ThawExtraHelper;
-		};
-		A1A1A1A1A1A1A1A1A1A1A109 /* ThawAXCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A1A1A1A1A1A1A1A1A1A1A101 /* XCLocalSwiftPackageReference "ThawAX" */;
-			productName = ThawAXCore;
 		};
 		B1B1B1B1B1B1B1B1B1B1B102 /* ThawLayout */ = {
 			isa = XCSwiftPackageProductDependency;

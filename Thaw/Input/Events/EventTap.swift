@@ -304,23 +304,24 @@ final nonisolated class EventTap: @unchecked Sendable {
         }
 
         let retained = Unmanaged.passRetained(self)
-        guard
-            let machPort = creationLocation.openMachPort(
-                mask: creationMask,
-                place: creationPlacement,
-                options: creationOption,
-                userInfo: retained.toOpaque()
-            ),
-            let source = CFMachPortCreateRunLoopSource(nil, machPort, 0)
-        else {
-            retained.release()
+        guard let resources = EventTapResourceCreation.create(
+            makePort: {
+                creationLocation.openMachPort(
+                    mask: creationMask,
+                    place: creationPlacement,
+                    options: creationOption,
+                    userInfo: retained.toOpaque()
+                )
+            },
+            makeSource: { CFMachPortCreateRunLoopSource(nil, $0, 0) },
+            disable: { CGEvent.tapEnable(tap: $0, enable: false) },
+            invalidate: { CFMachPortInvalidate($0) },
+            releaseContext: { retained.release() }
+        ) else {
             return .refused
         }
-
-        // Core Graphics creates taps enabled, before they have a run-loop
-        // source. Keep this one inert until enable() attaches its source;
-        // otherwise conditional startup mistakes an unserviced tap for ready.
-        CGEvent.tapEnable(tap: machPort, enable: false)
+        let machPort = resources.port
+        let source = resources.source
         Self.registerTap(self)
 
         // withLockUnchecked (not withLock) because machPort/source

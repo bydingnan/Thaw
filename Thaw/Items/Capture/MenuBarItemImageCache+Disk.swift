@@ -14,8 +14,7 @@ extension MenuBarItemImageCache {
     /// Persists what is currently trusted for a faster restart. The file,
     /// its format, and the save queue live on MenuBarItemImageCacheDiskStore.
     func saveToDisk() {
-        guard diskStore.isEnabled else { return }
-        guard !capturesByTag.isEmpty else { return }
+        guard diskStore.isEnabled, !capturesByTag.isEmpty else { return }
 
         let concealedIdentifiers = appState.map { appState in
             Set(
@@ -125,8 +124,7 @@ extension MenuBarItemImageCache {
         diskLoadTask?.cancel()
         let generation = diskLoadGeneration
         diskLoadTask = Task.detached(priority: .background) { [weak self] in
-            guard let self else { return }
-            guard let file = self.diskStore.readSaveFile() else { return }
+            guard let self, let file = self.diskStore.readSaveFile() else { return }
 
             let (classifications, occupiedIdentifiers) = await MainActor.run {
                 (
@@ -232,6 +230,10 @@ extension MenuBarItemImageCache {
         diskLoadTask?.cancel()
         diskLoadTask = nil
         diskLoadGeneration &+= 1
+    }
+
+    func flushDiskPersistence() async {
+        await diskStore.flush()
     }
 
     /// Blocks saves while a reset deletes the file, and makes the store forget

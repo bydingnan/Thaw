@@ -22,7 +22,15 @@ struct ChangelogDocument {
     /// One block of release prose: plain text, or a GitHub alert.
     enum Block {
         case text(AttributedString)
+        case numberedStep(AttributedString)
         case callout(Callout)
+
+        var unorderedMarker: String? {
+            if case .text = self {
+                return "•"
+            }
+            return nil
+        }
     }
 
     /// A GitHub alert: `> [!WARNING]` and the `>` lines under it. Rendered as
@@ -36,8 +44,7 @@ struct ChangelogDocument {
             init?(marker line: String) {
                 guard line.hasPrefix(">") else { return nil }
                 let inner = line.dropFirst().trimmingCharacters(in: .whitespaces)
-                guard inner.hasPrefix("[!"), inner.hasSuffix("]") else { return nil }
-                guard let kind = Kind(rawValue: inner.dropFirst(2).dropLast().lowercased()) else {
+                guard inner.hasPrefix("[!"), inner.hasSuffix("]"), let kind = Kind(rawValue: inner.dropFirst(2).dropLast().lowercased()) else {
                     return nil
                 }
                 self = kind
@@ -166,10 +173,7 @@ struct ChangelogDocument {
         var request = URLRequest(url: Constants.changelogURL)
         request.timeoutInterval = 10
         guard
-            let (data, response) = try? await URLSession.shared.data(for: request),
-            let http = response as? HTTPURLResponse,
-            (200 ..< 300).contains(http.statusCode),
-            let text = String(data: data, encoding: .utf8)
+            let (data, response) = try? await URLSession.shared.data(for: request), let http = response as? HTTPURLResponse, (200 ..< 300).contains(http.statusCode), let text = String(data: data, encoding: .utf8)
         else {
             return nil
         }
@@ -215,6 +219,7 @@ struct ChangelogDocument {
     static func parse(_ text: String) -> ChangelogDocument {
         var document = ChangelogDocument()
         var pendingBullet: String?
+        var pendingNumberedStep = false
         var pendingParagraph: String?
         var pendingCallout: (kind: Callout.Kind, lines: [String])?
 
@@ -225,8 +230,8 @@ struct ChangelogDocument {
             )) ?? AttributedString(markdown)
         }
 
-        /// A block lands in the release intro ahead of the first section, and
-        /// in the open theme after it, the same target a bullet takes.
+        // A block lands in the release intro ahead of the first section, and
+        // in the open theme after it, the same target a bullet takes.
         func appendBlock(_ block: Block) {
             guard !document.releases.isEmpty else { return }
             var release = document.releases.removeLast()
@@ -245,9 +250,9 @@ struct ChangelogDocument {
             document.releases.append(release)
         }
 
-        /// Prose ahead of a release's first section becomes an intro
-        /// paragraph; prose anywhere else, including the file preamble, is
-        /// dropped.
+        // Prose ahead of a release's first section becomes an intro
+        // paragraph; prose anywhere else, including the file preamble, is
+        // dropped.
         func flushParagraph() {
             guard let paragraph = pendingParagraph else { return }
             pendingParagraph = nil
@@ -298,7 +303,8 @@ struct ChangelogDocument {
             flushCallout()
             guard let bullet = pendingBullet else { return }
             pendingBullet = nil
-            appendBlock(.text(inline(bullet)))
+            appendBlock(pendingNumberedStep ? .numberedStep(inline(bullet)) : .text(inline(bullet)))
+            pendingNumberedStep = false
         }
 
         for rawLine in text.components(separatedBy: .newlines) {
@@ -350,6 +356,7 @@ struct ChangelogDocument {
                 // A numbered step keeps its number and stays on its own line.
                 flushBullet()
                 pendingBullet = line
+                pendingNumberedStep = true
             } else if line.isEmpty || line == "---" || line.hasPrefix("# ") {
                 flushBullet()
             } else if pendingBullet != nil {

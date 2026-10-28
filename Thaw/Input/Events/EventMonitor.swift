@@ -260,18 +260,24 @@ extension EventMonitor {
         scope: Scope,
         handler: @escaping (NSEvent) -> Void
     ) -> EventMonitor {
-        let observing: (NSEvent) -> NSEvent? = { event in
-            handler(event)
-            return event
-        }
+        let handlers = passiveHandlers(handler)
         return switch scope {
         case .local:
-            EventMonitor(mask: mask, localHandler: observing, globalHandler: nil)
+            EventMonitor(mask: mask, localHandler: handlers.local, globalHandler: nil)
         case .global:
-            EventMonitor(mask: mask, localHandler: nil, globalHandler: handler)
+            EventMonitor(mask: mask, localHandler: nil, globalHandler: handlers.global)
         case .universal:
-            EventMonitor(mask: mask, localHandler: observing, globalHandler: handler)
+            EventMonitor(mask: mask, localHandler: handlers.local, globalHandler: handlers.global)
         }
+    }
+
+    static func passiveHandlers(_ handler: @escaping (NSEvent) -> Void)
+        -> (local: (NSEvent) -> NSEvent?, global: (NSEvent) -> Void)
+    {
+        (local: { event in
+            handler(event)
+            return event
+        }, global: handler)
     }
 }
 

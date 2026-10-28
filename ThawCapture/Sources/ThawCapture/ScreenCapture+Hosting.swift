@@ -152,9 +152,12 @@ public extension ScreenCapture {
         displayFrame: CGRect
     ) -> Bool {
         guard displayFrame.width > 0 else { return false }
-        return windowFrame.height > 40
+        return windowFrame.height > maximumPointSpaceMenuBarHeight
             || windowFrame.width > displayFrame.width * 1.5
     }
+
+    /// Includes tall notched bars, which can occupy 49 points.
+    static let maximumPointSpaceMenuBarHeight: CGFloat = 64
 
     /// Pixel size to request from ScreenCaptureKit for the hosting window.
     ///
@@ -189,16 +192,14 @@ public extension ScreenCapture {
         displayFrame: CGRect,
         reportedScale: CGFloat
     ) -> MenuBarHostingCapture? {
-        guard image.width > 0, image.height > 0,
-              displayFrame.width > 0, displayFrame.height > 0
+        guard image.width > 0, image.height > 0, displayFrame.width > 0, displayFrame.height > 0
         else {
             return nil
         }
 
         if windowFrameAppearsPixelBacked(windowFrame, displayFrame: displayFrame) {
             let scale = CGFloat(image.width) / displayFrame.width
-            guard scale > 0.5, scale < 6,
-                  abs(CGFloat(image.width) - displayFrame.width * scale) <= 3
+            guard scale > 0.5, scale < 6, abs(CGFloat(image.width) - displayFrame.width * scale) <= 3
             else {
                 return nil
             }
@@ -331,8 +332,7 @@ public extension ScreenCapture {
         isOnScreen: Bool,
         stripFrame: CGRect
     ) -> Bool {
-        guard isOnScreen else { return false }
-        guard windowLayer > menuBarStripOverlayLevelThreshold else { return false }
+        guard isOnScreen, windowLayer > menuBarStripOverlayLevelThreshold else { return false }
         return frame.intersects(stripFrame)
     }
 
@@ -402,13 +402,10 @@ public extension ScreenCapture {
         // Fall through to in-process when the helper cannot answer.
         // preferInProcess is for the reveal mask, which must answer in
         // milliseconds; the helper's round trip shows as a slow Notification Center.
-        if routesThroughCaptureService,
-           !preferInProcess,
-           let viaService = await MenuBarCaptureServiceClient.shared.captureMenuBarDisplayStrip(
-               displayID: displayID,
-               visibilityGeneration: visibilityGeneration
-           )
-        {
+        if routesThroughCaptureService, !preferInProcess, let viaService = await MenuBarCaptureServiceClient.shared.captureMenuBarDisplayStrip(
+            displayID: displayID,
+            visibilityGeneration: visibilityGeneration
+        ) {
             return viaService
         }
         let content: SCShareableContent
@@ -525,12 +522,10 @@ public extension ScreenCapture {
             )
             return nil
         }
-        if routesThroughCaptureService,
-           let viaService = await MenuBarCaptureServiceClient.shared.captureMenuBarHostingWindow(
-               displayID: displayID,
-               visibilityGeneration: visibilityGeneration
-           )
-        {
+        if routesThroughCaptureService, let viaService = await MenuBarCaptureServiceClient.shared.captureMenuBarHostingWindow(
+            displayID: displayID,
+            visibilityGeneration: visibilityGeneration
+        ) {
             return viaService
         }
         let content: SCShareableContent
@@ -570,14 +565,12 @@ public extension ScreenCapture {
         if let skyLightImage = Bridging.captureWindowsImage(
             windowIDs: [window.windowID],
             options: [.boundsIgnoreFraming, .bestResolution]
-        ),
-            let normalized = normalizedHostingCapture(
-                image: skyLightImage,
-                windowFrame: window.frame,
-                displayFrame: displayFrame,
-                reportedScale: reportedScale
-            )
-        {
+        ), let normalized = normalizedHostingCapture(
+            image: skyLightImage,
+            windowFrame: window.frame,
+            displayFrame: displayFrame,
+            reportedScale: reportedScale
+        ) {
             diagLog.debug(
                 "captureMenuBarHostingWindowAsync: SkyLight took wid=\(window.windowID) " +
                     "\(skyLightImage.width)×\(skyLightImage.height)px scale=\(normalized.scale); " +

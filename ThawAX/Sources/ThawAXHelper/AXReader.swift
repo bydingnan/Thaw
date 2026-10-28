@@ -104,8 +104,7 @@ enum AXReader {
                     completed = false
                     break
                 }
-                guard let reported = AXPrimitives.frame(of: child), !reported.isNull, !reported.isEmpty else { continue }
-                guard let frame = AXPrimitives.itemFrame(reported, maximumHeight: maximumItemHeight) else { continue }
+                guard let reported = AXPrimitives.frame(of: child), !reported.isNull, !reported.isEmpty, let frame = AXPrimitives.itemFrame(reported, maximumHeight: maximumItemHeight) else { continue }
                 if let displayBounds, !AXPrimitives.frame(frame, isWithin: displayBounds) {
                     continue
                 }
@@ -126,6 +125,7 @@ enum AXReader {
                         bundleID: app.bundleIdentifier,
                         processName: app.localizedName,
                         ownerPID: AXPrimitives.pid(of: child) ?? app.processIdentifier,
+                        publisherPID: app.processIdentifier,
                         identifier: identifier,
                         accessibilityDescription: accessibilityDescription,
                         title: AXPrimitives.stringAttribute(child, kAXTitleAttribute),
@@ -170,8 +170,7 @@ enum AXReader {
     // MARK: - Pointer reads and presses
 
     private static func hitTest(at point: CGPoint) -> AXHitTestResult? {
-        guard let element = AXPrimitives.hitTestElement(at: point, messagingTimeout: messagingTimeout),
-              let pid = AXPrimitives.pid(of: element)
+        guard let element = AXPrimitives.hitTestElement(at: point, messagingTimeout: messagingTimeout), let pid = AXPrimitives.pid(of: element)
         else {
             return nil
         }

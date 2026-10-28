@@ -11,7 +11,7 @@ import ThawAXCore
 
 /// Diagnose stable item keys by recording raw AXExtrasMenuBar identity attributes in local JSON; no network upload.
 /// thaw://dump-items?callback=<url> writes to ~/Library/Logs/Thaw/ and returns only a path and per-app summary via URL.
-enum ItemEnumerationDump {
+nonisolated enum ItemEnumerationDump {
     private static let diagLog = DiagLog(category: "ItemEnumerationDump")
 
     /// Include first-level children because some apps publish identity on an inner button, not the container.
@@ -61,11 +61,11 @@ enum ItemEnumerationDump {
     }
 
     @discardableResult
-    static func run() -> URL? {
+    static func run(runningApplications: [NSRunningApplication]) -> URL? {
         var dumpedApps: [DumpedApp] = []
         var discovery: [DiscoveryResult] = []
 
-        for runningApp in NSWorkspace.shared.runningApplications {
+        for runningApp in runningApplications {
             var result = "application wrapper unavailable; terminated=\(runningApp.isTerminated)"
             defer {
                 discovery.append(DiscoveryResult(
@@ -172,15 +172,14 @@ enum ItemEnumerationDump {
     }
 
     /// Send only the file path and a URL-sized per-app summary through the thawctl callback.
-    static func respond(fileURL: URL, callback: String?) {
+    static func callbackURL(fileURL: URL, callback: String?) -> URL? {
         guard let callback, !callback.isEmpty else {
-            return
+            return nil
         }
-        guard var components = URLComponents(string: callback),
-              components.scheme?.isEmpty == false
+        guard var components = URLComponents(string: callback), components.scheme?.isEmpty == false
         else {
             diagLog.warning("dump: invalid callback URL \(callback)")
-            return
+            return nil
         }
 
         let summary: [[String: Any]] = readApps(from: fileURL).map { app in
@@ -194,18 +193,16 @@ enum ItemEnumerationDump {
         var queryItems = components.queryItems ?? []
         queryItems.append(URLQueryItem(name: "type", value: "item-dump"))
         queryItems.append(URLQueryItem(name: "file", value: fileURL.path))
-        if let summaryData = try? JSONSerialization.data(withJSONObject: summary),
-           let summaryJSON = String(data: summaryData, encoding: .utf8)
-        {
+        if let summaryData = try? JSONSerialization.data(withJSONObject: summary), let summaryJSON = String(data: summaryData, encoding: .utf8) {
             queryItems.append(URLQueryItem(name: "data", value: summaryJSON))
         }
         components.queryItems = queryItems
 
         guard let url = components.url else {
             diagLog.warning("dump: failed to compose callback URL")
-            return
+            return nil
         }
-        NSWorkspace.shared.open(url)
+        return url
     }
 
     private static func readApps(from fileURL: URL) -> [DumpedApp] {
@@ -225,7 +222,7 @@ enum ItemEnumerationDump {
 
 private extension String {
     /// Cap long live metric strings for readable dumps and short callback URLs.
-    var trimmed: String {
+    nonisolated var trimmed: String {
         String(prefix(200))
     }
 }

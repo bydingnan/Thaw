@@ -21,6 +21,8 @@ public struct AXItemObservation: Codable, Sendable, Equatable {
     public var processName: String?
     /// The process that owns the AX element.
     public var ownerPID: pid_t
+    /// The process whose extras bar published this observation.
+    public var publisherPID: pid_t
     /// AXIdentifier.
     public var identifier: String?
     /// AXDescription.
@@ -45,6 +47,7 @@ public struct AXItemObservation: Codable, Sendable, Equatable {
         bundleID: String?,
         processName: String?,
         ownerPID: pid_t,
+        publisherPID: pid_t? = nil,
         identifier: String?,
         accessibilityDescription: String?,
         title: String?,
@@ -57,6 +60,7 @@ public struct AXItemObservation: Codable, Sendable, Equatable {
         self.bundleID = bundleID
         self.processName = processName
         self.ownerPID = ownerPID
+        self.publisherPID = publisherPID ?? ownerPID
         self.identifier = identifier
         self.accessibilityDescription = accessibilityDescription
         self.title = title

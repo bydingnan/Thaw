@@ -40,12 +40,12 @@ final class FullDiskAccessPermission: Permission {
             ],
             isRequired: true,
             settingsURL: Self.settingsPane,
-            check: {
-                // Re-take a grant stored on an earlier launch before probing.
+            check: { false },
+            backgroundCheck: {
                 MenuBarLayoutTableAccess.shared.activateIfNeeded()
-                // .absent counts as fulfilled: a missing file is writable, and
-                // the host creates it once any item is positioned.
-                return RuntimePreferenceStore.positionsDomainAccess() != .denied
+                return await PermissionFileProbe.read {
+                    RuntimeAgentPositionsDomain.probeCurrentAccess() != .denied
+                }
             },
             request: { completion in
                 let granted = MenuBarLayoutTableAccess.shared.requestAccessViaOpenPanel()
@@ -75,8 +75,9 @@ final class ControlCenterAppListPermission: Permission {
             ],
             isRequired: false,
             settingsURL: nil,
-            check: {
-                PickedFileAccess.controlCenterAppList.hasAccess
+            check: { false },
+            backgroundCheck: {
+                await PickedFileAccess.controlCenterAppList.probeAccess()
             },
             request: { completion in
                 completion(PickedFileAccess.controlCenterAppList.requestAccessViaOpenPanel(), true)

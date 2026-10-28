@@ -32,17 +32,30 @@ public extension ScreenCapture {
         option: CGWindowImageOption = []
     ) async -> CGImage? {
         guard let ticket = captureUITicket(), !Task.isCancelled else { return nil }
-        if routesThroughCaptureService,
-           let viaService = await MenuBarCaptureServiceClient.shared.captureWindows(
-               with: windowIDs,
-               screenBounds: screenBounds,
-               option: option,
-               visibilityGeneration: ticket
-           )
-        {
+        if routesThroughCaptureService, let viaService = await MenuBarCaptureServiceClient.shared.captureWindows(
+            with: windowIDs,
+            screenBounds: screenBounds,
+            option: option,
+            visibilityGeneration: ticket
+        ) {
             return viaService
         }
-        let image = await Bridging.captureWindowsImageSCK(windowIDs: windowIDs, screenBounds: screenBounds, options: option, shouldCapture: { isCaptureUITicketCurrent(ticket) })
+        let image = await captureWindowsFallback {
+            await Bridging.captureWindowsImageSCK(
+                windowIDs: windowIDs,
+                screenBounds: screenBounds,
+                options: option,
+                shouldCapture: { isCaptureUITicketCurrent(ticket) }
+            )
+        }
         return isCaptureUITicketCurrent(ticket) ? image : nil
+    }
+
+    /// Bounds the entire fallback, including its shareable-content enumeration.
+    internal static func captureWindowsFallback(
+        timeout: Duration = screenshotTimeout,
+        operation: @escaping @Sendable () async throws -> CGImage?
+    ) async -> CGImage? {
+        try? await withAbandoningTimeout(timeout, operation: operation)
     }
 }

@@ -30,41 +30,40 @@ nonisolated enum RecordingDeviceProbe {
 
     // MARK: Microphone
 
-    /// Every process currently running audio input. Returns empty rather than
-    /// throwing when unreadable, since an error capsule would be unactionable.
-    static func microphoneInputs() -> [Input] {
+    /// Nil means the component could not be sampled; an empty array means idle.
+    static func microphoneInputs() -> [Input]? {
         let system = AudioObjectID(kAudioObjectSystemObject)
         var address = audioAddress(kAudioHardwarePropertyProcessObjectList)
 
         var size: UInt32 = 0
-        guard
-            AudioObjectGetPropertyDataSize(system, &address, 0, nil, &size) == noErr,
-            size > 0
-        else {
-            return []
+        guard AudioObjectGetPropertyDataSize(system, &address, 0, nil, &size) == noErr else {
+            return nil
         }
+        guard size > 0 else { return [] }
 
         var objects = [AudioObjectID](
             repeating: 0,
             count: Int(size) / MemoryLayout<AudioObjectID>.size
         )
         guard AudioObjectGetPropertyData(system, &address, 0, nil, &size, &objects) == noErr else {
-            return []
+            return nil
         }
 
-        return objects.compactMap { object in
-            // Running-input first, so only the few that answer true cost more reads.
-            guard
-                audioValue(object, kAudioProcessPropertyIsRunningInput, initial: UInt32(0)) == 1,
-                let pid = audioValue(object, kAudioProcessPropertyPID, initial: pid_t(0))
-            else {
+        var inputs = [Input]()
+        for object in objects {
+            guard let running = audioValue(object, kAudioProcessPropertyIsRunningInput, initial: UInt32(0)) else {
                 return nil
             }
-            return Input(
+            guard running == 1 else { continue }
+            guard let pid = audioValue(object, kAudioProcessPropertyPID, initial: pid_t(0)) else {
+                return nil
+            }
+            inputs.append(Input(
                 processIdentifier: pid,
                 bundleIdentifier: audioString(object, kAudioProcessPropertyBundleID)
-            )
+            ))
         }
+        return inputs
     }
 
     // MARK: Camera
@@ -73,17 +72,15 @@ nonisolated enum RecordingDeviceProbe {
     ///
     /// Enumerating devices and reading their state is not capture, so this
     /// neither requires camera access nor prompts for it.
-    static func isCameraInUse() -> Bool {
+    static func isCameraInUse() -> Bool? {
         let system = CMIOObjectID(kCMIOObjectSystemObject)
         var address = cmioAddress(UInt32(kCMIOHardwarePropertyDevices))
 
         var size: UInt32 = 0
-        guard
-            CMIOObjectGetPropertyDataSize(system, &address, 0, nil, &size) == noErr,
-            size > 0
-        else {
-            return false
+        guard CMIOObjectGetPropertyDataSize(system, &address, 0, nil, &size) == noErr else {
+            return nil
         }
+        guard size > 0 else { return false }
 
         var devices = [CMIOObjectID](
             repeating: 0,
@@ -93,13 +90,17 @@ nonisolated enum RecordingDeviceProbe {
         guard
             CMIOObjectGetPropertyData(system, &address, 0, nil, size, &used, &devices) == noErr
         else {
-            return false
+            return nil
         }
 
-        return devices.contains { isRunning($0) }
+        let samples = devices.map { isRunning($0) }
+        if samples.contains(true) {
+            return true
+        }
+        return samples.contains(nil) ? nil : false
     }
 
-    private static func isRunning(_ device: CMIOObjectID) -> Bool {
+    private static func isRunning(_ device: CMIOObjectID) -> Bool? {
         var address = cmioAddress(UInt32(kCMIODevicePropertyDeviceIsRunningSomewhere))
         var running: UInt32 = 0
         var used: UInt32 = 0
@@ -114,7 +115,7 @@ nonisolated enum RecordingDeviceProbe {
                 pointer
             )
         }
-        return status == noErr && running != 0
+        return status == noErr ? running != 0 : nil
     }
 
     // MARK: Property plumbing

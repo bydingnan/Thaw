@@ -26,7 +26,7 @@ struct ChangelogDocumentTests {
     /// same way.
     private func plain(_ block: ChangelogDocument.Block) -> String {
         switch block {
-        case let .text(text):
+        case let .text(text), let .numberedStep(text):
             plain(text)
         case let .callout(callout):
             plain(callout)

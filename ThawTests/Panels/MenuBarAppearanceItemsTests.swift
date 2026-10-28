@@ -8,8 +8,8 @@
 import CoreGraphics
 import MenuBarModel
 import Testing
-import ThawAXCore
 @testable import Thaw
+import ThawAXCore
 
 @MainActor
 struct MenuBarAppearanceItemsTests {
@@ -19,9 +19,13 @@ struct MenuBarAppearanceItemsTests {
         let concealed = [item(3, x: -1, onScreen: false), item(4, x: -1, onScreen: false)]
         let physical = visible + [item(3, x: 100), item(4, x: 200)]
         let onScreen = OnScreenItemSnapshot()
-        if !snapshotAfterReveal { onScreen.update(visible) }
+        if !snapshotAfterReveal {
+            onScreen.update(visible)
+        }
         let revealAt = ContinuousClock.now
-        if snapshotAfterReveal { onScreen.update(visible) }
+        if snapshotAfterReveal {
+            onScreen.update(visible)
+        }
         var requestedOwners = Set<pid_t>()
         let result = try #require(await MenuBarAppearanceItems.read(
             knownItems: visible + concealed,
@@ -37,6 +41,7 @@ struct MenuBarAppearanceItemsTests {
         #expect(requestedOwners == [1, 2, 3, 4])
         let bounds = MenuBarSplitPillGeometry.trailingPillBounds(
             from: result.items,
+            displayBounds: [CGRect(x: 0, y: 0, width: 1920, height: 1080)],
             context: .init(revealedSection: .hidden, section: { ($0.sourcePID ?? 0) > 2 ? .hidden : .visible })
         )
         #expect(bounds.map(\.minX).min() == 100, "The first read must cover the newly revealed items")

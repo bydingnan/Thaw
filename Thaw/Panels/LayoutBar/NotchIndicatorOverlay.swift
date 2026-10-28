@@ -110,8 +110,8 @@ final class NotchIndicatorView: NSView {
         return NSColor(cgColor: colorInfo.color) ?? .defaultLayoutBar
     }
 
-    private var isBright: Bool {
+    var isBright: Bool {
         guard let colorInfo = averageColorInfo else { return false }
-        return colorInfo.isBright(for: NSScreen.screenWithActiveMenuBar ?? NSScreen.main)
+        return colorInfo.isBright(for: LayoutBarDisplayGeometry.screen(for: self))
     }
 }

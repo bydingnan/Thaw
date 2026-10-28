@@ -106,14 +106,14 @@ extension HIDEventManager {
             }
             .store(in: &c)
 
-            // The item cache refreshes shortly after a display change.
+            // Rebuild even when a same-count display change leaves inventory unchanged.
             NotificationCenter.default.publisher(
                 for: NSApplication.didChangeScreenParametersNotification
             )
             .sink { [weak self] _ in
                 NSScreen.invalidateMenuBarHeightCache()
                 NSScreen.cleanupDisconnectedDisplayCaches()
-                self?.windowBoundsLock.withLock { $0.removeAll() }
+                self?.rebuildWindowBoundsLookupFromCurrentLayout()
                 // Active-display changes can leave itemCache unchanged; do not
                 // wait for an item refresh to restore Clock's hit regions.
                 self?.refreshClockMenuBarBands()
@@ -139,8 +139,7 @@ extension HIDEventManager {
             )
         }
 
-        // macOS can invalidate the tap's Mach port under resource pressure or
-        // a permission change. 10 s matches the stuck-disable recovery threshold.
+        // Recover invalidated monitors without revoking active pause owners.
         healthCheckTimer?.invalidate()
         healthCheckTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             guard let self else { return }

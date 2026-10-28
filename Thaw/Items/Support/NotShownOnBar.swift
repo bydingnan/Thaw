@@ -5,6 +5,7 @@
 //  Copyright (Thaw) © 2026 Toni Förster
 //  Licensed under the GNU GPLv3
 
+import CoreGraphics
 import MenuBarModel
 
 /// Visible items macOS does not actually draw on the bar.
@@ -18,10 +19,14 @@ nonisolated enum NotShownOnBar {
 
     /// Whether item, assigned to Visible, sits where nothing can see it:
     /// on a seat another item already occupies, or off the bar.
-    static func looksNotShown(_ item: MenuBarItem, among peers: [MenuBarItem]) -> Bool {
+    static func looksNotShown(
+        _ item: MenuBarItem,
+        among peers: [MenuBarItem],
+        displays: [CGRect] = MenuBarBandClassifier.displayFrames
+    ) -> Bool {
         guard !item.isControlItem, !item.isSystemClone else { return false }
         guard item.bounds.width > 0, item.bounds.height > 0 else { return true }
-        if item.bounds.midY > MenuBarItemGeometry.maxOnBarMidY {
+        if MenuBarBandClassifier.isParked(item.bounds, displays: displays) {
             return true
         }
         return item.hasPhantomFrame(among: peers)

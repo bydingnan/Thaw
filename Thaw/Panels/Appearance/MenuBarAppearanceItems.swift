@@ -20,7 +20,7 @@ enum MenuBarAppearanceItems {
 
     /// Whether one of the owner's entries sits over item. macOS 27 hides per app,
     /// so an app with one icon in Visible keeps its hidden icons on the bar.
-    nonisolated static func isDrawn(_ item: MenuBarItem, in bar: [MenuBarAgentWindow.Entry]?) -> Bool {
+    static nonisolated func isDrawn(_ item: MenuBarItem, in bar: [MenuBarAgentWindow.Entry]?) -> Bool {
         guard let bar else { return false }
         return bar.contains { entry in
             (entry.ownerPID == item.ownerPID || entry.ownerPID == item.sourcePID)
@@ -47,6 +47,7 @@ enum MenuBarAppearanceItems {
         let bounds = MenuBarSplitPillGeometry.trailingPillBounds(
             from: items,
             screenFrame: screenFrame,
+            displayBounds: displayBounds,
             context: context,
             mapBounds: mirroredFrame
         )
@@ -95,11 +96,7 @@ enum MenuBarAppearanceItems {
         // the older bar, so the next read sees a difference and asks again.
         let bar = await drawnBar()
         // Recent truncated or concealed snapshots can omit owners whose icons are about to appear.
-        if owners.isSubset(of: recentOwners),
-           let recentAt = onScreenSnapshot?.timestamp,
-           recentAt.duration(to: readAt) < .milliseconds(200),
-           minimumReadTime.map({ recentAt >= $0 }) ?? true
-        {
+        if owners.isSubset(of: recentOwners), let recentAt = onScreenSnapshot?.timestamp, recentAt.duration(to: readAt) < .milliseconds(200), minimumReadTime.map({ recentAt >= $0 }) ?? true {
             return Snapshot(items: recentItems, readAt: recentAt, drawnBar: bar)
         }
         if !owners.isEmpty {

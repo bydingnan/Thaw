@@ -54,8 +54,7 @@ extension MenuBarItemManager {
         for items: [MenuBarItem],
         appState: AppState?
     ) -> MenuBarItemGroupPolicy.GroupSet {
-        guard let appState,
-              !items.isEmpty
+        guard let appState, !items.isEmpty
         else {
             return .empty
         }
@@ -113,10 +112,7 @@ extension MenuBarItemManager {
         }
 
         // Explicit requests and dependent probe transitions bypass the observation rate limit.
-        if !immediate, !reason.permitsOrderEnforcement,
-           let last = lastOverflowRebalance,
-           Date().timeIntervalSince(last) < 2.0
-        {
+        if !immediate, !reason.permitsOrderEnforcement, let last = lastOverflowRebalance, Date().timeIntervalSince(last) < 2.0 {
             return false
         }
 
@@ -133,7 +129,7 @@ extension MenuBarItemManager {
         }
 
         let experimentalSystemItemHiding = configuration.enableExperimentalSystemItemHiding
-        /// Control Center modules hide via System Settings toggles, so overflow cannot reclaim their width.
+        // Control Center modules hide via System Settings toggles, so overflow cannot reclaim their width.
         func isProfileItem(_ item: MenuBarItem) -> Bool {
             !item.isControlItem
                 && !RuntimeModuleController.isGovernable(itemIdentifier: item.uniqueIdentifier)
@@ -151,9 +147,7 @@ extension MenuBarItemManager {
             .gameMode,
         ]
         let permanentNonProfileBounds = items.compactMap { item -> CGRect? in
-            guard !isProfileItem(item),
-                  item.tag != .controlCenter,
-                  item.tag != .visibleControlItem
+            guard !isProfileItem(item), item.tag != .controlCenter, item.tag != .visibleControlItem
             else { return nil }
             if transientTags.contains(where: {
                 $0.namespace == item.tag.namespace && $0.title == item.tag.title
@@ -392,6 +386,7 @@ extension MenuBarItemManager {
         source: ApplySource,
         permit: borrowing StoreWritePermit
     ) async -> Bool {
+        guard ProfileLayoutApplySequence.mayContinue() else { return false }
         let controller = appState.menuBarManager.sectionController
         guard controller.isOperational else {
             MenuBarItemManager.diagLog.error("applyProfileLayout (macOS 27): missing RuntimeSectionController")
@@ -419,10 +414,13 @@ extension MenuBarItemManager {
                 permit: permit
             )
         }
+        guard ProfileLayoutApplySequence.mayContinue() else { return false }
 
         let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+        guard ProfileLayoutApplySequence.mayContinue() else { return false }
         // Assignment backends bypass legacy overflow; rebalance here to populate Hidden and Thaw Bar.
         _ = await rebalanceOverflowIfNeeded(items: items, reason: .profileApply, permit: permit)
+        guard ProfileLayoutApplySequence.mayContinue() else { return false }
 
         MenuBarItemManager.diagLog.info(
             "applyProfileLayout (macOS 27): applied \(controller.sectionAssignment.count) assignment(s)"
@@ -484,14 +482,12 @@ extension MenuBarItemManager {
         await cacheItemsRegardless(skipRecentMoveCheck: true)
 
         // Clock, Control Center, and Siri need an assertion teardown/reactivation to leave the bar after assignment.
-        if experimentalSystemItemHiding,
-           assignment.contains(where: { identifier, _ in
-               itemCache.managedItems.contains {
-                   $0.uniqueIdentifier == identifier && $0.tag.isLayoutAnchoredSystemItem
-               }
-                   || controller.snapshot(for: identifier)?.tag.isLayoutAnchoredSystemItem == true
-           })
-        {
+        if experimentalSystemItemHiding, assignment.contains(where: { identifier, _ in
+            itemCache.managedItems.contains {
+                $0.uniqueIdentifier == identifier && $0.tag.isLayoutAnchoredSystemItem
+            }
+                || controller.snapshot(for: identifier)?.tag.isLayoutAnchoredSystemItem == true
+        }) {
             MenuBarItemManager.diagLog.info("macOS 27 reset: pulsing restriction for layout-anchored system items")
             controller.refresh(forceRestrictionPulse: true)
             await cacheItemsRegardless(skipRecentMoveCheck: true)
@@ -839,9 +835,7 @@ extension MenuBarItemManager {
             scheduleDeferredLayoutReconcile(after: .seconds(1), reason: "user drag in progress")
             return false
         }
-        if let lastRestrictionChange = lastRestrictionChangeTimestamp,
-           lastRestrictionChange.duration(to: .now) < Self.restrictionChangeLayoutSettleWindow
-        {
+        if let lastRestrictionChange = lastRestrictionChangeTimestamp, lastRestrictionChange.duration(to: .now) < Self.restrictionChangeLayoutSettleWindow {
             MenuBarItemManager.diagLog.debug(
                 "applySavedLayout: skipping, within restriction-reflow settle window"
             )
@@ -889,9 +883,7 @@ extension MenuBarItemManager {
 
         // Rate-limit by control, not destination: changing neighbors bypass destination-scoped failure backoff.
         // Count every outcome to cap futile nudges, including placements MenuBarAgent reverts.
-        if let lastAttempt = lastVisibleControlRestoreAttempt,
-           ContinuousClock.now - lastAttempt < Self.visibleControlRestoreCooldown
-        {
+        if let lastAttempt = lastVisibleControlRestoreAttempt, ContinuousClock.now - lastAttempt < Self.visibleControlRestoreCooldown {
             MenuBarItemManager.diagLog.debug(
                 "applySavedLayout: skipping macOS 27 visible control restore; within attempt cooldown"
             )
@@ -910,9 +902,7 @@ extension MenuBarItemManager {
             guard fulfilled else {
                 // MenuBarAgent can store a position without resorting; the control has no synthetic-drag fallback.
                 // Retry once after a width nudge for fresh invalidation, except when the lock screen blocked the write.
-                if !screenLockTransitions.isLocked,
-                   appState?.menuBarManager.requestMenuBarAgentPositionRefresh() == true
-                {
+                if !screenLockTransitions.isLocked, appState?.menuBarManager.requestMenuBarAgentPositionRefresh() == true {
                     MenuBarItemManager.diagLog.info(
                         "applySavedLayout: re-nudging MenuBarAgent and retrying visible control restore for \(plannedMove.item.logString)"
                     )

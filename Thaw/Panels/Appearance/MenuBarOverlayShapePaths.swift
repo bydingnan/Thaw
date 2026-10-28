@@ -166,9 +166,7 @@ enum MenuBarShapePathBuilder {
         }
 
         // Non-notched: behaves like full shape using the outer end caps
-        guard screen.hasNotch,
-              let topLeft = screen.auxiliaryTopLeftArea,
-              let topRight = screen.auxiliaryTopRightArea
+        guard screen.hasNotch, let topLeft = screen.auxiliaryTopLeftArea, let topRight = screen.auxiliaryTopRightArea
         else {
             return fullShapePath(
                 in: rect,
@@ -238,7 +236,7 @@ enum MenuBarShapePathBuilder {
         rightMargin: Double,
         screen: NSScreen
     ) -> NSBezierPath {
-        switch (leadingPathBounds == .zero, trailingPathBounds == .zero) {
+        switch (leadingPathBounds.isEmpty, trailingPathBounds.isEmpty) {
         case (true, true):
             // Geometry not yet loaded; draw nothing.
             return NSBezierPath()

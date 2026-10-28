@@ -64,6 +64,17 @@ nonisolated enum RecordingWatchAnnouncement: Equatable, Sendable {
 /// saying out loud, kept apart from the manager so the edge handling is
 /// unit-testable without CoreAudio.
 nonisolated enum RecordingWatchPolicy {
+    static func merge(
+        previous: RecordingActivity,
+        microphoneUsers: [MicrophoneUser]?,
+        isCameraInUse: Bool?
+    ) -> RecordingActivity {
+        RecordingActivity(
+            microphoneUsers: microphoneUsers ?? previous.microphoneUsers,
+            isCameraInUse: isCameraInUse ?? previous.isCameraInUse
+        )
+    }
+
     /// The announcements owed for a move from old to new.
     ///
     /// Rising edges only. A device switching on is the event the user cannot

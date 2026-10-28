@@ -288,12 +288,7 @@ extension MenuBarItemImageCache {
         // Governable system extras can retain the last settled visible glyph.
         var retainedPriorCount = 0
         for tag in invalidatedTags {
-            if !unconditionallyInvalidatedTags.contains(tag),
-               newImages[tag] == nil,
-               let existing = capturesByTag[tag],
-               !existing.isEffectivelyBlank,
-               existing.pointSize.width >= Self.minimumTrustedGlyphWidth
-            {
+            if !unconditionallyInvalidatedTags.contains(tag), newImages[tag] == nil, let existing = capturesByTag[tag], !existing.isEffectivelyBlank, existing.pointSize.width >= Self.minimumTrustedGlyphWidth {
                 retainedPriorCount += 1
                 continue
             }
@@ -638,16 +633,14 @@ extension MenuBarItemImageCache {
     /// fresh crop replaces the entry unless
     /// preferredCachedImage(existing:candidate:) keeps the old one, an
     /// unchanged crop is not republished, and a miss follows missPolicy.
-    private func captureConcealedItemsByGroupedReveal(
+    func captureConcealedItemsByGroupedReveal(
         _ items: [MenuBarItem],
         controller: any MenuBarSectionControlling,
         displayID: CGDirectDisplayID,
         scale: CGFloat,
         missPolicy: RevealMissPolicy
     ) async {
-        guard !items.isEmpty, !Task.isCancelled,
-              !skipCaptureWhileScreenLocked("grouped reveal capture"),
-              let appState else { return }
+        guard !items.isEmpty, !Task.isCancelled, !skipCaptureWhileScreenLocked("grouped reveal capture"), let appState else { return }
 
         // Before the first await: the display the caller resolved these items
         // and displayID against. Every batch answers to this one.
@@ -712,12 +705,11 @@ extension MenuBarItemImageCache {
             await moveActivity?.waitUntilIdle()
             guard !Task.isCancelled, !skipCaptureWhileScreenLocked("revealing capture batch") else { return }
 
-            for item in batch {
-                controller.revealItemTemporarily(item.uniqueIdentifier)
-            }
+            let reveals = controller.temporaryReveals
+            let revealLeases = batch.map { reveals.acquire($0.uniqueIdentifier) }
             defer {
-                for item in batch {
-                    controller.concealTemporarilyRevealedItem(item.uniqueIdentifier)
+                for lease in revealLeases {
+                    reveals.release(lease)
                 }
             }
 
@@ -809,10 +801,7 @@ extension MenuBarItemImageCache {
         let stoppedEarly = Task.isCancelled
         if missPolicy == .dropUntrustedEntries, !stoppedEarly {
             for tag in captureResult.invalidatedTags {
-                if !captureResult.unconditionallyInvalidatedTags.contains(tag),
-                   let existing = capturesByTag[tag],
-                   Self.isTrustedGlyph(existing)
-                {
+                if !captureResult.unconditionallyInvalidatedTags.contains(tag), let existing = capturesByTag[tag], Self.isTrustedGlyph(existing) {
                     continue
                 }
                 removeCapture(for: tag)
@@ -828,10 +817,7 @@ extension MenuBarItemImageCache {
                 // A miss never wipes a settled glyph. Under the dropping
                 // policy a blank or chevron-width entry goes, so a failed
                 // reveal cannot leave a stale thumbnail behind.
-                if missPolicy == .dropUntrustedEntries, !stoppedEarly,
-                   let existing = capturesByTag[tag],
-                   !Self.isTrustedGlyph(existing)
-                {
+                if missPolicy == .dropUntrustedEntries, !stoppedEarly, let existing = capturesByTag[tag], !Self.isTrustedGlyph(existing) {
                     removeCapture(for: tag)
                     accessTimestamps.removeValue(forKey: tag)
                 }
@@ -861,9 +847,7 @@ extension MenuBarItemImageCache {
         // Before the failure reset and the reveal: a locked pass must not toggle
         // the lock screen's bar or clear strikes it did not earn back.
         // Without Screen Recording a reveal cannot be photographed; it would only flash hidden items on the bar.
-        guard !skipCaptureWhileScreenLocked("prewarmConcealedImages"),
-              appState?.menuBarManager.sectionController != nil,
-              appState?.isPermissionGranted(.screenRecording) == true
+        guard !skipCaptureWhileScreenLocked("prewarmConcealedImages"), appState?.menuBarManager.sectionController != nil, appState?.isPermissionGranted(.screenRecording) == true
         else {
             return
         }
@@ -970,7 +954,7 @@ extension MenuBarItemImageCache {
     /// Waits until no other concealed-section prewarm is running, then marks
     /// this one as running. Waiters are resumed in arrival order.
     @MainActor
-    private func beginConcealedPrewarm() async {
+    func beginConcealedPrewarm() async {
         guard isConcealedPrewarmRunning else {
             isConcealedPrewarmRunning = true
             return
@@ -983,7 +967,7 @@ extension MenuBarItemImageCache {
     /// Hands the running slot straight to the next queued prewarm, so no new
     /// caller can slip in between, or frees it.
     @MainActor
-    private func endConcealedPrewarm() {
+    func endConcealedPrewarm() {
         if concealedPrewarmWaiters.isEmpty {
             isConcealedPrewarmRunning = false
         } else {

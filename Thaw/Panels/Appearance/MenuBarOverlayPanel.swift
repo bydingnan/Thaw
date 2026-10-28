@@ -23,19 +23,17 @@ private final class MenuBarLiquidGlassFadeView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        guard isEnabled,
-              let context = NSGraphicsContext.current?.cgContext,
-              let gradient = CGGradient(
-                  colorsSpace: CGColorSpace(name: CGColorSpace.displayP3),
-                  // Keep the upper third dense for legible titles on bright wallpaper; reveal glass through the lower half.
-                  colors: [
-                      NSColor.black.withAlphaComponent(0.96).cgColor,
-                      NSColor.black.withAlphaComponent(0.88).cgColor,
-                      NSColor.black.withAlphaComponent(0.42).cgColor,
-                      NSColor.clear.cgColor,
-                  ] as CFArray,
-                  locations: [0, 0.3, 0.62, 1]
-              )
+        guard isEnabled, let context = NSGraphicsContext.current?.cgContext, let gradient = CGGradient(
+            colorsSpace: CGColorSpace(name: CGColorSpace.displayP3),
+            // Keep the upper third dense for legible titles on bright wallpaper; reveal glass through the lower half.
+            colors: [
+                NSColor.black.withAlphaComponent(0.96).cgColor,
+                NSColor.black.withAlphaComponent(0.88).cgColor,
+                NSColor.black.withAlphaComponent(0.42).cgColor,
+                NSColor.clear.cgColor,
+            ] as CFArray,
+            locations: [0, 0.3, 0.62, 1]
+        )
         else { return }
 
         context.drawLinearGradient(
@@ -226,7 +224,8 @@ final class MenuBarOverlayPanel: NSPanel {
             var settledCount = 0
             for _ in 0 ..< 10 {
                 guard !Task.isCancelled, let self else { return }
-                if let latest = owningScreen.getApplicationMenuFrame(bypassCache: true) {
+                if let latest = await ApplicationMenuGeometryReader.shared.snapshot(on: owningScreen)?.frame {
+                    guard !Task.isCancelled else { return }
                     if latest == candidate {
                         settledCount += 1
                         if settledCount >= 3 {
@@ -377,9 +376,10 @@ final class MenuBarOverlayPanel: NSPanel {
 
     /// Observe effective appearance for window-level changes; wrap the task in the panel's cancellable set.
     private func observeConfigurationForWindowLevel(appState: AppState) -> AnyCancellable {
+        let displayID = owningScreen.displayID
         let task = Task { @MainActor [weak self, appearanceManager = appState.appearanceManager] in
-            let changes = Observations { appearanceManager.effectiveConfiguration }
-            for await _ in changes {
+            let changes = Observations { appearanceManager.effectiveConfiguration(for: displayID) }
+            for await _ in changes.removeDuplicates() {
                 guard let self else { return }
                 updateWindowLevel()
             }
@@ -390,8 +390,7 @@ final class MenuBarOverlayPanel: NSPanel {
     /// Skip frame reads during teardown (pipelines can still fire) or system hiding, when geometry is not on screen.
     private func refreshApplicationMenuFrame() {
         guard
-            let menuBarManager = appState?.menuBarManager,
-            !menuBarManager.isMenuBarHiddenBySystem
+            let menuBarManager = appState?.menuBarManager, !menuBarManager.isMenuBarHiddenBySystem
         else {
             return
         }
@@ -425,8 +424,7 @@ final class MenuBarOverlayPanel: NSPanel {
     /// macOS 27's main bar has no enumerable window even while visible.
     private static func isSystemMenuBarHidden(on screen: NSScreen) -> Bool {
         guard
-            let spaceID = Bridging.getCurrentSpaceID(for: screen.displayID),
-            Bridging.isSpaceFullscreen(spaceID)
+            let spaceID = Bridging.getCurrentSpaceID(for: screen.displayID), Bridging.isSpaceFullscreen(spaceID)
         else {
             return false
         }
@@ -514,7 +512,7 @@ final class MenuBarOverlayPanel: NSPanel {
     /// so the menu bar's own blur blends the content and items stay crisp.
     private func updateWindowLevel() {
         guard let appState else { return }
-        let config = appState.appearanceManager.effectiveConfiguration
+        let config = appState.appearanceManager.effectiveConfiguration(for: owningScreen.displayID)
         let hasAppearance = config.current.tintKind != .noTint
             || config.shapeKind != .noShape
             || config.current.backgroundKind != .none
@@ -670,7 +668,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
     private var splitPillGeometryFrozen = false
 
     /// The last live edge reported by the edge watcher, and when.
-    private var leadingEdgeSeen: (sample: MenuBarLeadingEdgeSample, at: ContinuousClock.Instant)?
+    private var leadingEdgeSeen = MenuBarLeadingEdgeObservation()
 
     private lazy var geometryRefresh = MenuBarGeometryRefresh(
         read: { [weak self] minimumReadTime in
@@ -683,8 +681,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
             cachedChevronFrame = snapshot.chevronFrame
             // A read that began before the edge last moved describes the bar
             // as it was; the live edge is newer.
-            if let edge = leadingEdgeSeen, edge.at > snapshot.readAt {
-                followLeadingEdge(to: edge.sample)
+            if let edge = leadingEdgeSeen.sample(newerThan: snapshot.readAt) {
+                followLeadingEdge(to: edge)
             }
         },
         setPending: { [weak self] pending in
@@ -701,9 +699,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
     /// The colors to draw with: the live preview while one is up, and the
     /// stored configuration for the current appearance otherwise.
     private var configuration: MenuBarAppearancePartialConfiguration {
-        if let appState = overlayPanel?.appState,
-           let preview = appState.appearanceManager.previewConfiguration
-        {
+        if let appState = overlayPanel?.appState, let preview = appState.appearanceManager.previewConfiguration {
             return preview
         }
         return fullConfiguration.current
@@ -721,9 +717,10 @@ private final class MenuBarOverlayPanelContentView: NSView {
         if let overlayPanel {
             if let appState = overlayPanel.appState {
                 // Observe effective and preview configuration together; effectiveConfiguration also covers Space overrides.
+                let displayID = overlayPanel.owningScreen.displayID
                 let task = Task { @MainActor [weak self, appearanceManager = appState.appearanceManager] in
                     let changes = Observations {
-                        (appearanceManager.effectiveConfiguration, appearanceManager.previewConfiguration)
+                        (appearanceManager.effectiveConfiguration(for: displayID), appearanceManager.previewConfiguration)
                     }
                     for await (full, preview) in changes {
                         guard let self else { return }
@@ -791,7 +788,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 // Refresh macOS 27 physical AX geometry after cache changes.
                 let cacheTask = Task { @MainActor [weak self, itemManager = appState.itemManager] in
                     let changes = Observations { itemManager.itemCache }.removeDuplicates()
-                    for await cache in changes {
+                    for await _ in changes {
                         guard let self else { return }
                         // Freeze so a transient AX read during the
                         // cache-change reflow doesn't flash wrong bounds.
@@ -805,8 +802,9 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 // The direct edge watcher avoids cache-walk delays after external changes.
                 let edgeTask = Task { @MainActor [weak self, watcher = appState.menuBarManager.leadingEdgeWatcher] in
                     for await edge in Observations({ watcher.leadingEdge }) {
-                        guard let self, let edge else { continue }
-                        leadingEdgeSeen = (edge, .now)
+                        guard let self else { return }
+                        leadingEdgeSeen.update(edge, at: .now)
+                        guard let edge else { continue }
                         followLeadingEdge(to: edge)
                     }
                 }
@@ -1027,8 +1025,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
         let computedLeadingPathBounds: CGRect = {
             guard
-                let applicationMenuFrame = overlayPanel?.applicationMenuFrame,
-                applicationMenuFrame.width > 0
+                let applicationMenuFrame = overlayPanel?.applicationMenuFrame, applicationMenuFrame.width > 0
             else {
                 return .zero
             }
@@ -1112,9 +1109,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 .withAlpha(configuration.tintOpacity)
                 .draw(in: rect, using: .displayP3)
         case .adaptive:
-            if let colorInfo = averageColorInfo,
-               let color = NSColor(cgColor: colorInfo.color)?
-               .withAlphaComponent(configuration.tintOpacity)
+            if let colorInfo = averageColorInfo, let color = NSColor(cgColor: colorInfo.color)?
+                .withAlphaComponent(configuration.tintOpacity)
             {
                 color.setFill()
                 rect.fill()
@@ -1122,9 +1118,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
         case .adaptiveGradient:
             if let gradient = adaptiveGradient(opacity: configuration.tintOpacity) {
                 gradient.draw(in: rect, angle: 0)
-            } else if let colorInfo = averageColorInfo,
-                      let color = NSColor(cgColor: colorInfo.color)?
-                      .withAlphaComponent(configuration.tintOpacity)
+            } else if let colorInfo = averageColorInfo, let color = NSColor(cgColor: colorInfo.color)?
+                .withAlphaComponent(configuration.tintOpacity)
             {
                 // Use the average until the palette arrives to avoid an untinted flash.
                 color.setFill()
@@ -1136,18 +1131,13 @@ private final class MenuBarOverlayPanelContentView: NSView {
     /// Use the two dominant swatches, or nil before capture; repeated swatches produce a flat tint for single-colour wallpaper.
     private func adaptiveGradient(opacity: CGFloat) -> NSGradient? {
         guard
-            let palette = wallpaperPalette,
-            let primary = palette.primary,
-            let secondary = palette.secondary
+            let palette = wallpaperPalette, let primary = palette.primary, let secondary = palette.secondary
         else {
             return nil
         }
         let colorSpace = CGColorSpace(name: CGColorSpace.displayP3) ?? CGColorSpaceCreateDeviceRGB()
         guard
-            let start = primary.cgColor(in: colorSpace),
-            let end = secondary.cgColor(in: colorSpace),
-            let startColor = NSColor(cgColor: start)?.withAlphaComponent(opacity),
-            let endColor = NSColor(cgColor: end)?.withAlphaComponent(opacity)
+            let start = primary.cgColor(in: colorSpace), let end = secondary.cgColor(in: colorSpace), let startColor = NSColor(cgColor: start)?.withAlphaComponent(opacity), let endColor = NSColor(cgColor: end)?.withAlphaComponent(opacity)
         else {
             return nil
         }
@@ -1205,9 +1195,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
             updateBackgroundGlassSurface(glassView)
         } else if isBackgroundGlassActive {
             isBackgroundGlassActive = false
-            guard let container = panel.contentView,
-                  let realContent = container.subviews
-                  .compactMap({ $0 as? MenuBarOverlayPanelContentView }).first
+            guard let container = panel.contentView, let realContent = container.subviews
+                .compactMap({ $0 as? MenuBarOverlayPanelContentView }).first
             else { return }
             realContent.removeFromSuperview()
             panel.contentView = realContent
@@ -1355,9 +1344,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
         case .glass:
             break
         case .adaptive:
-            if let colorInfo = averageColorInfo,
-               let color = NSColor(cgColor: colorInfo.color)?
-               .withAlphaComponent(configuration.backgroundOpacity)
+            if let colorInfo = averageColorInfo, let color = NSColor(cgColor: colorInfo.color)?
+                .withAlphaComponent(configuration.backgroundOpacity)
             {
                 color.setFill()
                 rect.fill()
@@ -1367,8 +1355,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
     /// Draws the background shadow at the top edge of the given rectangle.
     private func drawBackgroundShadow(in rect: CGRect) {
-        guard configuration.backgroundHasShadow else { return }
-        guard let gradient = NSGradient(
+        guard configuration.backgroundHasShadow, let gradient = NSGradient(
             colors: [
                 NSColor(white: 0.0, alpha: 0.0),
                 NSColor(white: 0.0, alpha: 0.2),
@@ -1385,8 +1372,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
     /// Draws the background border at the top edge of the given rectangle.
     private func drawBackgroundBorder(in rect: CGRect) {
-        guard configuration.backgroundHasBorder else { return }
-        guard let color = NSColor(cgColor: configuration.backgroundBorderColor) else { return }
+        guard configuration.backgroundHasBorder, let color = NSColor(cgColor: configuration.backgroundBorderColor) else { return }
         let borderBounds = CGRect(
             x: rect.minX,
             y: rect.minY,
@@ -1399,8 +1385,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
     override func draw(_: NSRect) {
         guard
-            let overlayPanel,
-            let context = NSGraphicsContext.current
+            let overlayPanel, let context = NSGraphicsContext.current
         else {
             return
         }
@@ -1486,9 +1471,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 drawTint(in: drawableBounds)
             }
 
-            if hasBorder,
-               let borderColor = NSColor(cgColor: configuration.borderColor)
-            {
+            if hasBorder, let borderColor = NSColor(cgColor: configuration.borderColor) {
                 context.saveGraphicsState()
                 defer {
                     context.restoreGraphicsState()

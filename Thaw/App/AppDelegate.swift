@@ -13,10 +13,9 @@ import ThawAXCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
-    private var isPreparingForTermination = false
-    private var hasRepliedToTerminationRequest = false
-    private var terminationAttemptID = UUID()
+    private let termination = TerminationCoordinator()
     private var terminationTimeoutTask: Task<Void, Never>?
+    private var launchTask: Task<Void, Never>?
     /// Per-item descenders; inert unless the setting is turned on.
     private let notchPanelController = NotchPanelController()
 
@@ -31,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: NSApplicationDelegate Methods
 
     func applicationWillFinishLaunching(_: Notification) {
+        guard ProcessInfo.processInfo.environment["FOLDY_TEST_HOST"] != "1" else { return }
         LiveApp.register(self)
         #if DEBUG
             // Don't perform setup if running as a preview.
@@ -64,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        guard ProcessInfo.processInfo.environment["FOLDY_TEST_HOST"] != "1" else { return }
         // Hide the main menu's items to add additional space to the
         // menu bar when we are the focused app.
         for item in NSApp.mainMenu?.items ?? [] {
@@ -81,19 +82,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         #endif
 
-        ConflictingAppDetector.showWarningIfNeeded()
-
-        switch appState.permissions.permissionsState {
-        case .hasAll:
-            appState.permissions.diagLog.debug("Passed all permissions checks")
-            appState.launch(withPermissions: true)
-        case .hasRequired:
-            appState.permissions.diagLog.debug("Passed required permissions checks")
-            appState.launch(withPermissions: true)
-        case .missing:
-            appState.permissions.diagLog.debug("Failed required permissions checks")
-            appState.launch(withPermissions: false)
+        let conflictAllowsLaunch = ConflictingAppDetector.showWarningIfNeeded()
+        guard conflictAllowsLaunch else { return }
+        launchTask = Task { @MainActor [self] in
+            await appState.permissions.fullDiskAccess.refreshStatus()
+            await appState.permissions.controlCenterAppList.refreshStatus()
+            guard !Task.isCancelled else { return }
+            finishLaunching(conflictAllowsLaunch: conflictAllowsLaunch)
         }
+    }
+
+    private func finishLaunching(conflictAllowsLaunch: Bool) {
+        guard let launchPermissions = LaunchPolicy.launchPermissions(
+            conflictAllowsLaunch: conflictAllowsLaunch,
+            hasRequiredPermissions: appState.permissions.permissionsState != .missing
+        ) else { return }
+        appState.launch(withPermissions: launchPermissions)
 
         // Share the window's onboarding inputs so the delegate neither opens an empty window nor skips a needed one.
         let stage = OnboardingSequencer.stage(
@@ -152,36 +156,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        launchTask?.cancel()
         if NativeVisibilityRecoveryLaunch.isHandingOff {
             // Do not release reveal holds or run layout reconciliation during recovery handoff.
-            appState.menuBarManager.tearDownControlItemsForTermination()
+            termination.tearDownOnce { appState.menuBarManager.tearDownControlItemsForTermination() }
             return .terminateNow
         }
-        guard !isPreparingForTermination else {
-            return .terminateLater
-        }
-
-        let attemptID = UUID()
-        terminationAttemptID = attemptID
+        guard let attemptID = termination.begin() else { return .terminateLater }
         terminationTimeoutTask?.cancel()
-        isPreparingForTermination = true
-        hasRepliedToTerminationRequest = false
         appState.diagLog.info("Application asked to terminate - restoring blocked items asynchronously")
         appState.appRunningTriggers.stop()
 
         Task { @MainActor in
             _ = await appState.itemManager.restoreBlockedItemsToVisible()
-            guard terminationAttemptID == attemptID else {
-                return
-            }
-            // macOS 27 can leave dead status icons on exit; remove them explicitly and let MenuBarAgent reclaim them before quitting.
-            appState.menuBarManager.tearDownControlItemsForTermination()
-            try? await Task.sleep(for: .milliseconds(150))
-            guard terminationAttemptID == attemptID else {
-                return
-            }
-            terminationTimeoutTask?.cancel()
-            replyToTerminationRequest(sender, timedOut: false)
+            guard termination.isCurrent(attemptID) else { return }
+            replyToTerminationRequest(sender, attemptID: attemptID, timedOut: false)
         }
 
         terminationTimeoutTask = Task { @MainActor in
@@ -190,10 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } catch {
                 return
             }
-            guard terminationAttemptID == attemptID else {
-                return
-            }
-            replyToTerminationRequest(sender, timedOut: true)
+            replyToTerminationRequest(sender, attemptID: attemptID, timedOut: true)
         }
 
         return .terminateLater
@@ -201,6 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_: Notification) {
         appState.diagLog.info("Application will terminate")
+        termination.tearDownOnce { appState.menuBarManager.tearDownControlItemsForTermination() }
         if NativeVisibilityRecoveryLaunch.isHandingOff {
             // Capture changes since launch began. Leave the original journal intact
             // for recovery instead of clearing it through the normal cached reader.
@@ -225,9 +212,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         withReplyEvent _: NSAppleEventDescriptor
     ) {
         guard
-            let urlString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
-            let url = URL(string: urlString),
-            url.scheme?.lowercased() == "thaw"
+            let urlString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue, let url = URL(string: urlString), url.scheme?.lowercased() == "thaw"
         else { return }
 
         let senderBundleId = extractSenderBundleId(from: event)
@@ -267,9 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             pid = pid_t(coerced)
         }
 
-        guard pid > 0 else { return nil }
-
-        guard let app = NSRunningApplication(processIdentifier: pid) else {
+        guard pid > 0, let app = NSRunningApplication(processIdentifier: pid) else {
             return nil
         }
 
@@ -319,9 +302,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "dump-items":
             let callback = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                 .queryItems?.first { $0.name == "callback" }?.value
-            if let fileURL = ItemEnumerationDump.run() {
-                ItemEnumerationDump.respond(fileURL: fileURL, callback: callback)
-            }
+            Task { await ItemEnumerationDumpService.shared.request(callback: callback) }
         case "open-settings":
             openSettingsWindow()
         case "item-hints":
@@ -333,24 +314,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func replyToTerminationRequest(
         _ sender: NSApplication,
+        attemptID: UUID,
         timedOut: Bool
     ) {
-        guard !hasRepliedToTerminationRequest else {
-            return
-        }
-
-        hasRepliedToTerminationRequest = true
-        isPreparingForTermination = false
-        terminationTimeoutTask?.cancel()
-        terminationTimeoutTask = nil
-
-        if timedOut {
-            appState.diagLog.warning("Blocked item restore operation timed out during app termination")
-        } else {
-            appState.diagLog.info("Blocked item restore operation completed during app termination")
-        }
-
-        sender.reply(toApplicationShouldTerminate: true)
+        termination.finish(
+            attemptID,
+            teardown: { appState.menuBarManager.tearDownControlItemsForTermination() },
+            reply: {
+                terminationTimeoutTask?.cancel()
+                terminationTimeoutTask = nil
+                if timedOut {
+                    appState.diagLog.warning("Blocked item restore operation timed out during app termination")
+                }
+                sender.reply(toApplicationShouldTerminate: true)
+            }
+        )
     }
 
     @objc func openSettingsWindow() {
@@ -369,9 +347,7 @@ extension AppDelegate {
     /// Handles thaw://proxy-press?bundle=X, AXPresses a hosted menu bar item
     /// by owner bundle, materializing it even when the host has parked it.
     private func handleProxyPressURL(_ url: URL) {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let bundle = components.queryItems?.first(where: { $0.name == "bundle" })?.value,
-              !bundle.isEmpty
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false), let bundle = components.queryItems?.first(where: { $0.name == "bundle" })?.value, !bundle.isEmpty
         else {
             appState.diagLog.warning("proxy-press: missing bundle in \(url.absoluteString)")
             return
@@ -406,10 +382,7 @@ extension AppDelegate {
         }
 
         // Handle version get request without auth (read-only metadata)
-        if host == "get",
-           let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-           components.queryItems?.first(where: { $0.name == "key" })?.value == "version"
-        {
+        if host == "get", let components = URLComponents(url: url, resolvingAgainstBaseURL: false), components.queryItems?.first(where: { $0.name == "key" })?.value == "version" {
             handleGetURL(url, sender: nil)
             return
         }
@@ -472,9 +445,7 @@ extension AppDelegate {
     #if DEBUG
         /// Extracts manual bundleId from URL query parameter (DEBUG builds only).
         private func extractManualBundleId(from url: URL) -> String? {
-            guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                  let bundleId = components.queryItems?.first(where: { $0.name == "bundleId" })?.value,
-                  !bundleId.isEmpty
+            guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false), let bundleId = components.queryItems?.first(where: { $0.name == "bundleId" })?.value, !bundleId.isEmpty
             else {
                 return nil
             }
@@ -484,9 +455,7 @@ extension AppDelegate {
 
     /// Handles thaw://set?key=X&value=Y URL.
     private func handleSetURL(_ url: URL, sender: String?) {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let key = components.queryItems?.first(where: { $0.name == "key" })?.value,
-              let value = components.queryItems?.first(where: { $0.name == "value" })?.value
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false), let key = components.queryItems?.first(where: { $0.name == "key" })?.value, let value = components.queryItems?.first(where: { $0.name == "value" })?.value
         else {
             appState.diagLog.warning("Settings URI set: missing key or value in \(url.absoluteString)")
             return
@@ -503,8 +472,7 @@ extension AppDelegate {
 
     /// Handles thaw://toggle?key=X URL.
     private func handleToggleURL(_ url: URL, sender: String?) {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let key = components.queryItems?.first(where: { $0.name == "key" })?.value
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false), let key = components.queryItems?.first(where: { $0.name == "key" })?.value
         else {
             appState.diagLog.warning("Settings URI toggle: missing key in \(url.absoluteString)")
             return
@@ -545,8 +513,11 @@ extension AppDelegate {
             return
         }
 
-        sectionController.revealItemTemporarily(identifier)
-        sectionController.scheduleTemporaryItemConceal(identifier)
+        sectionController.revealForInteraction(
+            identifier,
+            duration: appState.settings.general.tempShowInterval,
+            menuMonitor: appState.itemManager.menuOpenMonitor
+        )
         appState.diagLog.info("Settings URI reveal-item: revealed \(identifier) for sender \(sender ?? "unknown")")
     }
 

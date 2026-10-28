@@ -7,8 +7,14 @@ let package = Package(
     products: [
         .library(name: "MenuBarModel", type: .dynamic, targets: ["MenuBarModel"]),
     ],
+    dependencies: [
+        .package(path: "../ThawConcurrency"),
+    ],
     targets: [
-        .target(name: "MenuBarModel"),
+        .target(
+            name: "MenuBarModel",
+            dependencies: [.product(name: "ThawConcurrency", package: "ThawConcurrency")]
+        ),
         .testTarget(
             name: "MenuBarModelTests",
             dependencies: ["MenuBarModel"]

@@ -5,12 +5,72 @@
 //  Copyright (Thaw) © 2026 Toni Förster
 //  Licensed under the GNU GPLv3
 
+import ApplicationServices
 import CoreGraphics
 import Foundation
 import Testing
 @testable import ThawAXCore
 
 struct AXPrimitivesTests {
+    @Test
+    func rawChildrenReceiveDefaultMessagingTimeout() {
+        assertDescendantTimeout(attribute: kAXChildrenAttribute, array: true)
+    }
+
+    @Test
+    func rawExtrasMenuBarReceivesDefaultMessagingTimeout() {
+        assertDescendantTimeout(attribute: kAXExtrasMenuBarAttribute, array: false)
+    }
+
+    @Test
+    func menuBarAgentWindowDescendantsReceiveDefaultMessagingTimeout() {
+        assertDescendantTimeout(attribute: kAXWindowsAttribute, array: true)
+        assertDescendantTimeout(attribute: kAXChildrenAttribute, array: true)
+    }
+
+    private func assertDescendantTimeout(attribute: String, array: Bool) {
+        let parent = AXUIElementCreateApplication(-1)
+        let child = AXUIElementCreateApplication(-2)
+        var configured: [AXUIElement] = []
+        let setTimeout: (AXUIElement, Float) -> Void = { element, timeout in
+            #expect(timeout == AXPrimitives.defaultMessagingTimeout)
+            configured.append(element)
+        }
+        let read: (AXUIElement, String) -> CFTypeRef? = { _, requested in
+            #expect(requested == attribute)
+            if array {
+                return [child] as CFArray
+            }
+            return child
+        }
+        if attribute == kAXChildrenAttribute {
+            #expect(AXPrimitives.children(of: parent, read: read, setTimeout: setTimeout) == [child])
+        } else if array {
+            #expect(AXPrimitives.elementArrayAttribute(parent, attribute, read: read, setTimeout: setTimeout) == [child])
+        } else {
+            #expect(AXPrimitives.elementAttribute(parent, attribute, read: read, setTimeout: setTimeout) == child)
+        }
+        #expect(configured == [child])
+    }
+
+    @Test
+    func applicationMenuFramesExcludeStatusItemHosts() {
+        #expect(!AXMenuTitle.includes(role: "AXGroup", isEnabled: true))
+        #expect(!AXMenuTitle.includes(role: "AXButton", isEnabled: true))
+    }
+
+    @Test
+    func applicationMenuFramesExcludeDisabledTitles() {
+        #expect(!AXMenuTitle.includes(role: "AXMenuBarItem", isEnabled: false))
+        #expect(!AXMenuTitle.includes(role: "AXMenuItem", isEnabled: nil))
+    }
+
+    @Test
+    func applicationMenuFramesRetainEnabledMenuRoles() {
+        #expect(AXMenuTitle.includes(role: "AXMenuBarItem", isEnabled: true))
+        #expect(AXMenuTitle.includes(role: "AXMenuItem", isEnabled: true))
+    }
+
     @Test
     func `only this process counts as its own`() {
         #expect(AXPrimitives.isOwnProcess(getpid()))

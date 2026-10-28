@@ -27,6 +27,50 @@ public enum AXSubprocessError: Error, CustomStringConvertible {
     }
 }
 
+public enum AXSubmissionOutcome: Sendable {
+    case answered(AXHelperReply)
+    case unavailableBeforeSubmission
+    case cancelledOrUnknownAfterSubmission
+}
+
+final class AXRequestState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+    private var completed = false
+    private var submitted = false
+
+    var isCancelled: Bool {
+        lock.withLock { cancelled }
+    }
+
+    func cancel() {
+        lock.withLock {
+            if !completed {
+                cancelled = true
+            }
+        }
+    }
+
+    func beginSubmission() -> Bool {
+        lock.withLock {
+            guard !cancelled, !completed else { return false }
+            submitted = true
+            return true
+        }
+    }
+
+    func complete() {
+        lock.withLock { completed = true }
+    }
+
+    func failureOutcome(for error: Error, callerCancelled: Bool) -> AXSubmissionOutcome {
+        if error is CancellationError || callerCancelled || lock.withLock({ submitted }) {
+            return .cancelledOrUnknownAfterSubmission
+        }
+        return .unavailableBeforeSubmission
+    }
+}
+
 /// Talks to one AX helper process with any number of requests in flight.
 ///
 /// Replies arrive out of order, one lane per kind of work, so a stuck walk
@@ -48,6 +92,7 @@ public final class AXSubprocessClient: @unchecked Sendable {
     private struct Pending {
         let continuation: CheckedContinuation<AXHelperReply, Error>
         let timer: Task<Void, Never>?
+        let state: AXRequestState
     }
 
     /// Timeouts in a row after which the helper counts as wedged and is
@@ -68,8 +113,6 @@ public final class AXSubprocessClient: @unchecked Sendable {
     private var generation: UInt64 = 0
     private var nextID: UInt64 = 0
     private var pending: [UInt64: Pending] = [:]
-    /// Ids cancelled before their continuation was registered.
-    private var cancelledEarly: Set<UInt64> = []
     private var consecutiveTimeouts = 0
     private var consecutiveExits = 0
     private var isAbandoned = false
@@ -123,17 +166,37 @@ public final class AXSubprocessClient: @unchecked Sendable {
         }
     }
 
-    private func sendOnce(_ request: AXHelperRequest, timeoutSeconds: Double) async throws -> AXHelperReply {
+    public func sendOutcome(_ request: AXHelperRequest, timeoutSeconds: Double? = nil) async -> AXSubmissionOutcome {
+        let state = AXRequestState()
+        do {
+            let reply = try await sendOnce(
+                request,
+                timeoutSeconds: timeoutSeconds ?? configuration.replyTimeoutSeconds,
+                state: state
+            )
+            guard !Task.isCancelled else { return .cancelledOrUnknownAfterSubmission }
+            return reply.accessibilityTrusted ? .answered(reply) : .unavailableBeforeSubmission
+        } catch {
+            return state.failureOutcome(for: error, callerCancelled: Task.isCancelled)
+        }
+    }
+
+    private func sendOnce(
+        _ request: AXHelperRequest,
+        timeoutSeconds: Double,
+        state: AXRequestState = AXRequestState()
+    ) async throws -> AXHelperReply {
         let id = lock.withLock {
             nextID &+= 1
             return nextID
         }
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                register(id: id, request: request, timeoutSeconds: timeoutSeconds, continuation: continuation)
+                register(id: id, request: request, timeoutSeconds: timeoutSeconds, state: state, continuation: continuation)
             }
         } onCancel: {
-            self.finish(id, with: .failure(CancellationError()), cancelledEarlyIfAbsent: true)
+            state.cancel()
+            self.finish(id, with: .failure(CancellationError()))
         }
     }
 
@@ -141,14 +204,13 @@ public final class AXSubprocessClient: @unchecked Sendable {
         id: UInt64,
         request: AXHelperRequest,
         timeoutSeconds: Double,
+        state: AXRequestState,
         continuation: CheckedContinuation<AXHelperReply, Error>
     ) {
         let input: FileHandle
         do {
             input = try lock.withLock { () throws -> FileHandle in
-                if cancelledEarly.remove(id) != nil {
-                    throw CancellationError()
-                }
+                guard !state.isCancelled else { throw CancellationError() }
                 let input = try ensureStartedLocked()
                 let timer = Task { [weak self] in
                     do {
@@ -158,16 +220,18 @@ public final class AXSubprocessClient: @unchecked Sendable {
                     }
                     self?.timedOut(id)
                 }
-                pending[id] = Pending(continuation: continuation, timer: timer)
+                pending[id] = Pending(continuation: continuation, timer: timer, state: state)
                 return input
             }
         } catch {
+            state.complete()
             continuation.resume(throwing: error)
             return
         }
 
         do {
             try writeLock.withLock {
+                guard state.beginSubmission() else { return }
                 try AXWire.write(AXRequestFrame(id: id, request: request), to: input)
             }
         } catch {
@@ -181,17 +245,11 @@ public final class AXSubprocessClient: @unchecked Sendable {
 
     private func finish(
         _ id: UInt64,
-        with result: Result<AXHelperReply, Error>,
-        cancelledEarlyIfAbsent: Bool = false
+        with result: Result<AXHelperReply, Error>
     ) {
-        let entry = lock.withLock { () -> Pending? in
-            let entry = pending.removeValue(forKey: id)
-            if entry == nil, cancelledEarlyIfAbsent {
-                cancelledEarly.insert(id)
-            }
-            return entry
-        }
+        let entry = lock.withLock { pending.removeValue(forKey: id) }
         guard let entry else { return }
+        entry.state.complete()
         entry.timer?.cancel()
         entry.continuation.resume(with: result)
     }
@@ -238,6 +296,7 @@ public final class AXSubprocessClient: @unchecked Sendable {
             return failed
         }
         for entry in failed {
+            entry.state.complete()
             entry.timer?.cancel()
             entry.continuation.resume(throwing: AXSubprocessError.helperExited)
         }

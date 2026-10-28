@@ -59,6 +59,18 @@ final class PickedFileAccess {
             && NSDictionary(contentsOf: fileURL) != nil
     }
 
+    func probeAccess() async -> Bool {
+        activateIfNeeded()
+        let scope = scopedURL
+        let hasLease = scope?.startAccessingSecurityScopedResource() == true
+        defer {
+            if hasLease {
+                scope?.stopAccessingSecurityScopedResource()
+            }
+        }
+        return await PermissionFileProbe.readablePropertyList(at: fileURL)
+    }
+
     /// Recovery requires its own read/write grant, not an older read-only one.
     var hasReadWriteAccess: Bool {
         guard hasAccess, defaults.data(forKey: bookmarkKey) != nil else { return false }
@@ -105,8 +117,7 @@ final class PickedFileAccess {
         panel.message = message
         panel.prompt = String(localized: "Grant Access")
         NSApp.activate()
-        guard panel.runModal() == .OK, let picked = panel.url,
-              picked.standardizedFileURL.path == fileURL.standardizedFileURL.path
+        guard panel.runModal() == .OK, let picked = panel.url, picked.standardizedFileURL.path == fileURL.standardizedFileURL.path
         else {
             diagLog.info("No access to \(fileURL.lastPathComponent): the panel closed without that file")
             return false

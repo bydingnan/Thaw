@@ -198,8 +198,7 @@ final class MenuBarItemImageCacheDiskStore: @unchecked Sendable {
         _ snapshot: [MenuBarItemTag: MenuBarItemGlyphCapture],
         concealedIdentifiers: Set<String> = []
     ) {
-        guard isEnabled, !snapshot.isEmpty else { return }
-        guard let url = cacheFileURL else { return }
+        guard isEnabled, !snapshot.isEmpty, let url = cacheFileURL else { return }
         // The file locations are resolved before parking, so the drain block
         // never has to reach for the search API from the queue.
         let legacyURL = legacyCacheFileURL
@@ -213,9 +212,20 @@ final class MenuBarItemImageCacheDiskStore: @unchecked Sendable {
         }
         guard needsDrain else { return }
 
-        queue.async {
+        enqueueDiskOperation {
             self.drainPendingSave(to: url, legacyURL: legacyURL)
         }
+    }
+
+    /// Waits until every save queued before this call has finished writing.
+    nonisolated func flush() async {
+        await withCheckedContinuation { continuation in
+            queue.async { continuation.resume() }
+        }
+    }
+
+    nonisolated func enqueueDiskOperation(_ operation: @escaping @Sendable () -> Void) {
+        queue.async(execute: operation)
     }
 
     /// Writes the parked snapshot, on queue.
@@ -271,8 +281,7 @@ final class MenuBarItemImageCacheDiskStore: @unchecked Sendable {
             return (tagString, png as Data, image.scale)
         }.compactMap(\.self)
 
-        guard cacheData.count == snapshot.count else { return }
-        guard isEnabled else { return }
+        guard cacheData.count == snapshot.count, isEnabled else { return }
 
         do {
             let directoryURL = url.deletingLastPathComponent()
@@ -331,13 +340,10 @@ final class MenuBarItemImageCacheDiskStore: @unchecked Sendable {
     /// false when the file is gone or was written by another version, which
     /// leaves the caller to write it out in full.
     private nonisolated func restampCacheFile(at url: URL, to date: Date) -> Bool {
-        guard let fileData = try? Data(contentsOf: url),
-              var root = try? PropertyListSerialization.propertyList(
-                  from: fileData,
-                  format: nil
-              ) as? [String: Any],
-              root["version"] as? Int == Self.cacheVersion,
-              root["images"] != nil
+        guard let fileData = try? Data(contentsOf: url), var root = try? PropertyListSerialization.propertyList(
+            from: fileData,
+            format: nil
+        ) as? [String: Any], root["version"] as? Int == Self.cacheVersion, root["images"] != nil
         else {
             return false
         }
@@ -417,8 +423,7 @@ final class MenuBarItemImageCacheDiskStore: @unchecked Sendable {
                     format: nil
                 ) as? [String: Any] ?? [:]
             }
-            guard let timestamp = root["timestamp"] as? TimeInterval,
-                  let imagesDict = root["images"] as? [String: [String: Any]] else { return nil }
+            guard let timestamp = root["timestamp"] as? TimeInterval, let imagesDict = root["images"] as? [String: [String: Any]] else { return nil }
 
             if root["version"] as? Int != Self.cacheVersion {
                 let version = root["version"] as? Int
@@ -453,10 +458,7 @@ final class MenuBarItemImageCacheDiskStore: @unchecked Sendable {
         } else {
             entry["png"] as? Data
         }
-        guard let scale = entry["scale"] as? Double,
-              let data = pngData,
-              let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        guard let scale = entry["scale"] as? Double, let data = pngData, let source = CGImageSourceCreateWithData(data as CFData, nil), let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
         else { return nil }
         return MenuBarItemGlyphCapture(cgImage: cgImage, scale: CGFloat(scale))
     }

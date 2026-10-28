@@ -27,6 +27,7 @@ struct AXWireTests {
             bundleID: "com.example.app",
             processName: "Example",
             ownerPID: 42,
+            publisherPID: 99,
             identifier: "Example.StatusItem",
             accessibilityDescription: nil,
             title: "Example",

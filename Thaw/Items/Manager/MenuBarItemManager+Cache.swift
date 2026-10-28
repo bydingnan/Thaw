@@ -179,16 +179,13 @@ extension MenuBarItemManager {
             }
 
             // Validate only changed caches to catch garbled reflow scans without retrying stable violations forever.
-            if !observationOnly, !isScanSanityCheckSuspended,
-               let violation = scanSanityViolation(for: context.cache, on: displayID)
-            {
+            if !observationOnly, !isScanSanityCheckSuspended, let violation = scanSanityViolation(for: context.cache, on: displayID) {
                 let maximumSanityAttempts = 2
                 if sanityAttempts < maximumSanityAttempts, !Task.isCancelled {
                     let snapshot = await MenuBarItemAXProvider.menuBarInventoryConcurrent(freshOnly: true)
                     // An owner can exit during the re-scan, so the process table is read again with it.
                     running = await RunningApplicationSnapshot.current()
-                    guard snapshot.hasFreshKnownInventory,
-                          layoutPublication.canPublish(generation: publicationGeneration)
+                    guard snapshot.hasFreshKnownInventory, layoutPublication.canPublish(generation: publicationGeneration)
                     else {
                         scheduleCoalescedCacheRerun()
                         return
@@ -339,10 +336,7 @@ extension MenuBarItemManager {
         let liveVisible = Set(cache[.visible].map(\.uniqueIdentifier))
         let previousLiveVisible = lastMirroredLiveVisibleIdentifiers
         lastMirroredLiveVisibleIdentifiers = liveVisible
-        guard !authoredVisibleOrderPendingPhysicalApply,
-              !arrangementIsManual,
-              !menuBarAgentIgnoresPreferredPositions,
-              let previousLiveVisible
+        guard !authoredVisibleOrderPendingPhysicalApply, !arrangementIsManual, !menuBarAgentIgnoresPreferredPositions, let previousLiveVisible
         else { return nil }
         let visibleKey = sectionKey(for: .visible)
         return OrderRecording.visibleOrderPreservedAcrossArrival(
@@ -429,8 +423,7 @@ extension MenuBarItemManager {
             Task { [weak self] in
                 guard let self else { return }
                 try? await Task.sleep(for: .milliseconds(300))
-                guard !Task.isCancelled else { return }
-                guard let hold = await self.repairs.enter(.overflowRebalance) else { return }
+                guard !Task.isCancelled, let hold = await self.repairs.enter(.overflowRebalance) else { return }
                 // Read after the wait, so requests merged while queued are honoured.
                 let effective = self.overflowRebalance.intent ?? request
                 let aftermath = RepairTurn.Aftermath()
@@ -694,10 +687,7 @@ extension MenuBarItemManager {
             for i in items.indices {
                 let item = items[i]
                 guard !item.isControlItem else { continue }
-                if let prevPID = previousPIDs[item.windowID],
-                   let currentPID = item.sourcePID,
-                   currentPID != prevPID
-                {
+                if let prevPID = previousPIDs[item.windowID], let currentPID = item.sourcePID, currentPID != prevPID {
                     // Revert only to a running process; persisting a dead PID would fight correct re-resolution after helper relaunch.
                     let prevRunningApp = NSRunningApplication(processIdentifier: prevPID)
                     guard let prevRunningApp, !prevRunningApp.isTerminated else {
@@ -901,6 +891,7 @@ extension MenuBarItemManager {
 
     /// Gate expensive AX walks with a cheap window-list comparison, then require a stable identity difference before rebuilding.
     func cacheItemsIfNeeded() async {
+        guard !lastMoveOperationOccurred(within: .seconds(1)), !(appState?.isDraggingMenuBarItem ?? false), !Task.isCancelled else { return }
         // Window-list changes cover additions, removals, moves, reveals, and hides without an AX signature walk.
         // Use the unfiltered superset to avoid per-window IPC; off-space changes merely cost an extra walk.
         let rawWindowIDs = Bridging.getMenuBarWindowList(option: [])
@@ -908,18 +899,18 @@ extension MenuBarItemManager {
         let cheap = cloneIDs.isEmpty
             ? rawWindowIDs
             : rawWindowIDs.filter { !cloneIDs.contains($0) }
-        if let last = periodicWindowListSignature, last == cheap {
+        if !periodicRefreshGate.needsRefresh(cheap) {
             return
         }
         MenuBarItemManager.diagLog.debug(
-            "cacheItemsIfNeeded: cheap window-list gate changed (\(periodicWindowListSignature?.count ?? -1) -> \(cheap.count)); walking"
+            "cacheItemsIfNeeded: cheap window-list gate changed (\(periodicRefreshGate.signature?.count ?? -1) -> \(cheap.count)); walking"
         )
-        periodicWindowListSignature = cheap
 
         let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
         let signature = MenuBarBackendProvider.current.itemCacheSignature(items) ?? []
         // Assertion-backed menu bar items use synthetic window IDs, so
         // compare stable visual-order identity instead of WindowServer IDs.
+        let pendingStability = signatureStabilityGate
         let cachedSignature = cacheCycleState.cachedItemSignature
         // Gate only autonomous polls; app events and drags recache immediately.
         let recache = signatureStabilityGate.shouldRecache(
@@ -930,10 +921,17 @@ extension MenuBarItemManager {
         if recache {
             MenuBarItemManager.diagLog.debug("cacheItemsIfNeeded: item identities changed and confirmed (\(cachedSignature.count) cached vs \(signature.count) current), triggering recache")
             await cacheItemsRegardless(items.reversed().map(\.windowID))
+            if !lastMoveOperationOccurred(within: .seconds(1)), !(appState?.isDraggingMenuBarItem ?? false), !Task.isCancelled, cacheCycleState.cachedItemSignature == signature {
+                periodicRefreshGate.complete(cheap)
+            } else {
+                signatureStabilityGate = pendingStability
+            }
         } else if signatureStabilityGate.isPending {
             // AX-only changes may not alter the window list; drop the cheap gate so the next tick can confirm them.
-            periodicWindowListSignature = nil
+            periodicRefreshGate.deferRefresh()
             MenuBarItemManager.diagLog.debug("cacheItemsIfNeeded: item identities differ (\(cachedSignature.count) cached vs \(signature.count) current); deferring recache until the difference holds for the stability grace")
+        } else {
+            periodicRefreshGate.complete(cheap)
         }
     }
 }
